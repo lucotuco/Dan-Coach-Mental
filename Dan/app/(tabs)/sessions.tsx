@@ -2,13 +2,13 @@ import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
-export default function HomeScreen() {
+export default function SessionsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Inicio</Text>
+      <Text style={styles.title}>Sesiones</Text>
       <Text style={styles.subtitle}>
-        Bienvenido a Dan Coach Mental. Pronto encontrarás atajos y novedades
-        importantes aquí.
+        Programa y gestiona tus próximas sesiones desde esta pantalla cuando
+        esté disponible.
       </Text>
     </View>
   );

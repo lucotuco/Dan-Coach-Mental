@@ -2,13 +2,12 @@ import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
-export default function HomeScreen() {
+export default function LibraryScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Inicio</Text>
+      <Text style={styles.title}>Biblioteca</Text>
       <Text style={styles.subtitle}>
-        Bienvenido a Dan Coach Mental. Pronto encontrarás atajos y novedades
-        importantes aquí.
+        Reúne recursos, artículos y ejercicios en esta biblioteca muy pronto.
       </Text>
     </View>
   );

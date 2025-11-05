@@ -2,13 +2,13 @@ import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
-export default function HomeScreen() {
+export default function CheckupsScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Inicio</Text>
+      <Text style={styles.title}>Chequeos</Text>
       <Text style={styles.subtitle}>
-        Bienvenido a Dan Coach Mental. Pronto encontrarás atajos y novedades
-        importantes aquí.
+        Aquí podrás revisar tus chequeos periódicos cuando esta sección esté
+        disponible.
       </Text>
     </View>
   );

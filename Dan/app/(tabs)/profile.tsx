@@ -2,13 +2,13 @@ import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
-export default function HomeScreen() {
+export default function ProfileScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Inicio</Text>
+      <Text style={styles.title}>Perfil</Text>
       <Text style={styles.subtitle}>
-        Bienvenido a Dan Coach Mental. Pronto encontrarás atajos y novedades
-        importantes aquí.
+        Gestiona tu información personal y preferencias cuando habilitemos esta
+        vista.
       </Text>
     </View>
   );
