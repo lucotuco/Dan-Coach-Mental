@@ -1,0 +1,82 @@
+import type { ComponentProps } from 'react';
+import { Pressable, StyleSheet } from 'react-native';
+
+import { Text, View, useThemeColor } from './Themed';
+
+import { Feather as FeatherIcon } from '@expo/vector-icons';
+
+type FeatherName = ComponentProps<typeof FeatherIcon>['name'];
+
+type DashboardTileProps = {
+  icon: FeatherName;
+  title: string;
+  subtitle?: string;
+  onPress?: () => void;
+  accentColor?: string;
+};
+
+export function DashboardTile({ icon, title, subtitle, onPress, accentColor }: DashboardTileProps) {
+  const backgroundColor = useThemeColor({ light: '#f6f7fb', dark: '#1e2029' }, 'background');
+  const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
+  const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
+  const iconBackground = accentColor ? hexToRgba(accentColor, 0.15) : '#e4e7ff';
+  const iconColor = accentColor ?? '#4c6ef5';
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={title}
+      onPress={onPress}
+      style={({ pressed }) => [styles.tile, { backgroundColor }, pressed && styles.pressed]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: iconBackground }]}>
+        <FeatherIcon name={icon} size={20} color={iconColor} />
+      </View>
+      <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.subtitle, { color: mutedColor }]}>{subtitle}</Text> : null}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  tile: {
+    borderRadius: 18,
+    padding: 16,
+    gap: 6,
+    flex: 1,
+    minWidth: 140,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  subtitle: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  pressed: {
+    transform: [{ scale: 0.98 }],
+  },
+});
+
+function hexToRgba(hex: string, alpha: number) {
+  const sanitized = hex.replace('#', '');
+  if (sanitized.length !== 6) {
+    return hex;
+  }
+
+  const r = parseInt(sanitized.slice(0, 2), 16);
+  const g = parseInt(sanitized.slice(2, 4), 16);
+  const b = parseInt(sanitized.slice(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export default DashboardTile;
