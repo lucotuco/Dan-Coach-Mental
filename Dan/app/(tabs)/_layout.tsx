@@ -5,6 +5,7 @@ import { Tabs } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import HeaderLogo from '@/components/HeaderLogo';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome5>['name'];
@@ -32,6 +33,15 @@ export default function TabLayout() {
           elevation: 0,
           paddingVertical: 6,
         },
+        headerTitle: () => <HeaderLogo />,
+        headerTitleAlign: 'center',
+        headerTitleContainerStyle: {
+          width: '100%',
+        },
+        headerStyle: {
+          backgroundColor: theme.background,
+        },
+        headerTintColor: theme.text,
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
