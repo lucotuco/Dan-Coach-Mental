@@ -11,7 +11,7 @@ import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 
 const user = {
-  name: 'Mariana Pérez',
+  name: 'Lucas Schlez',
 };
 
 type MoodOption = {
@@ -88,7 +88,9 @@ export default function HomeScreen() {
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={[styles.subtitle, { color: mutedColor }]}>¿Listo para continuar con tu plan?</Text>
         </View>
+        <Pressable>
         <Avatar name={user.name} size={56} />
+        </Pressable>
       </View>
 
       <Card style={styles.dailyCheckCard}>
