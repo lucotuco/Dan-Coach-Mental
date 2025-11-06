@@ -1,5 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
+import { Link } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 
 import { Feather as FeatherIcon } from '@expo/vector-icons';
@@ -9,7 +10,7 @@ import Card from '@/components/Card';
 import CircularIconButton from '@/components/CircularIconButton';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
-import ProfileScreen from '@/app/profile';
+
 
 const user = {
   name: 'Lucas Schlez',
@@ -83,17 +84,16 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
+      <Link href="/profile">
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.greeting}>Buenos días,</Text>
           <Text style={styles.userName}>{user.name}</Text>
           <Text style={[styles.subtitle, { color: mutedColor }]}>¿Listo para continuar con tu plan?</Text>
-        </View>
-        <Pressable>
-          ProfileScreen();
+        </View>        
         <Avatar name={user.name} size={56} />
-        </Pressable>
       </View>
+      </Link>
 
       <Card style={styles.dailyCheckCard}>
         <View style={styles.cardHeader}>

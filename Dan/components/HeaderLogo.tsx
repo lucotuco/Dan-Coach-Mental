@@ -1,8 +1,8 @@
 import React from 'react';
 import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
-import logoSource from '../assets/images/DAN_coach_mental_sin_fondo_v2.png';
+import '../assets/images/DAN_coach_mental_sin_fondo_v2.png';
 
-//const logoSource = require('./assets/images/DAN_coach_mental_sin_fondo_v2.png');
+const logoSource = require('../assets/images/DAN_coach_mental_sin_fondo_v2.png');
 const { width: assetWidth, height: assetHeight } = Image.resolveAssetSource(logoSource);
 const LOGO_ASPECT_RATIO = assetHeight === 0 ? 1 : assetWidth / assetHeight;
 
