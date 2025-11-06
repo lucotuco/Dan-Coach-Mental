@@ -1,8 +1,9 @@
 import React from 'react';
 import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
+import DanLogo from '../assets/images/DAN_coach_mental_sin_fondo_v2.png';
 
 const LOGO_URI =
-  'https://coachdan.es/wp-content/uploads/2020/08/LOGO-DAN-COACH-DEPORTE-900px.png';
+  DanLogo;
 const LOGO_ASPECT_RATIO = 944 / 533;
 
 export default function HeaderLogo() {
