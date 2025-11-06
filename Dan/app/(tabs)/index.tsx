@@ -9,6 +9,7 @@ import Card from '@/components/Card';
 import CircularIconButton from '@/components/CircularIconButton';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
+import ProfileScreen from '@/app/profile';
 
 const user = {
   name: 'Lucas Schlez',
@@ -89,6 +90,7 @@ export default function HomeScreen() {
           <Text style={[styles.subtitle, { color: mutedColor }]}>¿Listo para continuar con tu plan?</Text>
         </View>
         <Pressable>
+          ProfileScreen();
         <Avatar name={user.name} size={56} />
         </Pressable>
       </View>

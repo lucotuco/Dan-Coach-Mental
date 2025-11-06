@@ -57,7 +57,6 @@ function RootLayoutNav() {
         screenOptions={{
           headerTitle: () => <HeaderLogo />,
           headerTitleAlign: 'center',
-          headerTitleContainerStyle: { width: '100%' },
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
         }}>

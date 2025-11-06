@@ -1,10 +1,11 @@
 import React from 'react';
 import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
-import DanLogo from '../assets/images/DAN_coach_mental_sin_fondo_v2.png';
+import logoSource from '../assets/images/DAN_coach_mental_sin_fondo_v2.png';
 
-const LOGO_URI =
-  DanLogo;
-const LOGO_ASPECT_RATIO = 944 / 533;
+//const logoSource = require('./assets/images/DAN_coach_mental_sin_fondo_v2.png');
+const { width: assetWidth, height: assetHeight } = Image.resolveAssetSource(logoSource);
+const LOGO_ASPECT_RATIO = assetHeight === 0 ? 1 : assetWidth / assetHeight;
+
 
 export default function HeaderLogo() {
   const { width } = useWindowDimensions();
@@ -16,7 +17,7 @@ export default function HeaderLogo() {
       <Image
         accessibilityRole="image"
         accessibilityLabel="Dan Coach Mental Deportivo logo"
-        source={{ uri: LOGO_URI }}
+        source={logoSource}
         style={[styles.logo, { width: logoWidth, height: logoHeight }]}
       />
     </View>
