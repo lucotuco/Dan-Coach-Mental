@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 
@@ -10,7 +10,7 @@ import Card from '@/components/Card';
 import CircularIconButton from '@/components/CircularIconButton';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
-
+import MedioLogo from '@/components/MedioLogo';
 
 const user = {
   name: 'Lucas Schlez',
@@ -78,12 +78,16 @@ const quickActions: QuickAction[] = [
 
 export default function HomeScreen() {
   const [selectedMood, setSelectedMood] = useState('focused');
-  const backgroundColor = useThemeColor({ light: '#f3f4fb', dark: '#0f1119' }, 'background');
+  const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
-  const primaryColor = useThemeColor({ light: '#4c6ef5', dark: '#748ffc' }, 'tint');
+  const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor }]} contentContainerStyle={styles.content}>
+    
+    <ScrollView style={[styles.container, { backgroundColor },]} contentContainerStyle={styles.content}>
+
+      <MedioLogo/>
+      
       <Link href="/profile">
       <View style={styles.header}>
         <View style={styles.headerText}>
@@ -94,40 +98,6 @@ export default function HomeScreen() {
         <Avatar name={user.name} size={56} />
       </View>
       </Link>
-
-      <Card style={styles.dailyCheckCard}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Chequeo Diario</Text>
-          <Text style={[styles.cardDescription, { color: mutedColor }]}>¿Cómo te sientes hoy?</Text>
-        </View>
-        <View style={styles.moodGrid}>
-          {moodOptions.map((mood) => (
-            <CircularIconButton
-              key={mood.key}
-              icon={mood.icon}
-              label={mood.label}
-              active={selectedMood === mood.key}
-              onPress={() => setSelectedMood(mood.key)}
-              accentColor={mood.accent}
-            />
-          ))}
-        </View>
-        <Pressable accessibilityRole="button" style={[styles.primaryButton, { backgroundColor: primaryColor }]}>
-          <Text style={styles.primaryButtonText}>Registrar estado</Text>
-        </Pressable>
-      </Card>
-
-      <Card style={styles.ctaCard} lightColor="#4c6ef5" darkColor="#313866">
-        <View style={styles.ctaContent}>
-          <View style={styles.ctaText}>
-            <Text style={styles.ctaTitle}>Sesión guiada recomendada</Text>
-            <Text style={styles.ctaSubtitle}>15 minutos · Respiración consciente</Text>
-          </View>
-          <Pressable accessibilityRole="button" style={[styles.ctaButton, { backgroundColor: '#fff' }]}>
-            <Text style={[styles.ctaButtonText, { color: primaryColor }]}>Empezar</Text>
-          </Pressable>
-        </View>
-      </Card>
 
       <View style={styles.tilesWrapper}>
         <Text style={styles.sectionTitle}>Accesos rápidos</Text>
@@ -150,6 +120,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  espacio: {
+    marginTop: 30,
   },
   content: {
     padding: 24,

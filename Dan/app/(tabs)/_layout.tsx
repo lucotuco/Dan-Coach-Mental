@@ -36,7 +36,7 @@ export default function TabLayout() {
         headerTitle: () => <HeaderLogo />,
         headerTitleAlign: 'center',
         headerTitleContainerStyle: {
-          width: '100%',
+          width: '200%', height:'80%'
         },
         headerStyle: {
           backgroundColor: theme.background,
