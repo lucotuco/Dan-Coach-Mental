@@ -58,7 +58,7 @@ export default function TabLayout() {
           title: 'Chequeos',
           tabBarLabel: 'Chequeos',
           tabBarIcon: ({ color }) => (
-            <TabBarIcon name="calendar-check" color={color} />
+            <TabBarIcon name="clipboard-check" color={color} />
           ),
         }}
       />
