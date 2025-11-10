@@ -1,9 +1,10 @@
-import { StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView, View as DefaultView } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
+import AudioRecorderButton from '@/components/AudioRecorderButton';
 
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
@@ -18,7 +19,7 @@ export default function CheckupsScreen() {
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
-          <Card>
+         <Card>
              <Text style={styles.sliderLabel}>Energia:</Text>
              <Slider 
                style={{width: 300, height: 40}}
@@ -102,7 +103,17 @@ export default function CheckupsScreen() {
                onValueChange={(value) => handleSliderChange(value, 5)}
              />
          </Card>
-          
+
+         <Card style={styles.audioCard}>
+            <DefaultView style={styles.audioHeader}>
+              <Text style={styles.cardTitle}>Nota de voz</Text>
+              <Text style={[styles.cardDescription, styles.audioDescription]}>
+                Registra tu estado de ánimo con un mensaje de audio.
+              </Text>
+            </DefaultView>
+            <AudioRecorderButton />
+         </Card>
+
     </ScrollView>
   );
 }
@@ -163,6 +174,17 @@ const styles = StyleSheet.create({
   },
   cardDescription: {
     fontSize: 14,
+  },
+  audioCard: {
+    alignItems: 'center',
+  },
+  audioHeader: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  audioDescription: {
+    marginTop: 4,
+    lineHeight: 20,
   },
   moodGrid: {
     flexDirection: 'row',
