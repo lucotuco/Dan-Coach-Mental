@@ -4,7 +4,6 @@ import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
-import AudioRecorderButton from '@/components/AudioRecorderButton';
 
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
@@ -111,7 +110,6 @@ export default function CheckupsScreen() {
                 Registra tu estado de ánimo con un mensaje de audio.
               </Text>
             </DefaultView>
-            <AudioRecorderButton />
          </Card>
 
     </ScrollView>
