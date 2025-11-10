@@ -111,7 +111,6 @@ export default function CheckupsScreen() {
                 Registra tu estado de ánimo con un mensaje de audio.
               </Text>
             </DefaultView>
-            <AudioRecorderButton />
          </Card>
 
     </ScrollView>
