@@ -1,27 +1,25 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Button, Modal, Pressable, Text } from 'react-native';
+import { View, StyleSheet, Button, Modal, Pressable, Text} from 'react-native';
 import {useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorderState, createAudioPlayer} from 'expo-audio';
 import {TabBarIcon} from '../app/(tabs)/_layout';
 import { FontAwesome5 } from '@expo/vector-icons';
- 
+
 export default function RecordingButton() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
   const record = async () => {
+     setAudioModeAsync({playsInSilentMode: true,allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
   };
-
   const stopRecording = async () => {
     // The recording will be available on `audioRecorder.uri`.
     await audioRecorder.stop();
+    setAudioModeAsync({allowsRecording: false, playsInSilentMode: true})
   };
   const player = createAudioPlayer(audioRecorder.uri);
 
-  const Grabar = () => {recorderState.isRecording ? stopRecording : record
-  }
-    
   useEffect(() => {
     (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -38,27 +36,24 @@ export default function RecordingButton() {
 
   return (
     <View style={styles.container}>
-      <Modal animationType="slide" transparent={true} visible={modalVisible} 
+      <Modal animationType="slide" transparent={true} visible={modalVisible} //allowSwipeDismissal ={true} presentationStyle="pageSheet"
         onRequestClose={() => {
-          alert('Modal has been closed.');
           setModalVisible(!modalVisible);}}>
             <View style={styles.centeredView}>
               <View style={styles.modalView}>
-                <Pressable>
-                  {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={30} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={30} color={'#ccc'} />}
-                  
+                <Pressable
+                accessibilityRole="button"
+                onPress={recorderState.isRecording ? stopRecording : record}>
+
+                  {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={40} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={40} color={'#ccc'} />}
                 </Pressable>
-                <Button
-                  title= ""
-                  onPress={recorderState.isRecording ? stopRecording : record}
-                />
-                <Button
-                  title="Play Sound"
-                  onPress={() => {
+                <Pressable accessibilityRole="button"
+                onPress={() => {
                     player.seekTo(0);
-                    player.play();
-                  }}
-                />
+                    player.play();}}>
+                  <FontAwesome5 name={'play'} size={30} color={'#ccc'} />
+                    </Pressable>
+
                 <Pressable
                   onPress={() => setModalVisible(!modalVisible)}>
                   <Text>Hide Modal</Text>
@@ -68,7 +63,7 @@ export default function RecordingButton() {
       </Modal>
       <Pressable
           onPress={() => setModalVisible(true)}>
-          <Text>Show Modal</Text>
+          <FontAwesome5 name={'microphone'} size={40} color={'#a19f9fff'} />
       </Pressable>
     </View>
   );
@@ -80,7 +75,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#ecf0f1',
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 100,
   },
   centeredView: {
     flex: 1,

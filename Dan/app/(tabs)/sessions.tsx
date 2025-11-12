@@ -8,7 +8,7 @@ export default function SessionsScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Sesiones</Text>
       
-    <RecordingButton></RecordingButton>
+    <RecordingButton/>
         
       
     </View>
