@@ -1,51 +1,24 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Modal, Pressable, Text } from 'react-native';
-import {
-  useAudioRecorder,
-  AudioModule,
-  RecordingPresets,
-  setAudioModeAsync,
-  useAudioRecorderState,
-  createAudioPlayer,
-} from 'expo-audio';
+import { View, StyleSheet, Button, Modal, Pressable, Text} from 'react-native';
+import {useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorderState, createAudioPlayer} from 'expo-audio';
+import {TabBarIcon} from '../app/(tabs)/_layout';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function RecordingButton() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
-  const [player, setPlayer] = useState<ReturnType<typeof createAudioPlayer> | null>(null);
-
   const record = async () => {
-    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+     setAudioModeAsync({playsInSilentMode: true,allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
   };
-
   const stopRecording = async () => {
+    // The recording will be available on `audioRecorder.uri`.
     await audioRecorder.stop();
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    setAudioModeAsync({allowsRecording: false, playsInSilentMode: true})
   };
-  useEffect(() => {
-    if (!audioRecorder.uri) {
-      setPlayer((current) => {
-        current?.stop();
-        return null;
-      });
-      return;
-    }
-
-    const nextPlayer = createAudioPlayer(audioRecorder.uri);
-
-    setPlayer((current) => {
-      current?.stop();
-      return nextPlayer;
-    });
-
-    return () => {
-      nextPlayer.stop();
-    };
-  }, [audioRecorder.uri]);
+  const player = createAudioPlayer(audioRecorder.uri);
 
   useEffect(() => {
     (async () => {
@@ -75,10 +48,9 @@ export default function RecordingButton() {
                   {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={40} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={40} color={'#ccc'} />}
                 </Pressable>
                 <Pressable accessibilityRole="button"
-                onPress={async () => {
-                    await player?.stop();
-                    player?.seekTo(0);
-                    player?.play();}}>
+                onPress={() => {
+                    player.seekTo(0);
+                    player.play();}}>
                   <FontAwesome5 name={'play'} size={30} color={'#ccc'} />
                     </Pressable>
 
