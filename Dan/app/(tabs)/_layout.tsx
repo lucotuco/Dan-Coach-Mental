@@ -1,7 +1,7 @@
 import React from 'react';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Tabs,Link } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
@@ -84,10 +84,6 @@ export default function TabLayout() {
           title: 'Biblioteca',
           tabBarLabel: 'Biblioteca',
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
-          headerRight: () => (
-          <Link href="/modal" asChild>
-            </Link>
-          ),
         }}
       />
     </Tabs>
