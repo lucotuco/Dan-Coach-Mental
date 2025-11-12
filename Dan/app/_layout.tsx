@@ -61,7 +61,16 @@ function RootLayoutNav() {
           headerTintColor: theme.text,
         }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+            headerTransparent: true,
+            headerTitle: '',
+          }}
+        />
       </Stack>
     </ThemeProvider>
   );
