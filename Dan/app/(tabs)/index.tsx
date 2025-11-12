@@ -16,13 +16,6 @@ const user = {
   name: 'Lucas Schlez',
 };
 
-type MoodOption = {
-  key: string;
-  label: string;
-  icon: ComponentProps<typeof FeatherIcon>['name'];
-  accent: string;
-};
-
 type QuickAction = {
   key: string;
   title: string;
@@ -31,12 +24,6 @@ type QuickAction = {
   accent: string;
 };
 
-const moodOptions: MoodOption[] = [
-  { key: 'energized', label: 'Energizado', icon: 'sun', accent: '#f59f00' },
-  { key: 'calm', label: 'Calmado', icon: 'cloud', accent: '#20c997' },
-  { key: 'focused', label: 'Enfocado', icon: 'target', accent: '#748ffc' },
-  { key: 'stressed', label: 'Tenso', icon: 'zap-off', accent: '#ff6b6b' },
-];
 
 const quickActions: QuickAction[] = [
   {
@@ -77,7 +64,6 @@ const quickActions: QuickAction[] = [
 ];
 
 export default function HomeScreen() {
-  const [selectedMood, setSelectedMood] = useState('focused');
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');

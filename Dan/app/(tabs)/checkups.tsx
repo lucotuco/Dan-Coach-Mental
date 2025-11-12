@@ -6,7 +6,6 @@ import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
-import { Color } from 'react-native/types_generated/Libraries/Animated/AnimatedExports';
 
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);

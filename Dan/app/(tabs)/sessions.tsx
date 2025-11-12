@@ -1,15 +1,16 @@
 import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
+import RecordingButton from '@/components/AudioRecorderButton';
 
 export default function SessionsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Sesiones</Text>
-      <Text style={styles.subtitle}>
-        Programa y gestiona tus próximas sesiones desde esta pantalla cuando
-        esté disponible.
-      </Text>
+      
+    <RecordingButton></RecordingButton>
+        
+      
     </View>
   );
 }

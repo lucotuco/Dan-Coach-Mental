@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Button, Modal, Pressable, Text } from 'react-native';
 import {useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorderState, createAudioPlayer} from 'expo-audio';
-
+import {TabBarIcon} from '../app/(tabs)/_layout';
+import { FontAwesome5 } from '@expo/vector-icons';
+ 
 export default function RecordingButton() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
-
   const record = async () => {
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
@@ -18,6 +19,9 @@ export default function RecordingButton() {
   };
   const player = createAudioPlayer(audioRecorder.uri);
 
+  const Grabar = () => {recorderState.isRecording ? stopRecording : record
+  }
+    
   useEffect(() => {
     (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -34,14 +38,18 @@ export default function RecordingButton() {
 
   return (
     <View style={styles.container}>
-      <Modal animationType="slide" transparent={false} visible={modalVisible} 
+      <Modal animationType="slide" transparent={true} visible={modalVisible} 
         onRequestClose={() => {
           alert('Modal has been closed.');
           setModalVisible(!modalVisible);}}>
             <View style={styles.centeredView}>
               <View style={styles.modalView}>
+                <Pressable>
+                  {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={30} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={30} color={'#ccc'} />}
+                  
+                </Pressable>
                 <Button
-                  title={recorderState.isRecording ? 'Stop Recording' : 'Start Recording'}
+                  title= ""
                   onPress={recorderState.isRecording ? stopRecording : record}
                 />
                 <Button
