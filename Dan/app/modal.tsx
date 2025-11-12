@@ -1,63 +1,35 @@
 import { StatusBar } from 'expo-status-bar';
-import { BlurView } from 'expo-blur';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 import EditScreenInfo from '@/components/EditScreenInfo';
-import { Text, View as ThemedView } from '@/components/Themed';
+import { Text, View } from '@/components/Themed';
 
 export default function ModalScreen() {
   return (
-    <View style={styles.overlay}>
-      <BlurView intensity={80} tint="default" style={styles.blurLayer} />
-      <View pointerEvents="none" style={styles.backdropTint} />
+    <View style={styles.container}>
+      <Text style={styles.title}>Modal</Text>
+      <View style={styles.separator} lightColor="#eee" darkColor="rgba(255,255,255,0.1)" />
+      <EditScreenInfo path="app/modal.tsx" />
 
-      <ThemedView style={styles.content}>
-        <Text style={styles.title}>Modal</Text>
-        <View style={styles.separator} />
-        <EditScreenInfo path="app/modal.tsx" />
-      </ThemedView>
-
-      <StatusBar style="light" />
+      {/* Use a light status bar on iOS to account for the black space above the modal */}
+      <StatusBar style={Platform.OS === 'ios' ? 'light' : 'auto'} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-  },
-  blurLayer: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  backdropTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(6, 11, 25, 0.35)',
-  },
-  content: {
-    width: '100%',
-    maxWidth: 420,
-    borderRadius: 28,
-    padding: 24,
-    gap: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 12,
-    overflow: 'hidden',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(255, 255, 255, 0.35)',
-    marginVertical: 4,
+    marginVertical: 30,
+    height: 1,
+    width: '80%',
   },
 });
