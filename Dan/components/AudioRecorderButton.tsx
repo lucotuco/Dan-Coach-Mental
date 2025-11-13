@@ -9,6 +9,8 @@ import {
   createAudioPlayer,
 } from 'expo-audio';
 import { FontAwesome5 } from '@expo/vector-icons';
+import Colors from '../constants/Colors';
+import { useColorScheme } from './useColorScheme';
 
 export default function RecordingButton() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);

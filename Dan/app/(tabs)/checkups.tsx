@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView, Pressable } from 'react-native';
 import { Button } from 'react-native-paper';
 import React from 'react';
 import { Text, View } from '@/components/Themed';
@@ -20,80 +20,12 @@ export default function CheckupsScreen() {
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
          <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center', paddingLeft:50}}>Chequeo Diario</Text>
-          <Card>
-             <Text style={styles.sliderLabel}>Energía :</Text>
-             <Slider 
-               style={{width: 300, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 0)}
-             />
-
-             <Text style={styles.sliderLabel}>Motivación :</Text>
-             <Slider 
-               style={{width: 300, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 1)}
-             />
-
-             <Text style={styles.sliderLabel}>Estado Emocional:</Text>
-             <Slider 
-               style={{width: 300, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 2)}
-             />
-
-             <Text style={styles.sliderLabel}>Sueño :</Text>
-             <Slider 
-               style={{width: 300, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 3)}
-             />
-             <Text style={styles.sliderLabel}>Dolor o Molestia:</Text>
-             <Slider 
-               style={{width: 300, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 4)}
-             />
-         </Card>
-
-          <Button mode="contained" style={{marginTop:20, backgroundColor:'#1d1564ff'}} onPress={() => console.log('Guardar Chequeo ', sliderValues[0], sliderValues[1], sliderValues[2], sliderValues[3], sliderValues[4])}>
-            <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
-          </Button>
+          <Card style={styles.dailyCheckCard}>
+            <View style={styles.cardHeader}/>
+              <Pressable>
+              <Text style={styles.cardTitle}>¿Cómo te sientes hoy?</Text>
+              </Pressable>
+          </Card>
           
     </ScrollView>
   );
@@ -144,7 +76,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   dailyCheckCard: {
-    gap: 20,
+    
   },
   cardHeader: {
     gap: 4,
