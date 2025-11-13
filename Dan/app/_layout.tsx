@@ -3,12 +3,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
-import HeaderLogo from '@/components/HeaderLogo';
 import Colors from '@/constants/Colors';
+import { createSharedHeaderOptions } from '@/constants/navigation';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -51,15 +51,16 @@ function RootLayoutNav() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
+  const sharedHeaderOptions = useMemo(
+    () => createSharedHeaderOptions(theme),
+    [theme],
+  );
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack
-        screenOptions={{
-          headerTitle: () => <HeaderLogo />,
-          headerTitleAlign: 'center',
-          headerStyle: { backgroundColor: theme.background},
-          headerTintColor: theme.text,
-        }}>
+        screenOptions={sharedHeaderOptions}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

@@ -5,7 +5,7 @@ import { Tabs } from 'expo-router';
 import Colors from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-import HeaderLogo from '@/components/HeaderLogo';
+import { createSharedHeaderOptions } from '@/constants/navigation';
 
 export function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome5>['name'];
@@ -18,9 +18,15 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
 
+  const sharedHeaderOptions = React.useMemo(
+    () => createSharedHeaderOptions(theme),
+    [theme],
+  );
+
   return (
     <Tabs
       screenOptions={{
+        ...sharedHeaderOptions,
         tabBarActiveTintColor: theme.tabIconSelected,
         tabBarInactiveTintColor: theme.tabIconDefault,
         tabBarLabelStyle: {
@@ -33,20 +39,6 @@ export default function TabLayout() {
           elevation: 0,
           paddingVertical: 6,
         },
-        headerTitle: () => <HeaderLogo />,
-        headerTitleAlign: 'center',
-        headerTitleContainerStyle: {
-          width: '200%',
-          height: '140%',
-        },
-        headerStyle: {
-          backgroundColor: theme.background,
-          shadowColor: 'transparent',
-          elevation: 0,
-          
-        },
-        headerTintColor: theme.text,
-        headerShadowVisible: false,
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
@@ -94,17 +86,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ChequeoDiario"
         options={{
-          title: 'Biblioteca',
-          tabBarLabel: 'Biblioteca',
-          tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+          href: null,
+          tabBarButton: () => null,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Biblioteca',
-          tabBarLabel: 'Biblioteca',
-          tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+          href: null,
+          tabBarButton: () => null,
         }}
       />
     </Tabs>
