@@ -1,7 +1,13 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, Button, Modal, Pressable, Text} from 'react-native';
-import {useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorderState, createAudioPlayer} from 'expo-audio';
-import {TabBarIcon} from '../app/(tabs)/_layout';
+import { useCallback, useEffect, useState } from 'react';
+import { View, StyleSheet, Modal, Pressable, Text } from 'react-native';
+import {
+  AudioModule,
+  RecordingPresets,
+  createAudioPlayer,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function RecordingButton() {
@@ -10,21 +16,30 @@ export default function RecordingButton() {
   const [modalVisible, setModalVisible] = useState(false);
   const [player, setPlayer] = useState<ReturnType<typeof createAudioPlayer> | null>(null);
 
+  const stopPlayer = useCallback((audioPlayer: ReturnType<typeof createAudioPlayer> | null) => {
+    if (!audioPlayer) {
+      return;
+    }
+
+    void audioPlayer.pause();
+    void audioPlayer.seekTo(0);
+  }, []);
+
   const record = async () => {
-    await setAudioModeAsync({playsInSilentMode: true,allowsRecording: true });
+    await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
   };
   const stopRecording = async () => {
     // The recording will be available on `audioRecorder.uri`.
     await audioRecorder.stop();
-    setAudioModeAsync({allowsRecording: false, playsInSilentMode: true})
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
   };
 
   useEffect(() => {
     if (!audioRecorder.uri) {
       setPlayer((current) => {
-        current?.stop();
+        stopPlayer(current);
         return null;
       });
       return;
@@ -33,14 +48,14 @@ export default function RecordingButton() {
     const nextPlayer = createAudioPlayer(audioRecorder.uri);
 
     setPlayer((current) => {
-      current?.stop();
+      stopPlayer(current);
       return nextPlayer;
     });
 
     return () => {
-      nextPlayer.stop();
+      stopPlayer(nextPlayer);
     };
-  }, [audioRecorder.uri]);
+  }, [audioRecorder.uri, stopPlayer]);
 
   useEffect(() => {
     (async () => {
@@ -49,7 +64,7 @@ export default function RecordingButton() {
         alert('Permission to access microphone was denied');
       }
 
-      setAudioModeAsync({
+      await setAudioModeAsync({
         playsInSilentMode: true,
         allowsRecording: true,
       });
@@ -58,35 +73,47 @@ export default function RecordingButton() {
 
   return (
     <View style={styles.container}>
-      <Modal animationType="slide" transparent={true} visible={modalVisible} //allowSwipeDismissal ={true} presentationStyle="pageSheet"
+      <Modal
+        animationType="slide"
+        transparent
+        visible={modalVisible}
+        presentationStyle="pageSheet"
         onRequestClose={() => {
-          setModalVisible(!modalVisible);}}>
-            <View style={styles.centeredView}>
-              <View style={styles.modalView}>
-                <Pressable
-                accessibilityRole="button"
-                onPress={recorderState.isRecording ? stopRecording : record}>
+          stopPlayer(player);
+          setModalVisible(false);
+        }}>
+        <View style={styles.centeredView}>
+          <View style={styles.modalView}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={recorderState.isRecording ? stopRecording : record}>
+              {recorderState.isRecording ? (
+                <FontAwesome5 name="microphone" size={40} color="#ff0000ff" />
+              ) : (
+                <FontAwesome5 name="microphone" size={40} color="#ccc" />
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                stopPlayer(player);
+                void player?.play();
+              }}>
+              <FontAwesome5 name="play" size={30} color="#ccc" />
+            </Pressable>
 
-                  {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={40} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={40} color={'#ccc'} />}
-                </Pressable>
-                <Pressable accessibilityRole="button"
-                onPress={async() => {
-                    await player?.stop();
-                    player?.seekTo(0);
-                    player?.play();}}>
-                  <FontAwesome5 name={'play'} size={30} color={'#ccc'} />
-                    </Pressable>
-
-                <Pressable
-                  onPress={() => setModalVisible(!modalVisible)}>
-                  <Text>Hide Modal</Text>
-                </Pressable>
-              </View>
-            </View>
+            <Pressable
+              onPress={() => {
+                stopPlayer(player);
+                setModalVisible(false);
+              }}>
+              <Text>Hide Modal</Text>
+            </Pressable>
+          </View>
+        </View>
       </Modal>
-      <Pressable
-          onPress={() => setModalVisible(true)}>
-          <FontAwesome5 name={'microphone'} size={40} color={'#a19f9fff'} />
+      <Pressable onPress={() => setModalVisible(true)}>
+        <FontAwesome5 name="microphone" size={40} color="#a19f9fff" />
       </Pressable>
     </View>
   );
@@ -94,7 +121,6 @@ export default function RecordingButton() {
 
 const styles = StyleSheet.create({
   container: {
-    
     justifyContent: 'center',
     backgroundColor: '#ecf0f1',
     padding: 10,
