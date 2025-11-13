@@ -42,7 +42,7 @@ export default function TabLayout() {
           backgroundColor: theme.background,
           shadowColor: 'transparent',
           elevation: 0,
-          
+          borderBottomWidth: 0,
         },
         headerTintColor: theme.text,
         headerShadowVisible: false,
