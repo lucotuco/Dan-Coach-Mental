@@ -35,17 +35,14 @@ export default function TabLayout() {
         },
         headerTitle: () => <HeaderLogo />,
         headerTitleAlign: 'center',
+        
         headerTitleContainerStyle: {
           width: '200%', height:'140%'
         },
         headerStyle: {
           backgroundColor: theme.background,
-          shadowColor: 'transparent',
-          elevation: 0,
-          borderBottomWidth: 0,
         },
         headerTintColor: theme.text,
-        headerShadowVisible: false,
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
