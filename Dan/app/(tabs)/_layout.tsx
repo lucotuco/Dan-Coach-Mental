@@ -87,14 +87,14 @@ export default function TabLayout() {
         name="ChequeoDiario"
         options={{
           href: null,
-          tabBarButton: () => null,
+          
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           href: null,
-          tabBarButton: () => null,
+          
         }}
       />
     </Tabs>
