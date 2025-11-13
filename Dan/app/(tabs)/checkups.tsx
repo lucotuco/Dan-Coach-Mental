@@ -1,11 +1,11 @@
 import { StyleSheet, ScrollView, Pressable } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Link } from 'expo-router';
 import React from 'react';
 import { Text, View } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
-import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
+import { FontAwesome5 } from '@expo/vector-icons';
 
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
@@ -19,18 +19,27 @@ export default function CheckupsScreen() {
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
-         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center', paddingLeft:50}}>Chequeo Diario</Text>
+         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center', paddingLeft:50}}>Chequeos</Text>
           <Card style={styles.dailyCheckCard}>
-            <View style={styles.cardHeader}/>
-              <Pressable>
-              <Text style={styles.cardTitle}>¿Cómo te sientes hoy?</Text>
-              </Pressable>
+            <Link href="/ChequeoDiario">
+              <View style={styles.cardHeader}/>
+              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" style={styles.icon}/>
+              
+              <Text style={styles.cardTitle}>Chequeo Diario:</Text>
+            </Link>
           </Card>
           
     </ScrollView>
   );
 }
 const styles = StyleSheet.create({
+  icon: {
+    position: 'absolute',
+    top: 6,
+    left: -20,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   container: {
     flex: 1,
   },

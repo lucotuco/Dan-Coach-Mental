@@ -53,7 +53,7 @@ export default function RecordingButton() {
         transparent={true}
         visible={modalVisible}
         //allowSwipeDismissal ={true}
-        presentationStyle="pageSheet"
+        //presentationStyle="pageSheet"
         onRequestClose={() => setModalVisible(false)}>
         <View style={styles.centeredView}>
           <View
@@ -79,7 +79,7 @@ export default function RecordingButton() {
                 style={[
                   styles.recordButton,
                   {
-                    backgroundColor: recorderState.isRecording ? '#0f4aa3' : '#1a5ed1',
+                    backgroundColor: recorderState.isRecording ? '#a30f0fff' : '#1a5ed1',
                     shadowColor: '#0f4aa3',
                   },
                 ]}
@@ -122,8 +122,8 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   modalView: {
-    width: 100,
-    height: 100,
+    width: 140,
+    height: 140,
     borderRadius: 20,
     padding: 10,
     alignItems: 'center',
@@ -145,7 +145,6 @@ const styles = StyleSheet.create({
     left: -6,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 999,
   },
   modalContent: {
     width: '100%',
