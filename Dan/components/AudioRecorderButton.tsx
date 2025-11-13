@@ -43,9 +43,11 @@ export default function RecordingButton() {
               <View style={styles.modalView}>
                 <Pressable
                 accessibilityRole="button"
+                style={[styles.recordButton, recorderState.isRecording ? styles.recordButtonActive : styles.recordButtonIdle]}
+                android_ripple={{ color: '#ffffff55', borderless: false }}
                 onPress={recorderState.isRecording ? stopRecording : record}>
 
-                  {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={40} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={40} color={'#ccc'} />}
+                  <FontAwesome5 name={'microphone'} size={36} color={'#fff'} />
                 </Pressable>
                 <Pressable accessibilityRole="button"
                 onPress={() => {
@@ -96,5 +98,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
+  },
+  recordButton: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#d32f2f',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  recordButtonIdle: {
+    backgroundColor: '#1e88e5',
+    shadowColor: '#1e88e5',
+  },
+  recordButtonActive: {
+    backgroundColor: '#d32f2f',
+    shadowColor: '#d32f2f',
   },
 });
