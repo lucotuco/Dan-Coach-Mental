@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Modal, Pressable, Text } from 'react-native';
-import {useAudioRecorder, AudioModule, RecordingPresets, setAudioModeAsync, useAudioRecorderState, createAudioPlayer} from 'expo-audio';
+import {
+  useAudioRecorder,
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorderState,
+  createAudioPlayer,
+} from 'expo-audio';
 import { FontAwesome5 } from '@expo/vector-icons';
 import Colors from '../constants/Colors';
 import { useColorScheme } from './useColorScheme';
@@ -35,9 +42,9 @@ export default function RecordingButton() {
     })();
   }, []);
 
-  const colorScheme = useColorScheme() ?? 'light';
-  const palette = Colors[colorScheme];
-  const isDarkMode = colorScheme === 'dark';
+  const modalPrimary = '#0b2a63';
+  const modalSecondary = '#123776';
+  const modalText = '#d8e4ff';
 
   return (
     <View style={styles.container}>
@@ -52,39 +59,44 @@ export default function RecordingButton() {
           <View
             style={[
               styles.modalView,
-              { borderColor: palette.tint, backgroundColor: isDarkMode ? '#181818' : '#fff' },
+              {
+                borderColor: modalSecondary,
+                backgroundColor: modalPrimary,
+              },
             ]}>
-            <View style={[styles.modalHeader, { backgroundColor: palette.tint }]}>
-              <Pressable accessibilityRole="button" onPress={() => setModalVisible(false)}>
-                <FontAwesome5 name={'arrow-left'} size={20} color={'#fff'} />
+            <Pressable
+              accessibilityRole="button"
+              style={styles.dismissButton}
+              hitSlop={10}
+              onPress={() => setModalVisible(false)}>
+              <FontAwesome5 name={'arrow-left'} size={16} color={modalText} />
+            </Pressable>
+            <View style={styles.modalContent}>
+              <Text style={[styles.modalTitle, { color: modalText }]}>Grabar</Text>
+              <Text style={[styles.modalDescription, { color: modalText }]}>Toca y habla.</Text>
+              <Pressable
+                accessibilityRole="button"
+                style={[
+                  styles.recordButton,
+                  {
+                    backgroundColor: recorderState.isRecording ? '#0f4aa3' : '#1a5ed1',
+                    shadowColor: '#0f4aa3',
+                  },
+                ]}
+                android_ripple={{ color: '#ffffff33', borderless: false }}
+                onPress={recorderState.isRecording ? stopRecording : record}>
+                <FontAwesome5 name={'microphone'} size={18} color={modalText} />
               </Pressable>
-              <Text style={styles.modalTitle}>Modo Grabación</Text>
-              <View style={styles.headerSpacer} />
+              <Pressable
+                accessibilityRole="button"
+                style={[styles.playButton, { borderColor: modalText }]}
+                onPress={() => {
+                  player.seekTo(0);
+                  player.play();
+                }}>
+                <FontAwesome5 name={'play'} size={12} color={modalText} />
+              </Pressable>
             </View>
-            <Text
-              style={[
-                styles.modalDescription,
-                { color: isDarkMode ? '#f3f3f3' : '#4a4a4a' },
-              ]}>
-              Pulsa el botón para comenzar a grabar tu nota de voz. Mantendremos la energía de la app con colores cálidos.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              style={[styles.recordButton, recorderState.isRecording ? styles.recordButtonActive : styles.recordButtonIdle]}
-              android_ripple={{ color: '#ffffff55', borderless: false }}
-              onPress={recorderState.isRecording ? stopRecording : record}>
-              <FontAwesome5 name={'microphone'} size={36} color={'#fff'} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              style={[styles.playButton, { backgroundColor: isDarkMode ? 'rgba(187,41,41,0.2)' : '#f8d9d9' }]}
-              onPress={() => {
-                player.seekTo(0);
-                player.play();
-              }}>
-              <FontAwesome5 name={'play'} size={20} color={palette.tint} />
-              <Text style={[styles.playLabel, { color: palette.tint }]}>Escuchar última nota</Text>
-            </Pressable>
           </View>
         </View>
       </Modal>
@@ -106,85 +118,69 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(4,9,20,0.75)',
     padding: 24,
   },
   modalView: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: '#fff',
-    borderRadius: 28,
-    overflow: 'hidden',
-    paddingHorizontal: 24,
-    paddingBottom: 32,
+    width: 100,
+    height: 100,
+    borderRadius: 20,
+    padding: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
+    overflow: 'visible',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 10,
+      height: 8,
     },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  modalHeader: {
-    alignSelf: 'stretch',
-    flexDirection: 'row',
+  dismissButton: {
+    position: 'absolute',
+    top: 6,
+    left: -6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  modalContent: {
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-  },
-  headerSpacer: {
-    width: 20,
   },
   modalTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   modalDescription: {
-    marginTop: 20,
-    marginBottom: 24,
+    fontSize: 10,
     textAlign: 'center',
-    color: '#4a4a4a',
-    lineHeight: 20,
-    fontSize: 14,
+    marginTop: 2,
   },
   recordButton: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  recordButtonIdle: {
-    backgroundColor: '#bb2929',
-    shadowColor: '#bb2929',
-  },
-  recordButtonActive: {
-    backgroundColor: '#8f1010',
-    shadowColor: '#8f1010',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: 6,
   },
   playButton: {
-    flexDirection: 'row',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 999,
-    backgroundColor: '#f8d9d9',
-    marginTop: 4,
-  },
-  playLabel: {
-    marginLeft: 10,
-    fontWeight: '600',
-    fontSize: 14,
+    justifyContent: 'center',
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+    marginTop: 6,
   },
 });
