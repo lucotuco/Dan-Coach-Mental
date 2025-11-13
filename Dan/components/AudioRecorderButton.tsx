@@ -8,8 +8,10 @@ export default function RecordingButton() {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
+  const [player, setPlayer] = useState<ReturnType<typeof createAudioPlayer> | null>(null);
+
   const record = async () => {
-     setAudioModeAsync({playsInSilentMode: true,allowsRecording: true });
+    await setAudioModeAsync({playsInSilentMode: true,allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
   };
@@ -18,7 +20,27 @@ export default function RecordingButton() {
     await audioRecorder.stop();
     setAudioModeAsync({allowsRecording: false, playsInSilentMode: true})
   };
-  const player = createAudioPlayer(audioRecorder.uri);
+
+  useEffect(() => {
+    if (!audioRecorder.uri) {
+      setPlayer((current) => {
+        current?.stop();
+        return null;
+      });
+      return;
+    }
+
+    const nextPlayer = createAudioPlayer(audioRecorder.uri);
+
+    setPlayer((current) => {
+      current?.stop();
+      return nextPlayer;
+    });
+
+    return () => {
+      nextPlayer.stop();
+    };
+  }, [audioRecorder.uri]);
 
   useEffect(() => {
     (async () => {
@@ -48,9 +70,10 @@ export default function RecordingButton() {
                   {recorderState.isRecording ? <FontAwesome5 name={'microphone'} size={40} color={'#ff0000ff'} /> : <FontAwesome5 name={'microphone'} size={40} color={'#ccc'} />}
                 </Pressable>
                 <Pressable accessibilityRole="button"
-                onPress={() => {
-                    player.seekTo(0);
-                    player.play();}}>
+                onPress={async() => {
+                    await player?.stop();
+                    player?.seekTo(0);
+                    player?.play();}}>
                   <FontAwesome5 name={'play'} size={30} color={'#ccc'} />
                     </Pressable>
 
