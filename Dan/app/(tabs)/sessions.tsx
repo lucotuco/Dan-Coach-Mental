@@ -9,8 +9,10 @@ export default function SessionsScreen() {
       <Text style={styles.title}>Sesiones</Text>
       
     <RecordingButton/>
-        
-      
+     <Text style={styles.subtitle}>
+        Aquí podrás grabar y reproducir tus sesiones de coaching mental deportivo. Utiliza el botón de grabación para iniciar y detener la grabación de audio. Una vez que hayas terminado, podrás reproducir la sesión grabada para revisarla cuando desees.
+      </Text>
+      <RecordingButton />   
     </View>
   );
 }
