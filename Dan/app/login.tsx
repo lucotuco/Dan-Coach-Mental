@@ -87,11 +87,15 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     gap: 32,
+    alignItems: 'center',
   },
   logoWrapper: {
     alignItems: 'center',
+    width: '100%',
   },
   card: {
+    width: '100%',
+    maxWidth: 480,
     borderRadius: 24,
     padding: 24,
     gap: 20,
