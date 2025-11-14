@@ -1,19 +1,38 @@
-import { StyleSheet, ScrollView,} from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
 import { Button } from 'react-native-paper';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
+import { useRouter } from 'expo-router';
 
 export default function CheckupsScreen() {
-  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
+  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
+  const router = useRouter();
+
+  const sliderRoutes = [
+    '/(tabs)/energia',
+    '/(tabs)/motivacion',
+    '/(tabs)/estado-emocional',
+    '/(tabs)/sueno',
+    '/(tabs)/dolor',
+  ];
 
   const handleSliderChange = (value: number, index: number) => {
     const newValues = [...sliderValues];
     newValues[index] = value;
     setSliderValues(newValues);
+  };
+
+  const handleSubmit = () => {
+    const newValues = [...sliderValues];
+    const destination = newValues
+      .map((value, index) => (value < 6 ? sliderRoutes[index] : null))
+      .find((route) => route) || '/(tabs)/resumen';
+
+    router.push(destination);
   };
 
   return (
@@ -90,7 +109,11 @@ export default function CheckupsScreen() {
              />
          </Card>
 
-          <Button mode="contained" style={{marginTop:20, backgroundColor:'#1d1564ff'}} onPress={() => console.log('Guardar Chequeo ', sliderValues[0], sliderValues[1], sliderValues[2], sliderValues[3], sliderValues[4])}>
+         <Button
+           mode="contained"
+           style={{marginTop:20, backgroundColor:'#1d1564ff'}}
+           onPress={handleSubmit}
+         >
             <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
           </Button>
 
