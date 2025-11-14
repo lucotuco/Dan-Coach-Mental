@@ -19,13 +19,14 @@ export default function CheckupsScreen() {
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
-         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center', paddingLeft:50}}>Chequeos</Text>
-          <Card style={styles.dailyCheckCard}>
+         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center',justifyContent:'center' }}>Chequeos</Text>
+          <Card>
             <Link href="/ChequeoDiario">
               <View style={styles.cardHeader}/>
               <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" style={styles.icon}/>
               
               <Text style={styles.cardTitle}>Chequeo Diario:</Text>
+              <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
             </Link>
           </Card>
           
@@ -84,15 +85,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-  dailyCheckCard: {
-    
-  },
   cardHeader: {
     gap: 4,
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
+    paddingRight:100,
   },
   cardDescription: {
     fontSize: 14,

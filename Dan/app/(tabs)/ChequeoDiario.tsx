@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Modal, View } from 'react-native';
+import { StyleSheet, ScrollView, Modal, View, Pressable } from 'react-native';
 import { Button } from 'react-native-paper';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
@@ -6,10 +6,13 @@ import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
+import { FontAwesome5 } from '@expo/vector-icons';
+import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
+
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
@@ -38,6 +41,9 @@ export default function CheckupsScreen() {
     const selectedMessage = messages[(lowIndex ?? -1) + 1];
     setModalMessage(selectedMessage);
     setModalVisible(true);
+    const handleLogin = () => {
+    
+  };
   };
 
   return (
@@ -124,7 +130,7 @@ export default function CheckupsScreen() {
 
          <Modal
            visible={modalVisible}
-           animationType="fade"
+           animationType="slide"
            transparent
            onRequestClose={() => setModalVisible(false)}
          >
@@ -139,6 +145,14 @@ export default function CheckupsScreen() {
                >
                  <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
                </Button>
+               <Pressable
+              accessibilityRole="button"
+
+              style={styles.dismissButton}
+              hitSlop={10}
+              onPress={() => setModalVisible(false)}>
+              <FontAwesome5 name={'times'} size={27} color={'#black'} />
+            </Pressable>
              </View>
            </View>
          </Modal>
@@ -147,6 +161,11 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
+  dismissButton: {
+    position: 'absolute',
+    top: 15,
+    left: 290,
+  },
   container: {
     flex: 1,
   },
