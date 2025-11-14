@@ -1,26 +1,22 @@
 import { StyleSheet, ScrollView } from 'react-native';
-import { Button } from 'react-native-paper';
+import { Button, Modal, Portal } from 'react-native-paper';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
-import { useRouter, type Href } from 'expo-router';
-
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
-  const router = useRouter();
-
-  const sliderRoutes = [
-    '/(tabs)/energia',
-    '/(tabs)/motivacion',
-    '/(tabs)/estado-emocional',
-    '/(tabs)/sueno',
-    '/(tabs)/dolor',
-  ] as const satisfies readonly Href[];
-
-  const fallbackRoute: Href = '/(tabs)/resumen';
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const sliderMessages = [
+    'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
+    'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
+    'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
+    'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
+    'Detectamos algo de dolor o molestia. Escucha a tu cuerpo y atiéndelo con calma.',
+  ];
 
   const handleSliderChange = (value: number, index: number) => {
     const newValues = [...sliderValues];
@@ -30,11 +26,18 @@ export default function CheckupsScreen() {
 
   const handleSubmit = () => {
     const newValues = [...sliderValues];
-    const lowValueIndex = newValues.findIndex((value) => value < 6);
-    const destination: Href =
-      lowValueIndex === -1 ? fallbackRoute : sliderRoutes[lowValueIndex];
+    const lowIndex = newValues
+      .map((value, index) => (value < 6 ? index : null))
+      .find((index): index is number => index !== null);
 
-    router.push(destination);
+    const messages = [
+      '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+      ...sliderMessages,
+    ];
+
+    const selectedMessage = messages[(lowIndex ?? -1) + 1];
+    setModalMessage(selectedMessage);
+    setModalVisible(true);
   };
 
   return (
@@ -117,7 +120,25 @@ export default function CheckupsScreen() {
            onPress={handleSubmit}
          >
             <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
-          </Button>
+         </Button>
+
+         <Portal>
+           <Modal
+             visible={modalVisible}
+             onDismiss={() => setModalVisible(false)}
+             contentContainerStyle={styles.modalContainer}
+           >
+             <Text style={styles.modalTitle}>Chequeo Diario</Text>
+             <Text style={styles.modalMessage}>{modalMessage}</Text>
+             <Button
+               mode="contained"
+               style={styles.modalButton}
+               onPress={() => setModalVisible(false)}
+             >
+               <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
+             </Button>
+           </Modal>
+         </Portal>
 
     </ScrollView>
   );
@@ -249,6 +270,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 24,
+    marginHorizontal: 24,
+    borderRadius: 16,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1d1564',
+  },
+  modalMessage: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#1d1564',
+  },
+  modalButton: {
+    backgroundColor: '#1d1564',
   },
 });
 
