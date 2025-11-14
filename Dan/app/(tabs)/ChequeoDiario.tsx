@@ -13,11 +13,11 @@ export default function CheckupsScreen() {
   const router = useRouter();
 
   const sliderRoutes = [
-    '/(tabs)/energia',
-    '/(tabs)/motivacion',
-    '/(tabs)/estado-emocional',
-    '/(tabs)/sueno',
-    '/(tabs)/dolor',
+    "energia",
+    "motivacion",
+    "estado-emocional",
+    "sueno",
+    "dolor",
   ];
 
   const handleSliderChange = (value: number, index: number) => {
