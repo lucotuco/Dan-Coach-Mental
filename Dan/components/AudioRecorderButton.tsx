@@ -49,7 +49,7 @@ export default function RecordingButton() {
   return (
     <View style={styles.container}>
       <Modal
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         visible={modalVisible}
         //allowSwipeDismissal ={true}
@@ -109,10 +109,14 @@ export default function RecordingButton() {
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'center',
+    
     backgroundColor: '#ecf0f1',
-    padding: 10,
+    paddingTop: 10,
     borderRadius: 100,
+    alignContent: 'center',
+    alignItems: 'center',
+    height: 60,
+    width: 60,
   },
   centeredView: {
     flex: 1,

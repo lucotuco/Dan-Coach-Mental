@@ -97,6 +97,42 @@ export default function TabLayout() {
           
         }}
       />
+      <Tabs.Screen
+        name="dolor"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="energia"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="estado-emocional"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="motivacion"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
+        name="sueno"
+        options={{
+          href: null,
+          
+        }}
+      />
+
     </Tabs>
   );
 }

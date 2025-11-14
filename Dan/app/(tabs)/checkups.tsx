@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 20,
     fontWeight: '700',
-    paddingRight:100,
+    paddingRight:1000,
   },
   cardDescription: {
     fontSize: 14,

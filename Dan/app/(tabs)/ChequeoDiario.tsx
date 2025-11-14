@@ -7,6 +7,8 @@ import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
 import { Link } from 'expo-router';
+import RecordingButton from '@/components/AudioRecorderButton';
+import { set } from 'mongoose';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -17,7 +19,7 @@ export default function CheckupsScreen() {
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
     'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
     'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
-    'Detectamos algo de dolor o molestia. Escucha a tu cuerpo y atiéndelo con calma.',
+    'Detectamos algo de dolor o molestia. Te recomendamos un ejercicio guiado para aliviarlo.',
   ];
   const sliderRoutes = [
     '/energia',
@@ -42,7 +44,7 @@ export default function CheckupsScreen() {
     const feedbackOptions = [
       {
         message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-        href: '/todo-bien',
+        href: '(tabs)/index',
       },
       ...sliderMessages.map((message, index) => ({
         message,
@@ -54,11 +56,13 @@ export default function CheckupsScreen() {
     setModalMessage(selectedFeedback.message);
     setModalLink(selectedFeedback.href);
     setModalVisible(true);
+    setSliderValues([0, 0, 0, 0, 0]);
   };
 
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
+         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center',justifyContent:'center' }}>Chequeo Diario</Text>
          <Card>
              <Text style={styles.sliderLabel}>Energía :</Text>
              <Slider 
@@ -128,11 +132,15 @@ export default function CheckupsScreen() {
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 4)}
              />
+            
          </Card>
+         <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>
+             <RecordingButton />
+          </View>
 
          <Button
            mode="contained"
-           style={{marginTop:20, backgroundColor:'#1d1564ff'}}
+           style={{ backgroundColor:'#1d1564ff'}}
            onPress={handleSubmit}
          >
             <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
@@ -149,7 +157,7 @@ export default function CheckupsScreen() {
                <Text style={styles.modalTitle}>Chequeo Diario</Text>
                <Text style={styles.modalMessage}>{modalMessage}</Text>
               <Link
-                href={modalLink}
+                href={'(tabs)/'+modalLink}
                 asChild
                 onPress={() => setModalVisible(false)}
               >
@@ -168,6 +176,7 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
+  
   dismissButton: {
     position: 'absolute',
     top: 15,

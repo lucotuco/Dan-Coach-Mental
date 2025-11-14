@@ -18,7 +18,7 @@ export default function MedioLogo() {
         accessibilityRole="image"
         accessibilityLabel="Dan Coach Mental Deportivo logo"
         source={logoSource}
-        style={[styles.logo, { width: logoWidth, height: logoHeight }]}
+        style={[styles.logo, { width: logoWidth, height: logoHeight , marginTop:-20}]}
       />
     </View>
   );
