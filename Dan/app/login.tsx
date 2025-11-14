@@ -10,20 +10,20 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const backgroundColor = useThemeColor({ light: '#f5f6fa', dark: '#0b1026' }, 'background');
+  const backgroundColor = useThemeColor({ light: '#fff', dark: '#0b1026' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#141b33' }, 'background');
   const textColor = useThemeColor({ light: '#031355', dark: '#e5e9ff' }, 'tint');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
   const handleLogin = () => {
-    router.replace('/(tabs)');
+    router.push('/(tabs)');
   };
 
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+     
     >
       <ScrollView
         contentContainerStyle={styles.container}
