@@ -6,7 +6,7 @@ import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
@@ -18,7 +18,9 @@ export default function CheckupsScreen() {
     '/(tabs)/estado-emocional',
     '/(tabs)/sueno',
     '/(tabs)/dolor',
-  ];
+  ] as const satisfies readonly Href[];
+
+  const fallbackRoute: Href = '/(tabs)/resumen';
 
   const handleSliderChange = (value: number, index: number) => {
     const newValues = [...sliderValues];
@@ -28,9 +30,9 @@ export default function CheckupsScreen() {
 
   const handleSubmit = () => {
     const newValues = [...sliderValues];
-    const destination = newValues
-      .map((value, index) => (value < 6 ? sliderRoutes[index] : null))
-      .find((route) => route) || '/(tabs)/resumen';
+    const lowValueIndex = newValues.findIndex((value) => value < 6);
+    const destination: Href =
+      lowValueIndex === -1 ? fallbackRoute : sliderRoutes[lowValueIndex];
 
     router.push(destination);
   };
