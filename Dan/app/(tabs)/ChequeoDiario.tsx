@@ -1,19 +1,43 @@
-import { StyleSheet, ScrollView,} from 'react-native';
+import { StyleSheet, ScrollView, Modal, View } from 'react-native';
 import { Button } from 'react-native-paper';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
-
 export default function CheckupsScreen() {
-  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
+  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
+  const sliderMessages = [
+    'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
+    'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
+    'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
+    'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
+    'Detectamos algo de dolor o molestia. Escucha a tu cuerpo y atiéndelo con calma.',
+  ];
 
   const handleSliderChange = (value: number, index: number) => {
     const newValues = [...sliderValues];
     newValues[index] = value;
     setSliderValues(newValues);
+  };
+
+  const handleSubmit = () => {
+    const newValues = [...sliderValues];
+    const lowIndex = newValues
+      .map((value, index) => (value < 6 ? index : null))
+      .find((index): index is number => index !== null);
+
+    const messages = [
+      '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+      ...sliderMessages,
+    ];
+
+    const selectedMessage = messages[(lowIndex ?? -1) + 1];
+    setModalMessage(selectedMessage);
+    setModalVisible(true);
   };
 
   return (
@@ -90,9 +114,34 @@ export default function CheckupsScreen() {
              />
          </Card>
 
-          <Button mode="contained" style={{marginTop:20, backgroundColor:'#1d1564ff'}} onPress={() => console.log('Guardar Chequeo ', sliderValues[0], sliderValues[1], sliderValues[2], sliderValues[3], sliderValues[4])}>
+         <Button
+           mode="contained"
+           style={{marginTop:20, backgroundColor:'#1d1564ff'}}
+           onPress={handleSubmit}
+         >
             <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
-          </Button>
+         </Button>
+
+         <Modal
+           visible={modalVisible}
+           animationType="fade"
+           transparent
+           onRequestClose={() => setModalVisible(false)}
+         >
+           <View style={styles.modalBackdrop}>
+             <View style={styles.modalContainer}>
+               <Text style={styles.modalTitle}>Chequeo Diario</Text>
+               <Text style={styles.modalMessage}>{modalMessage}</Text>
+               <Button
+                 mode="contained"
+                 style={styles.modalButton}
+                 onPress={() => setModalVisible(false)}
+               >
+                 <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
+               </Button>
+             </View>
+           </View>
+         </Modal>
 
     </ScrollView>
   );
@@ -224,6 +273,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 24,
+    borderRadius: 16,
+    gap: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1d1564',
+  },
+  modalMessage: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#1d1564',
+  },
+  modalButton: {
+    backgroundColor: '#1d1564',
   },
 });
 
