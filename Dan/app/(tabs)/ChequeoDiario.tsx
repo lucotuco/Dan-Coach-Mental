@@ -1,5 +1,5 @@
-import { StyleSheet, ScrollView } from 'react-native';
-import { Button, Modal, Portal } from 'react-native-paper';
+import { StyleSheet, ScrollView, Modal, View } from 'react-native';
+import { Button } from 'react-native-paper';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
@@ -122,23 +122,26 @@ export default function CheckupsScreen() {
             <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
          </Button>
 
-         <Portal>
-           <Modal
-             visible={modalVisible}
-             onDismiss={() => setModalVisible(false)}
-             contentContainerStyle={styles.modalContainer}
-           >
-             <Text style={styles.modalTitle}>Chequeo Diario</Text>
-             <Text style={styles.modalMessage}>{modalMessage}</Text>
-             <Button
-               mode="contained"
-               style={styles.modalButton}
-               onPress={() => setModalVisible(false)}
-             >
-               <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
-             </Button>
-           </Modal>
-         </Portal>
+         <Modal
+           visible={modalVisible}
+           animationType="fade"
+           transparent
+           onRequestClose={() => setModalVisible(false)}
+         >
+           <View style={styles.modalBackdrop}>
+             <View style={styles.modalContainer}>
+               <Text style={styles.modalTitle}>Chequeo Diario</Text>
+               <Text style={styles.modalMessage}>{modalMessage}</Text>
+               <Button
+                 mode="contained"
+                 style={styles.modalButton}
+                 onPress={() => setModalVisible(false)}
+               >
+                 <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
+               </Button>
+             </View>
+           </View>
+         </Modal>
 
     </ScrollView>
   );
@@ -271,10 +274,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 16,
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
   modalContainer: {
     backgroundColor: '#fff',
     padding: 24,
-    marginHorizontal: 24,
     borderRadius: 16,
     gap: 16,
   },
