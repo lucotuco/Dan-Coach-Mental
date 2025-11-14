@@ -1,4 +1,4 @@
-import { StyleSheet, ScrollView, Modal, View, Pressable } from 'react-native';
+import { StyleSheet, ScrollView, Modal, View } from 'react-native';
 import { Button } from 'react-native-paper';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
@@ -6,19 +6,25 @@ import Slider from '@react-native-community/slider';
 import { useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
-import { FontAwesome5 } from '@expo/vector-icons';
-import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { Link } from 'expo-router';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-
+  const [modalLink, setModalLink] = useState('/todo-bien');
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
     'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
     'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
     'Detectamos algo de dolor o molestia. Escucha a tu cuerpo y atiéndelo con calma.',
+  ];
+  const sliderRoutes = [
+    '/energia',
+    '/motivacion',
+    '/estado-emocional',
+    '/sueno',
+    '/dolor',
   ];
 
   const handleSliderChange = (value: number, index: number) => {
@@ -33,17 +39,21 @@ export default function CheckupsScreen() {
       .map((value, index) => (value < 6 ? index : null))
       .find((index): index is number => index !== null);
 
-    const messages = [
-      '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-      ...sliderMessages,
+    const feedbackOptions = [
+      {
+        message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+        href: '/todo-bien',
+      },
+      ...sliderMessages.map((message, index) => ({
+        message,
+        href: sliderRoutes[index],
+      })),
     ];
 
-    const selectedMessage = messages[(lowIndex ?? -1) + 1];
-    setModalMessage(selectedMessage);
+    const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
+    setModalMessage(selectedFeedback.message);
+    setModalLink(selectedFeedback.href);
     setModalVisible(true);
-    const handleLogin = () => {
-    
-  };
   };
 
   return (
@@ -130,7 +140,7 @@ export default function CheckupsScreen() {
 
          <Modal
            visible={modalVisible}
-           animationType="slide"
+           animationType="fade"
            transparent
            onRequestClose={() => setModalVisible(false)}
          >
@@ -138,24 +148,21 @@ export default function CheckupsScreen() {
              <View style={styles.modalContainer}>
                <Text style={styles.modalTitle}>Chequeo Diario</Text>
                <Text style={styles.modalMessage}>{modalMessage}</Text>
-               <Button
-                 mode="contained"
-                 style={styles.modalButton}
-                 onPress={() => setModalVisible(false)}
-               >
-                 <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Entendido</Text>
-               </Button>
-               <Pressable
-              accessibilityRole="button"
-
-              style={styles.dismissButton}
-              hitSlop={10}
-              onPress={() => setModalVisible(false)}>
-              <FontAwesome5 name={'times'} size={27} color={'#black'} />
-            </Pressable>
-             </View>
-           </View>
-         </Modal>
+              <Link
+                href={modalLink}
+                asChild
+                onPress={() => setModalVisible(false)}
+              >
+                <Button
+                  mode="contained"
+                  style={styles.modalButton}
+                >
+                  <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Ir ahora</Text>
+                </Button>
+              </Link>
+            </View>
+          </View>
+        </Modal>
 
     </ScrollView>
   );
