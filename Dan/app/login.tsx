@@ -1,56 +1,23 @@
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
-import { login } from '@/services/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const backgroundColor = useThemeColor({ light: '#f5f6fa', dark: '#0b1026' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#141b33' }, 'background');
   const textColor = useThemeColor({ light: '#031355', dark: '#e5e9ff' }, 'tint');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
-  const errorColor = useThemeColor({ light: '#c53030', dark: '#f97066' }, 'text');
 
-  const handleLogin = async () => {
-    if (isSubmitting) return;
-
-    if (!email.trim() || !password.trim()) {
-      setErrorMessage('Por favor, ingresa tu correo electrónico y contraseña.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    try {
-      await login({ email: email.trim(), password });
-      router.replace('/(tabs)');
-    } catch (error) {
-      if (error instanceof Error) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage('Ocurrió un error inesperado. Intenta nuevamente.');
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleLogin = () => {
+    router.replace('/(tabs)');
   };
 
   return (
@@ -77,12 +44,7 @@ export default function LoginScreen() {
               placeholder="nombre@correo.com"
               placeholderTextColor={mutedColor}
               value={email}
-              onChangeText={(value) => {
-                setEmail(value);
-                if (errorMessage) {
-                  setErrorMessage(null);
-                }
-              }}
+              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -97,36 +59,14 @@ export default function LoginScreen() {
               placeholder="Tu contraseña"
               placeholderTextColor={mutedColor}
               value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                if (errorMessage) {
-                  setErrorMessage(null);
-                }
-              }}
+              onChangeText={setPassword}
               secureTextEntry
               textContentType="password"
             />
           </View>
 
-          {errorMessage ? (
-            <View style={[styles.errorContainer, { borderColor: errorColor, backgroundColor: `${errorColor}20` }]}>
-              <Text style={[styles.errorText, { color: errorColor }]}>{errorMessage}</Text>
-            </View>
-          ) : null}
-
-          <TouchableOpacity
-            style={[
-              styles.primaryButton,
-              { backgroundColor: textColor, opacity: isSubmitting ? 0.7 : 1 },
-            ]}
-            onPress={handleLogin}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
-            )}
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: textColor }]} onPress={handleLogin}>
+            <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryButton}>
@@ -147,11 +87,15 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: 'center',
     gap: 32,
+    alignItems: 'center',
   },
   logoWrapper: {
     alignItems: 'center',
+    width: '100%',
   },
   card: {
+    width: '100%',
+    maxWidth: 480,
     borderRadius: 24,
     padding: 24,
     gap: 20,
@@ -183,15 +127,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: '500',
-  },
-  errorContainer: {
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-  },
-  errorText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   primaryButton: {
     marginTop: 8,
