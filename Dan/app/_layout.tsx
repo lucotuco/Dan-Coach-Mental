@@ -65,10 +65,6 @@ function RootLayoutNav() {
           name="login"
           options={{
             headerTitle: 'Iniciar sesión',
-            headerTitleStyle: {
-              fontSize: 26,
-              fontWeight: '800',
-            },
           }}
         />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
