@@ -168,6 +168,11 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
+  dismissButton: {
+    position: 'absolute',
+    top: 15,
+    left: 290,
+  },
   container: {
     flex: 1,
   },
