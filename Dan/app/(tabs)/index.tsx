@@ -1,10 +1,14 @@
 import type { ComponentProps } from 'react';
+import { useState } from 'react';
 import { Link } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 
 import Avatar from '@/components/Avatar';
+import Card from '@/components/Card';
+import CircularIconButton from '@/components/CircularIconButton';
+import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
@@ -12,82 +16,48 @@ const user = {
   name: 'Lucas Schlez',
 };
 
-type QuickLink = {
+type QuickAction = {
   key: string;
   title: string;
-  description: string;
-  buttonLabel: string;
-  href: string;
+  subtitle: string;
   icon: ComponentProps<typeof FeatherIcon>['name'];
-  backgroundColor: string;
-  iconBackground: string;
-  iconColor: string;
-  textColor: string;
-  descriptionColor?: string;
-  buttonColor: string;
-  buttonTextColor?: string;
+  accent: string;
+  wrapped?: boolean;
 };
 
-const quickLinks: QuickLink[] = [
+
+const quickActions: QuickAction[] = [
   {
-    key: 'checks',
-    title: 'Chequeos diarios',
-    description: 'Controlá tu energía, motivación y emociones.',
-    buttonLabel: 'Iniciar chequeo diario',
-    href: '/checkups',
-    icon: 'sun',
-    backgroundColor: '#d6e4ff',
-    iconBackground: 'rgba(255, 255, 255, 0.85)',
-    iconColor: '#1b4de5',
-    textColor: '#031355',
-    descriptionColor: 'rgba(3, 19, 85, 0.85)',
-    buttonColor: '#1b4de5',
-    buttonTextColor: '#ffffff',
-  },
-  {
-    key: 'chemistry',
-    title: 'Activa tu química del rendimiento',
-    description: 'Entrená Dopamina, Oxitocina, Endorfina y Serotonina.',
-    buttonLabel: 'Acceder al cuarteto',
-    href: '/energia',
-    icon: 'zap',
-    backgroundColor: '#ffe0d1',
-    iconBackground: 'rgba(255, 255, 255, 0.85)',
-    iconColor: '#f76707',
-    textColor: '#712f00',
-    descriptionColor: 'rgba(113, 47, 0, 0.85)',
-    buttonColor: '#f76707',
-    buttonTextColor: '#ffffff',
+    key: '/checkups',
+    title: 'Chequeos',
+    subtitle: 'Seguimiento diario',
+    icon: 'clipboard',
+    accent: '#4c6ef5',
+    wrapped: true,
   },
   {
     key: 'sessions',
-    title: 'Sesiones guiadas',
-    description: 'Respiración, foco, relajación y visualizaciones.',
-    buttonLabel: 'Iniciar sesión guiada',
-    href: '/sessions',
+    title: 'Sesiones',
+    subtitle: 'Próxima cita',
     icon: 'headphones',
-    backgroundColor: '#ede4ff',
-    iconBackground: 'rgba(255, 255, 255, 0.85)',
-    iconColor: '#845ef7',
-    textColor: '#2f1572',
-    descriptionColor: 'rgba(47, 21, 114, 0.85)',
-    buttonColor: '#845ef7',
-    buttonTextColor: '#ffffff',
+    accent: '#f76707',
+    wrapped: true,
   },
   {
     key: 'progress',
-    title: 'Mi progreso',
-    description: 'Seguimiento de hábitos, logros y objetivos.',
-    buttonLabel: 'Ver mi progreso',
-    href: '/progress',
+    title: 'Progreso',
+    subtitle: 'Tus métricas',
     icon: 'trending-up',
-    backgroundColor: '#dbe4ff',
-    iconBackground: 'rgba(255, 255, 255, 0.85)',
-    iconColor: '#4263eb',
-    textColor: '#102352',
-    descriptionColor: 'rgba(16, 35, 82, 0.85)',
-    buttonColor: '#4263eb',
-    buttonTextColor: '#ffffff',
+    accent: '#20c997',
+    wrapped: false,
+  },
+  {
+    key: '/library',
+    title: 'Biblioteca',
+    subtitle: 'Recursos guiados',
+    icon: 'book-open',
+    accent: '#845ef7',
+    wrapped: false,
   },
 ];
 
@@ -114,29 +84,17 @@ export default function HomeScreen() {
       </Link>
 
       <View style={styles.tilesWrapper}>
-        <Text style={styles.sectionTitle}>Entrená tu mente, potenciá tu rendimiento.</Text>
-        <View style={styles.linksStack}>
-          {quickLinks.map((link) => (
-            <View key={link.key} style={[styles.linkCard, { backgroundColor: link.backgroundColor }]}>
-              <View style={[styles.iconBadge, { backgroundColor: link.iconBackground }]}>
-                <FeatherIcon name={link.icon} size={28} color={link.iconColor} />
-              </View>
-              <Text style={[styles.linkTitle, { color: link.textColor }]}>{link.title}</Text>
-              <Text style={[styles.linkDescription, { color: link.descriptionColor ?? link.textColor }]}>
-                {link.description}
-              </Text>
-              <Link href={link.href} asChild>
-                <Pressable style={({ pressed }) => [
-                  styles.linkButton,
-                  { backgroundColor: link.buttonColor },
-                  pressed && styles.linkButtonPressed,
-                ]}>
-                  <Text style={[styles.linkButtonText, { color: link.buttonTextColor ?? '#ffffff' }]}>
-                    {link.buttonLabel}
-                  </Text>
-                </Pressable>
-              </Link>
-            </View>
+        <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento </Text>
+        <View style={styles.tilesGrid}>
+          {quickActions.map((action) => (
+            <DashboardTile
+              key={action.key}
+              icon={action.icon}
+              title={action.title}
+              subtitle={action.subtitle}
+              accentColor={action.accent}
+              wrapped={action.wrapped}
+            />
           ))}
         </View>
       </View>
@@ -246,41 +204,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
   },
-  linksStack: {
+  tilesGrid: {
+    flexDirection: 'row',
+     flexWrap: 'wrap',
     gap: 16,
-  },
-  linkCard: {
-    borderRadius: 24,
-    padding: 24,
-    gap: 12,
-  },
-  iconBadge: {
-    width: 54,
-    height: 54,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  linkDescription: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  linkButton: {
-    marginTop: 8,
-    borderRadius: 999,
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  linkButtonPressed: {
-    opacity: 0.85,
   },
 });

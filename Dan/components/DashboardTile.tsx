@@ -13,21 +13,24 @@ type DashboardTileProps = {
   subtitle?: string;
   onPress?: () => void;
   accentColor?: string;
+  wrapped?: boolean;
 };
 
-export function DashboardTile({ icon, title, subtitle, onPress, accentColor }: DashboardTileProps) {
+export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wrapped }: DashboardTileProps) {
   const backgroundColor = accentColor ? hexToRgba(accentColor, 0.35) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const iconColor = accentColor ?? '#4c6ef5';
+  const tileWidth = wrapped ? '100%' : '48%';
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      style={({ pressed }) => [styles.tile, { backgroundColor }, pressed && styles.pressed]}
+      style={({ pressed }) => [styles.tile, { backgroundColor }, pressed && styles.pressed, { width: tileWidth } ]}
     >
+      
       <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
         <FeatherIcon name={icon} size={20} color={iconColor} />
       </View>
