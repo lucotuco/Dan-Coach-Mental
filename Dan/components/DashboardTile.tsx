@@ -21,14 +21,17 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const iconColor = accentColor ?? '#4c6ef5';
-  const tileWidth = wrapped ? '100%' : '48%';
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={title}
       onPress={onPress}
-      style={({ pressed }) => [styles.tile, { backgroundColor }, pressed && styles.pressed, { width: tileWidth } ]}
+      style={({ pressed }) => [
+        styles.tile,
+        { backgroundColor },
+        pressed && styles.pressed,
+        wrapped ? styles.fullWidthTile : styles.halfWidthTile,
+      ]}
     >
       
       <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
@@ -47,6 +50,16 @@ const styles = StyleSheet.create({
     gap: 6,
     flex: 1,
     minWidth: 140,
+  },
+    fullWidthTile: {
+    width: '100%',
+    flexBasis: '100%',
+    flexGrow: 1,
+  },
+  halfWidthTile: {
+    width: '48%',
+    flexBasis: '48%',
+    flexGrow: 1,
   },
   iconWrap: {
     width: 40,
