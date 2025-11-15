@@ -21,6 +21,7 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const iconColor = accentColor ?? '#4c6ef5';
+  
   return (
     <Pressable
       accessibilityRole="button"
@@ -30,12 +31,13 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
         styles.tile,
         { backgroundColor },
         pressed && styles.pressed,
+        
         wrapped ? styles.fullWidthTile : styles.halfWidthTile,
       ]}
     >
       
       <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
-        <FeatherIcon name={icon} size={20} color={iconColor} />
+        <FeatherIcon name={icon} size={30} color={iconColor} />
       </View>
       <Text style={[styles.title, { color: textColor }]}>{title}</Text>
       {subtitle ? <Text style={[styles.subtitle, { color: mutedColor }]}>{subtitle}</Text> : null}
@@ -52,18 +54,20 @@ const styles = StyleSheet.create({
     minWidth: 140,
   },
     fullWidthTile: {
-    width: '100%',
     flexBasis: '100%',
     flexGrow: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    
   },
   halfWidthTile: {
     width: '48%',
-    flexBasis: '48%',
-    flexGrow: 1,
+    maxWidth: '48%',
+    flexGrow: 0,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
