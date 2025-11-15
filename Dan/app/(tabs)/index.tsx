@@ -86,7 +86,7 @@ export default function HomeScreen() {
       </Link>
 
       <View style={styles.tilesWrapper}>
-        <Text style={styles.sectionTitle}>Accesos rápidos</Text>
+        <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento </Text>
         <View style={styles.tilesGrid}>
           {quickActions.map((action) => (
             <DashboardTile

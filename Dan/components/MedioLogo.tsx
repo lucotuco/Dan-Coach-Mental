@@ -9,7 +9,7 @@ const LOGO_ASPECT_RATIO = assetHeight === 0 ? 1 : assetWidth / assetHeight;
 
 export default function MedioLogo() {
   const { width } = useWindowDimensions();
-  const logoWidth = Math.max(width * 0.4, 0);
+  const logoWidth = Math.max(width * 0.5, 0);
   const logoHeight = logoWidth / LOGO_ASPECT_RATIO;
 
   return (
@@ -18,7 +18,7 @@ export default function MedioLogo() {
         accessibilityRole="image"
         accessibilityLabel="Dan Coach Mental Deportivo logo"
         source={logoSource}
-        style={[styles.logo, { width: logoWidth, height: logoHeight , marginTop:-20}]}
+        style={[styles.logo, { width: logoWidth, height: logoHeight , marginTop:-30}]}
       />
     </View>
   );

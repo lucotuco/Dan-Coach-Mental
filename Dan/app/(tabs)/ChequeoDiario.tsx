@@ -29,6 +29,13 @@ export default function CheckupsScreen() {
     '/dolor',
   ];
 
+  const fecha = new Date();
+  const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
   const handleSliderChange = (value: number, index: number) => {
     const newValues = [...sliderValues];
     newValues[index] = value;
@@ -62,7 +69,8 @@ export default function CheckupsScreen() {
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
-         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center',justifyContent:'center' }}>Chequeo Diario</Text>
+         <Text style={{fontSize:20, fontWeight:'700', color:'#1d1564',marginBottom:-20, alignItems: 'center',justifyContent:'center' }}>Chequeo Diario del dia: </Text>
+         <Text style={{fontSize:16, fontWeight:'600', color:'#1d1564',  alignItems: 'center',justifyContent:'center' }}>{fechaFormateada}</Text>
          <Card>
              <Text style={styles.sliderLabel}>Energía :</Text>
              <Slider 
