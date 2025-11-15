@@ -13,7 +13,7 @@ export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
-  const [modalLink, setModalLink] = useState('/todo-bien');
+  const [modalLink, setModalLink] = useState('index');
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
@@ -51,7 +51,7 @@ export default function CheckupsScreen() {
     const feedbackOptions = [
       {
         message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-        href: '(tabs)/index',
+        href: '/index',
       },
       ...sliderMessages.map((message, index) => ({
         message,
@@ -84,6 +84,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#1d1564ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 0)}
+               value={0}
              />
 
              <Text style={styles.sliderLabel}>Motivación :</Text>
@@ -98,6 +99,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#c00a0aff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 1)}
+               value={0}
              />
 
              <Text style={styles.sliderLabel}>Estado Emocional:</Text>
@@ -112,6 +114,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#16800cff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 2)}
+               value={0}
              />
 
              <Text style={styles.sliderLabel}>Sueño :</Text>
@@ -126,6 +129,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#31a9c7ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 3)}
+               value={0}
              />
              <Text style={styles.sliderLabel}>Dolor o Molestia:</Text>
              <Slider 
@@ -139,6 +143,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#fda531ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 4)}
+               value={0}
              />
             
          </Card>

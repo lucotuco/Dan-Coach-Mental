@@ -16,10 +16,9 @@ type DashboardTileProps = {
 };
 
 export function DashboardTile({ icon, title, subtitle, onPress, accentColor }: DashboardTileProps) {
-  const backgroundColor = useThemeColor({ light: '#f6f7fb', dark: '#1e2029' }, 'background');
+  const backgroundColor = accentColor ? hexToRgba(accentColor, 0.35) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
-  const iconBackground = accentColor ? hexToRgba(accentColor, 0.15) : '#e4e7ff';
   const iconColor = accentColor ?? '#4c6ef5';
 
   return (
@@ -29,7 +28,7 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor }: D
       onPress={onPress}
       style={({ pressed }) => [styles.tile, { backgroundColor }, pressed && styles.pressed]}
     >
-      <View style={[styles.iconWrap, { backgroundColor: iconBackground }]}>
+      <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
         <FeatherIcon name={icon} size={20} color={iconColor} />
       </View>
       <Text style={[styles.title, { color: textColor }]}>{title}</Text>
