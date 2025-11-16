@@ -56,7 +56,7 @@ function RootLayoutNav() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack
-        initialRouteName="(tabs)"
+      initialRouteName="login"
         screenOptions={sharedHeaderOptions}
       >
         <Stack.Screen name="login" 

@@ -21,13 +21,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor }]}
-     
-    >
+    
       <ScrollView
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        style={{backgroundColor}}
       >
         <View style={styles.logoWrapper}>
           <MedioLogo />
@@ -68,13 +66,16 @@ export default function LoginScreen() {
           <TouchableOpacity style={[styles.primaryButton, { backgroundColor: textColor }]} onPress={handleLogin}>
             <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor:textColor, borderWidth:2}]} onPress={handleLogin}>
+            <Text style={[styles.secondaryButtonText,{fontSize:16, color: textColor}]}>Crear cuenta</Text>
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryButton}>
             <Text style={[styles.secondaryButtonText, { color: textColor }]}>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    
   );
 }
 
