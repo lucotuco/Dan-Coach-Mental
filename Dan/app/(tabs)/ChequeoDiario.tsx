@@ -8,7 +8,6 @@ import Card from '@/components/Card';
 import React from 'react';
 import { Link } from 'expo-router';
 import RecordingButton from '@/components/AudioRecorderButton';
-import { set } from 'mongoose';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -51,7 +50,7 @@ export default function CheckupsScreen() {
     const feedbackOptions = [
       {
         message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-        href: '/index',
+        href: 'Homepage',
       },
       ...sliderMessages.map((message, index) => ({
         message,

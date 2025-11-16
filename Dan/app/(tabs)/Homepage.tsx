@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 import { useState } from 'react';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 
 import { Feather as FeatherIcon } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ type QuickAction = {
 
 const quickActions: QuickAction[] = [
   {
-    key: '(tabs)/checkups',
+    key: '/(tabs)/checkups',
     title: 'Chequeos Diarios',
     subtitle: 'Controla tu energia, motivación y emociones',
     icon: 'sun',
@@ -35,7 +35,7 @@ const quickActions: QuickAction[] = [
     wrapped: true,
   },
   {
-    key: 'sessions',
+    key: '/(tabs)/sessions',
     title: 'Sesiones con tu coach',
     subtitle: 'sesion en tiempo real Dan, tu coach mental deportivo',
     icon: 'headphones',
@@ -43,7 +43,7 @@ const quickActions: QuickAction[] = [
     wrapped: true,
   },
   {
-    key: 'progress',
+    key: '/(tabs)/progress',
     title: 'Mi progreso',
     subtitle: 'Seguimiento y evolcuion mental personalizada',
     icon: 'trending-up',
@@ -51,7 +51,7 @@ const quickActions: QuickAction[] = [
     wrapped: false,
   },
   {
-    key: '/library',
+    key: '/(tabs)/library',
     title: 'Recursos guiados',
     subtitle: 'Respiracion, relajacion y mas',
     icon: 'book-open',
@@ -61,6 +61,7 @@ const quickActions: QuickAction[] = [
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');
@@ -94,6 +95,7 @@ export default function HomeScreen() {
               subtitle={action.subtitle}
               accentColor={action.accent}
               wrapped={action.wrapped}
+              onPress={()=> router.navigate(action.key)}
             />
             
           ))}

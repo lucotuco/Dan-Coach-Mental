@@ -1,7 +1,7 @@
-import { StyleSheet, ScrollView, Pressable } from 'react-native';
+import { StyleSheet, ScrollView, Pressable, View } from 'react-native';
 import { Link } from 'expo-router';
 import React from 'react';
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import { useState } from 'react';
 import Card from '@/components/Card';
@@ -20,12 +20,23 @@ export default function Checkups() {
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
          <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center',justifyContent:'center' }}>Chequeos</Text>
-          <Card>
+          <Card style={styles.card}>
             <Link href="/ChequeoDiario">
-              <View style={styles.cardHeader}/>
-              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" style={styles.icon}/>
+              <View style={styles.cardHeader}>
+              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" style={styles.icon} />
               
               <Text style={styles.cardTitle}>Chequeo Diario:</Text>
+              </View>
+              <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
+            </Link>
+          </Card>
+          <Card style={styles.card}>
+            <Link href="/ChequeoDiario">
+              <View style={styles.cardHeader}>
+              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" />
+              
+              <Text style={styles.cardTitle}>Chequeo Diario:</Text>
+              </View>
               <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
             </Link>
           </Card>
@@ -34,15 +45,16 @@ export default function Checkups() {
   );
 }
 const styles = StyleSheet.create({
+  card:{
+    
+  },
   icon: {
-    position: 'absolute',
-    top: 6,
-    left: -20,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  
+    marginBottom:15,
+    marginTop:-5
   },
   container: {
-    flex: 1,
+    
   },
   sliderContainer: {
     width: '100%',
@@ -86,7 +98,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   cardHeader: {
-    gap: 4,
+    
+    gap: 40,
+    flexDirection: 'row',
   },
   cardTitle: {
     fontSize: 20,
