@@ -7,7 +7,7 @@ import { useState } from 'react';
 import Card from '@/components/Card';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-export default function CheckupsScreen() {
+export default function Checkups() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
 
   const handleSliderChange = (value: number, index: number) => {

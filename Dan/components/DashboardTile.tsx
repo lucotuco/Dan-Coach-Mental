@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Text, View, useThemeColor } from './Themed';
+import { Text,  useThemeColor } from './Themed';
 
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 
@@ -39,8 +39,12 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
       <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
         <FeatherIcon name={icon} size={30} color={iconColor} />
       </View>
-      <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-      {subtitle ? <Text style={[styles.subtitle, { color: mutedColor }]}>{subtitle}</Text> : null}
+      <View style={styles.textContent}>
+        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, { color: mutedColor }]}>{subtitle}</Text>
+        ) : null}
+      </View>
     </Pressable>
   );
 }
@@ -49,8 +53,10 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 18,
     padding: 16,
-    gap: 6,
+    gap: 12,
     flex: 1,
+    
+    alignItems: 'center',
     minWidth: 140,
   },
     fullWidthTile: {
@@ -63,7 +69,7 @@ const styles = StyleSheet.create({
   halfWidthTile: {
     width: '48%',
     maxWidth: '48%',
-    flexGrow: 0,
+    flexGrow: 1,
   },
   iconWrap: {
     width: 50,
@@ -82,6 +88,10 @@ const styles = StyleSheet.create({
   },
   pressed: {
     transform: [{ scale: 0.98 }],
+  },
+  textContent: {
+    flex: 1,
+    gap: 4,
   },
 });
 

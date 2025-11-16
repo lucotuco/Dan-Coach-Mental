@@ -12,6 +12,7 @@ import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
+
 const user = {
   name: 'Lucas Schlez',
 };
@@ -207,6 +208,6 @@ const styles = StyleSheet.create({
   tilesGrid: {
     flexDirection: 'row',
      flexWrap: 'wrap',
-    gap: 16,
+    gap: 20,
   },
 });
