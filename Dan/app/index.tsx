@@ -17,7 +17,7 @@ export default function LoginScreen() {
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
   const handleLogin = () => {
-    router.push('/(tabs)');
+    router.push('/(tabs)/Homepage');
   };
 
   return (

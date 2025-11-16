@@ -16,6 +16,7 @@ type DashboardTileProps = {
   wrapped?: boolean;
 };
 
+
 export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wrapped }: DashboardTileProps) {
   const backgroundColor = accentColor ? hexToRgba(accentColor, 0.35) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');

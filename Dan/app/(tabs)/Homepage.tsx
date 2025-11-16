@@ -6,8 +6,6 @@ import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 
 import Avatar from '@/components/Avatar';
-import Card from '@/components/Card';
-import CircularIconButton from '@/components/CircularIconButton';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
@@ -29,7 +27,7 @@ type QuickAction = {
 
 const quickActions: QuickAction[] = [
   {
-    key: '/checkups',
+    key: '(tabs)/checkups',
     title: 'Chequeos Diarios',
     subtitle: 'Controla tu energia, motivación y emociones',
     icon: 'sun',
@@ -88,6 +86,7 @@ export default function HomeScreen() {
         <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento </Text>
         <View style={styles.tilesGrid}>
           {quickActions.map((action) => (
+            
             <DashboardTile
               key={action.key}
               icon={action.icon}
@@ -96,6 +95,7 @@ export default function HomeScreen() {
               accentColor={action.accent}
               wrapped={action.wrapped}
             />
+            
           ))}
         </View>
       </View>
