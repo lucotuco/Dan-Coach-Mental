@@ -13,6 +13,7 @@ export default function CheckupsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
+  const [modalBackgroundColor, setModalBackgroundColor] = useState('#fff');
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
@@ -41,6 +42,14 @@ export default function CheckupsScreen() {
     setSliderValues(newValues);
   };
 
+  const modalBackgroundColors = [
+    '#97dfcb',
+    '#fff3e7',
+    '#ebffe4',
+    '#ddccf5',
+    '#fff4e2',
+  ];
+
   const handleSubmit = () => {
     const newValues = [...sliderValues];
     const lowIndex = newValues
@@ -59,8 +68,11 @@ export default function CheckupsScreen() {
     ];
 
     const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
+    const selectedBackground =
+      typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
     setModalMessage(selectedFeedback.message);
     setModalLink(selectedFeedback.href);
+    setModalBackgroundColor(selectedBackground);
     setModalVisible(true);
     setSliderValues([0, 0, 0, 0, 0]);
   };
@@ -165,7 +177,7 @@ export default function CheckupsScreen() {
            onRequestClose={() => setModalVisible(false)}
          >
            <View style={styles.modalBackdrop}>
-             <View style={styles.modalContainer}>
+            <View style={[styles.modalContainer, { backgroundColor: modalBackgroundColor }]}>
                <Text style={styles.modalTitle}>Chequeo Diario</Text>
                <Text style={styles.modalMessage}>{modalMessage}</Text>
               <Link
