@@ -1,24 +1,22 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet,ScrollView } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
 export default function LibraryScreenEnergia() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Biblioteca</Text>
-      <Text style={styles.subtitle}>
-        Reúne recursos, artículos y ejercicios en esta biblioteca muy pronto.
-      </Text>
-    </View>
+    <ScrollView contentContainerStyle={styles.container} >
+      <Text style={styles.title}>Movilida suave para recargar energía</Text>
+     
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
   },
   title: {
     fontSize: 24,

@@ -3,10 +3,11 @@ import { Button } from 'react-native-paper';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
-import { useState } from 'react';
+import { ComponentProps, useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
 import { Link } from 'expo-router';
+import { Feather as FeatherIcon } from '@expo/vector-icons';
 import RecordingButton from '@/components/AudioRecorderButton';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
@@ -14,6 +15,10 @@ export default function CheckupsScreen() {
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
   const [modalBackgroundColor, setModalBackgroundColor] = useState('#fff');
+  const [modalTitle, setModalTitle] = useState('Chequeo Diario');
+  const [modalIconName, setModalIconName] = useState<ComponentProps<typeof FeatherIcon>['name']>('check-circle');
+  const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
+  
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
     'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
@@ -42,7 +47,7 @@ export default function CheckupsScreen() {
     setSliderValues(newValues);
   };
 
-  const modalBackgroundColors = [
+   const modalBackgroundColors = [
     '#97dfcb',
     '#fff3e7',
     '#ebffe4',
@@ -50,6 +55,29 @@ export default function CheckupsScreen() {
     '#fff4e2',
   ];
 
+  const modalAccentColors = [
+    '#1d1564',
+    '#c00a0a',
+    '#16800c',
+    '#31a9c7',
+    '#fda531',
+  ];
+
+  const modalTitles = [
+    'Tu energía está baja',
+    'Tu motivación está baja',
+    'Tu estado emocional necesita atención',
+    'Tu descanso fue insuficiente',
+    'Detectamos molestias en tu cuerpo',
+  ];
+
+  const modalIcons: ComponentProps<typeof FeatherIcon>['name'][] = [
+    'zap',
+    'target',
+    'heart',
+    'moon',
+    'alert-triangle',
+  ];
   const handleSubmit = () => {
     const newValues = [...sliderValues];
     const lowIndex = newValues
@@ -70,9 +98,18 @@ export default function CheckupsScreen() {
     const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
     const selectedBackground =
       typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
+    const selectedTitle =
+      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
+    const selectedIcon =
+      typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
+    const selectedAccent =
+      typeof lowIndex === 'number' ? modalAccentColors[lowIndex] : '#1d1564';
     setModalMessage(selectedFeedback.message);
     setModalLink(selectedFeedback.href);
     setModalBackgroundColor(selectedBackground);
+    setModalTitle(selectedTitle);
+    setModalIconName(selectedIcon);
+    setModalAccentColor(selectedAccent);
     setModalVisible(true);
     setSliderValues([0, 0, 0, 0, 0]);
   };
@@ -177,8 +214,11 @@ export default function CheckupsScreen() {
            onRequestClose={() => setModalVisible(false)}
          >
            <View style={styles.modalBackdrop}>
-            <View style={[styles.modalContainer, { backgroundColor: modalBackgroundColor }]}>
-               <Text style={styles.modalTitle}>Chequeo Diario</Text>
+           <View style={[styles.modalContainer, { backgroundColor: modalBackgroundColor }]}>
+               <View style={styles.modalHeader}>
+                 <FeatherIcon name={modalIconName} size={36} color={modalAccentColor} />
+                 <Text style={[styles.modalTitle, { color: modalAccentColor }]}>{modalTitle}</Text>
+               </View>
                <Text style={styles.modalMessage}>{modalMessage}</Text>
               <Link
                 href={'(tabs)/'+modalLink}
@@ -200,7 +240,11 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
-  
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   dismissButton: {
     position: 'absolute',
     top: 15,
@@ -345,11 +389,14 @@ const styles = StyleSheet.create({
     padding: 24,
     borderRadius: 16,
     gap: 16,
+    maxHeight: '100%',
+    maxWidth:'100%',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1d1564',
+  
   },
   modalMessage: {
     fontSize: 16,
