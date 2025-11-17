@@ -1,7 +1,7 @@
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-
+import { useRouter} from 'expo-router';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
@@ -15,7 +15,7 @@ const meditationCategories = [
     icon: 'flash-outline' as IconName,
     backgroundColor: '#FFF3E0',
     accentColor: '#F5A524',
-    link:''
+    link:'energia'
   },
   {
     id: 'motivation',
@@ -24,7 +24,7 @@ const meditationCategories = [
     icon: 'ribbon-outline' as IconName,
     backgroundColor: '#FFF7E7',
     accentColor: '#E68A00',
-    link:''
+    link:'motivacion'
   },
   {
     id: 'concentration',
@@ -33,7 +33,7 @@ const meditationCategories = [
     icon: 'eye-outline' as IconName,
     backgroundColor: '#EEF7F6',
     accentColor: '#4EA3A1',
-    link:''
+    link:'estado-emocional'
   },
   {
     id: 'focus',
@@ -42,15 +42,16 @@ const meditationCategories = [
     icon: 'pulse-outline' as IconName,
     backgroundColor: '#F2FBFC',
     accentColor: '#0092A5',
-    link:''
+    link:'sueno'
   },
 ] as const;
 
 type MeditationCategory = (typeof meditationCategories)[number];
 
 export default function LibraryScreen() {
+  const router = useRouter();
   const onCategoryPress = (category: MeditationCategory) => {
-    
+    router.push(category.link);
   };
 
   return (
@@ -67,6 +68,7 @@ export default function LibraryScreen() {
 
       <View style={styles.cardStack}>
         {meditationCategories.map((category) => (
+          
           <Pressable
             key={category.id}
             accessibilityRole="button"
@@ -83,6 +85,7 @@ export default function LibraryScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#1F2A37" />
           </Pressable>
+          
         ))}
       </View>
     </ScrollView>

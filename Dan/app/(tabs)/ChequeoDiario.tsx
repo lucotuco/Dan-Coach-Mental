@@ -215,7 +215,7 @@ export default function CheckupsScreen() {
          >
            <View style={styles.modalBackdrop}>
            <View style={[styles.modalContainer, { backgroundColor: modalBackgroundColor }]}>
-            <FeatherIcon name={'x'} size={36} color={'#000000ff'} /*style={styles.icon}*/ />
+           
                <View style={styles.modalHeader}>
                  <FeatherIcon name={modalIconName} size={36} color={modalAccentColor} />
                  <Text style={[styles.modalTitle, { color: modalAccentColor }]}>{modalTitle}</Text>
