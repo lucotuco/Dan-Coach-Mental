@@ -108,7 +108,13 @@ export default function TabLayout() {
         name="energia"
         options={{
           href: null,
-          
+          }}
+      />
+      <Tabs.Screen
+        name="energiaSesiones"
+        options={{
+          href: null,
+
         }}
       />
       <Tabs.Screen
