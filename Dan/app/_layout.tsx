@@ -60,6 +60,8 @@ function RootLayoutNav() {
       >
         <Stack.Screen name="index" 
         options={{gestureEnabled: false}} />
+        <Stack.Screen name="singup" 
+        options={{gestureEnabled: false}} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>

@@ -20,8 +20,16 @@ export default function LoginScreen() {
     router.push('/(tabs)/Homepage');
   };
 
-  return (
+  const handleCreateAccount = () => {
+    router.push('/signup');
+  };
 
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
     <ScrollView
       keyboardShouldPersistTaps="handled"
       style={{ backgroundColor }}
@@ -66,7 +74,7 @@ export default function LoginScreen() {
           <TouchableOpacity style={[styles.primaryButton, { backgroundColor: textColor }]} onPress={handleLogin}>
             <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor: textColor, borderWidth: 2 }]} onPress={handleLogin}>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor: textColor, borderWidth: 2 }]} onPress={handleCreateAccount}>
             <Text style={[styles.secondaryButtonText, { fontSize: 16, color: textColor }]}>Crear cuenta</Text>
           </TouchableOpacity>
 
@@ -76,7 +84,7 @@ export default function LoginScreen() {
         </View>
       </View>
     </ScrollView>
-
+</KeyboardAvoidingView>
   );
 }
 
