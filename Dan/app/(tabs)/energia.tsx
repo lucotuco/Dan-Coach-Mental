@@ -1,12 +1,15 @@
 import { StyleSheet,ScrollView } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
+import MedioLogo from '@/components/MedioLogo';
 
 export default function LibraryScreenEnergia() {
   return (
-    <ScrollView contentContainerStyle={styles.container} >
+    <ScrollView style={{backgroundColor:'#fff'}} >
+      <View style={styles.container}>
+      <MedioLogo/>
       <Text style={styles.title}>Movilida suave para recargar energía</Text>
-     
+     </View>
     </ScrollView>
   );
 }

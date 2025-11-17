@@ -215,6 +215,7 @@ export default function CheckupsScreen() {
          >
            <View style={styles.modalBackdrop}>
            <View style={[styles.modalContainer, { backgroundColor: modalBackgroundColor }]}>
+            <FeatherIcon name={'x'} size={36} color={'#000000ff'} style={styles.icon} />
                <View style={styles.modalHeader}>
                  <FeatherIcon name={modalIconName} size={36} color={modalAccentColor} />
                  <Text style={[styles.modalTitle, { color: modalAccentColor }]}>{modalTitle}</Text>
@@ -240,10 +241,19 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
+  icon:{
+    position: 'absolute',
+    top: 6,
+    left: -6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexWrap: 'wrap',
+    width: '100%',
   },
   dismissButton: {
     position: 'absolute',
@@ -396,7 +406,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#1d1564',
-  
+    flexShrink: 1,
   },
   modalMessage: {
     fontSize: 16,

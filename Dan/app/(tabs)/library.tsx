@@ -1,15 +1,19 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet,ScrollView } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
+import MedioLogo from '@/components/MedioLogo';
 
 export default function LibraryScreen() {
   return (
-    <View style={styles.container}>
+    <ScrollView style={{backgroundColor:'#fff'}} >
+      <View style={styles.container}>
+          <MedioLogo/>
       <Text style={styles.title}>Biblioteca</Text>
       <Text style={styles.subtitle}>
         Reúne recursos, artículos y ejercicios en esta biblioteca muy pronto.
       </Text>
-    </View>
+      </View>
+    </ScrollView>
   );
 }
 

@@ -17,44 +17,71 @@ export default function Checkups() {
   };
 
   return (
-    <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
-         <MedioLogo/>
-         <Text style={{fontSize:30, fontWeight:'700', color:'#1d1564', marginBottom:10, alignItems: 'center',justifyContent:'center' }}>Chequeos</Text>
-          <Card style={styles.card}>
-            <Link href="/ChequeoDiario">
-              <View style={styles.cardHeader}>
-              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" style={styles.icon} />
-              
-              <Text style={styles.cardTitle}>Chequeo Diario:</Text>
-              </View>
+    <ScrollView style={[styles.container, { 'backgroundColor': '#fff' },]} contentContainerStyle={styles.content}>
+      <MedioLogo />
+      <Text style={{ fontSize: 30, fontWeight: '700', color: '#1d1564', marginBottom: 10, alignItems: 'center', justifyContent: 'center' }}>Chequeos</Text>
+      <Card style={styles.card}>
+        <Link href="/ChequeoDiario">
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrapper}>
+              <FontAwesome5 name="clipboard-list" size={32} color="#1d1564" />
+            </View>
+            <View style={styles.headerTextWrapper}>
+              <Text style={styles.cardTitle}>Chequeo Diario</Text>
               <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
-            </Link>
-          </Card>
-          <Card style={styles.card}>
-            <Link href="/ChequeoDiario">
-              <View style={styles.cardHeader}>
-              <FontAwesome5 name="clipboard-list" size={40} color="#1d1564" />
-              
-              <Text style={styles.cardTitle}>Chequeo Diario:</Text>
-              </View>
+            </View>
+          </View>
+        </Link>
+      </Card>
+      <Card style={styles.card}>
+        <Link href="/ChequeoDiario">
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrapper}>
+              <FontAwesome5 name="clipboard-list" size={32} color="#1d1564" />
+            </View>
+            <View style={styles.headerTextWrapper}>
+              <Text style={styles.cardTitle}>Chequeo Diario</Text>
               <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
-            </Link>
-          </Card>
-          
+            </View>
+          </View>
+        </Link>
+      </Card>
+      <Card style={styles.card}>
+        <Link href="/ChequeoDiario">
+          <View style={styles.cardHeader}>
+            <View style={styles.iconWrapper}>
+              <FontAwesome5 name="clipboard-list" size={32} color="#1d1564" />
+            </View>
+            <View style={styles.headerTextWrapper}>
+              <Text style={styles.cardTitle}>Chequeo Diario</Text>
+              <Text style={styles.cardDescription}>Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.</Text>
+            </View>
+          </View>
+        </Link>
+      </Card>
+
     </ScrollView>
   );
 }
 const styles = StyleSheet.create({
-  card:{
-    
+  card: {
+
+  },
+  iconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: '#eef0fb',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
-  
-    marginBottom:15,
-    marginTop:-5
+
+    marginBottom: 15,
+    marginTop: -5
   },
   container: {
-    
+
   },
   sliderContainer: {
     width: '100%',
@@ -98,17 +125,22 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   cardHeader: {
-    
-    gap: 40,
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  headerTextWrapper: {
+    flex: 1,
+    gap: 6,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
-    paddingRight:1000,
+    color: '#1d1564',
   },
   cardDescription: {
     fontSize: 14,
+    color: '#4a4a68',
   },
   moodGrid: {
     flexDirection: 'row',

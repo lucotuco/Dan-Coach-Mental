@@ -21,17 +21,17 @@ export default function LoginScreen() {
   };
 
   return (
-    
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        style={{backgroundColor}}
-      >
+
+    <ScrollView
+      keyboardShouldPersistTaps="handled"
+      style={{ backgroundColor }}
+    >
+      <View style={styles.container}>
         <View style={styles.logoWrapper}>
           <MedioLogo />
         </View>
 
-        <View style={[styles.card, { backgroundColor: cardColor }]}> 
+        <View style={[styles.card, { backgroundColor: cardColor }]}>
           <Text style={[styles.title, { color: textColor }]}>Bienvenido de vuelta</Text>
           <Text style={[styles.subtitle, { color: mutedColor }]}>Inicia sesión para continuar con tu acompañamiento.</Text>
 
@@ -66,16 +66,17 @@ export default function LoginScreen() {
           <TouchableOpacity style={[styles.primaryButton, { backgroundColor: textColor }]} onPress={handleLogin}>
             <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor:textColor, borderWidth:2}]} onPress={handleLogin}>
-            <Text style={[styles.secondaryButtonText,{fontSize:16, color: textColor}]}>Crear cuenta</Text>
+          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor: textColor, borderWidth: 2 }]} onPress={handleLogin}>
+            <Text style={[styles.secondaryButtonText, { fontSize: 16, color: textColor }]}>Crear cuenta</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.secondaryButton}>
             <Text style={[styles.secondaryButtonText, { color: textColor }]}>¿Olvidaste tu contraseña?</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    
+      </View>
+    </ScrollView>
+
   );
 }
 
