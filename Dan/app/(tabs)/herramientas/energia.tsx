@@ -15,7 +15,7 @@ const energyOptions = [
     icon: 'leaf-outline' as IconName,
     backgroundColor: '#FFEEDB',
     iconBackground: '#F07F24',
-    destination: 'energiaSesiones',
+    destination: 'renovarEnergia',
   },
   {
     id: 'vitality',

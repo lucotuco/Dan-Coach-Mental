@@ -111,7 +111,7 @@ export default function TabLayout() {
           }}
       />
       <Tabs.Screen
-        name="herramientas/energiaSesiones"
+        name="herramientas/renovarEnergia"
         options={{
           href: null,
         }}
