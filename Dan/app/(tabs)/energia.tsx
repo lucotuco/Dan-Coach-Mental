@@ -1,15 +1,12 @@
-+225
--18
-
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet } from 'react-native';
 import { Text, View } from '@/components/Themed';
-import MedioLogo from '@/components/MedioLogo';
 import { Ionicons } from '@expo/vector-icons';
 import { setAudioModeAsync, createAudioPlayer } from 'expo-audio';
 import type { AudioStatus } from 'expo-audio';
 import { Subscription } from 'expo-modules-core';
 import { Asset } from 'expo-asset';
+import { Stack, useRouter } from 'expo-router';
 
 const formatTime = (timeInSeconds: number | null | undefined) => {
   if (typeof timeInSeconds !== 'number' || Number.isNaN(timeInSeconds)) {
@@ -23,6 +20,7 @@ const formatTime = (timeInSeconds: number | null | undefined) => {
 };
 
 export default function LibraryScreenEnergia() {
+  const router = useRouter();
   const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
   const [audioReady, setAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -31,9 +29,9 @@ export default function LibraryScreenEnergia() {
 
   const progressPercentage = playerStatus?.duration
     ? Math.min(
-        1,
-        Math.max(0, (playerStatus?.currentTime ?? 0) / playerStatus.duration)
-      )
+      1,
+      Math.max(0, (playerStatus?.currentTime ?? 0) / playerStatus.duration)
+    )
     : 0;
 
   useEffect(() => {
@@ -114,90 +112,120 @@ export default function LibraryScreenEnergia() {
   const handleSkipForward = () => seekBySeconds(10);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <MedioLogo />
-      </View>
-
-      <View style={styles.heroCard}>
-        <Text style={styles.heroTitle}>Movilidad suave para recargar energía</Text>
-
-        {isPlaying ? (
-          <View style={styles.playbackControls}>
+    <>
+      <Stack.Screen
+        options={{
+          headerLeft: () => (
             <Pressable
               accessibilityRole="button"
-              style={styles.skipButton}
-              onPress={handleSkipBack}>
-              <Ionicons name="play-back" size={30} color="#031355" />
-              <Text style={styles.skipLabel}>-10s</Text>
+              accessibilityLabel="Volver"
+              onPress={() => router.push('/(tabs)/library')}
+              style={styles.headerBackButton}
+              hitSlop={10}
+            >
+              <Ionicons name="arrow-back" size={24} color="#031355" />
             </Pressable>
+          ),
+        }}
+      />
+      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+        <View style={styles.heroCard}>
+          <Text style={styles.heroTitle}>Movilidad suave para recargar energía</Text>
 
+          {isPlaying ? (
+            <View style={styles.playbackControls}>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.skipButton}
+                onPress={handleSkipBack}>
+                <Ionicons name="play-back" size={30} color="#031355" />
+                <Text style={styles.skipLabel}>-10s</Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                onPress={handlePlayPausePress}
+                style={styles.controlButton}>
+                <Ionicons name="pause" size={28} color="#fff" />
+              </Pressable>
+
+              <Pressable
+                accessibilityRole="button"
+                style={styles.skipButton}
+                onPress={handleSkipForward}>
+                <Ionicons name="play-forward" size={30} color="#031355" />
+                <Text style={styles.skipLabel}>+10s</Text>
+              </Pressable>
+            </View>
+          ) : (
             <Pressable
-              accessibilityRole="button"
+              style={[styles.primaryButton, !audioReady && styles.primaryButtonDisabled]}
               onPress={handlePlayPausePress}
-              style={styles.controlButton}>
-              <Ionicons name="pause" size={28} color="#fff" />
-            </Pressable>
-
-            <Pressable
               accessibilityRole="button"
-              style={styles.skipButton}
-              onPress={handleSkipForward}>
-              <Ionicons name="play-forward" size={30} color="#031355" />
-              <Text style={styles.skipLabel}>+10s</Text>
+              disabled={!audioReady}>
+              <Text style={styles.primaryButtonText}>Iniciar</Text>
             </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            style={[styles.primaryButton, !audioReady && styles.primaryButtonDisabled]}
-            onPress={handlePlayPausePress}
-            accessibilityRole="button"
-            disabled={!audioReady}>
-            <Text style={styles.primaryButtonText}>Iniciar</Text>
-          </Pressable>
-        )}
-        {showProgressBar && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressLabel}>Tiempo reproducido</Text>
-            <Text style={styles.progressTime}>
-              {formatTime(playerStatus?.currentTime ?? 0)}
-              {playerStatus?.duration
-                ? ` / ${formatTime(playerStatus?.duration)}`
-                : ''}
+          )}
+          {showProgressBar && (
+            <View style={styles.progressContainer}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Tiempo reproducido</Text>
+                <Text style={styles.progressTime}>
+                  {formatTime(playerStatus?.currentTime ?? 0)}
+                  {playerStatus?.duration
+                    ? ` / ${formatTime(playerStatus?.duration)}`
+                    : ''}
+                </Text>
+              </View>
+              <View style={styles.progressTrack}>
+                <View
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: `${progressPercentage * 100}%`,
+                    },
+                  ]}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+        <ScrollView>
+          <View style={styles.infoBlock}>
+            <Text style={styles.infoTitle}>Respira hondo...</Text>
+            <Text style={styles.infoParagraph}>
+              Bienvenido a esta breve sesión para renovar tu energía.
+              Buscá una posición cómoda… relajá los hombros… y cerrá los ojos suavemente.
+            </Text>
+            <Text style={styles.infoParagraph}>Inhalá profundo por la nariz… 1, 2, 3, 4… sostené 1, 2… exhalá lento 1, 2, 3, 4.
+              Repetí dos veces más.
+            </Text>
+            <Text style={styles.infoParagraph}>
+              Ahora llevá tu atención al centro del pecho.
+              Imaginá una luz tibia, suave, que comienza a encenderse… como una chispa interna que vuelve a tomar fuerza.
+            </Text>
+            <Text style={styles.infoParagraph}>
+              Ya activaste tu energía. Estás listo para continuar tu día con más calma y ligereza.Cada inhalación alimenta esa chispa.
+              Cada exhalación libera cansancio, tensión y pensamientos que te drenan.
+            </Text>
+            <Text style={styles.infoParagraph}>
+              Decite internamente:
+              “Mi energía vuelve a mí. Me recargo. Me renuevo.”
+            </Text>
+            <Text style={styles.infoParagraph}>
+              Sentí cómo esa luz crece y se expande por tu cuerpo.
+              Piernas, brazos, cuello… todo vuelve a activarse con armonía.
+            </Text>
+            <Text style={styles.infoParagraph}>
+              Respirá profundo una vez más.
+              Y cuando estés listo… abrí los ojos.
+              Tu energía está volviendo.
             </Text>
           </View>
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${progressPercentage * 100}%`,
-                },
-              ]}
-            />
-          </View>
-        </View>
-      )}
-      </View>
+        </ScrollView>
 
-      <View style={styles.infoBlock}>
-        <Text style={styles.infoTitle}>Respira hondo...</Text>
-        <Text style={styles.infoParagraph}>
-          Tu cuerpo empieza a despertarse. Activá desde la calma.
-        </Text>
-        <Text style={styles.infoParagraph}>Aflojá tensiones sin forzar.</Text>
-        <Text style={styles.infoParagraph}>
-          Liberá la carga del día y dale espacio a tu energía. Dale movilidad al centro de tu
-          cuerpo para recuperar vitalidad.
-        </Text>
-        <Text style={styles.infoParagraph}>
-          Ya activaste tu energía. Estás listo para continuar tu día con más calma y ligereza.
-        </Text>
-      </View>
-
-      
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
@@ -211,16 +239,14 @@ const styles = StyleSheet.create({
     paddingBottom: 48,
     gap: 24,
   },
-  header: {
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
-    gap: 6,
-  },
-  tagline: {
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: '#26324b',
+    justifyContent: 'center',
+    backgroundColor: '#f0f2ff',
+    marginLeft: 20
   },
   heroCard: {
     backgroundColor: '#fff',
