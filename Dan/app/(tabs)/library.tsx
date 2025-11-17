@@ -15,7 +15,7 @@ const meditationCategories = [
     icon: 'flash-outline' as IconName,
     backgroundColor: '#FFF3E0',
     accentColor: '#F5A524',
-    link:'energia'
+    link:'/herramientas/energia'
   },
   {
     id: 'motivation',

@@ -1,6 +1,6 @@
 import { Alert, Pressable, ScrollView, StyleSheet } from 'react-native';
 import type { ComponentProps } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View } from '@/components/Themed';
@@ -15,7 +15,7 @@ const energyOptions = [
     icon: 'leaf-outline' as IconName,
     backgroundColor: '#FFEEDB',
     iconBackground: '#F07F24',
-    destination: 'energia-sesion',
+    destination: 'energiaSesiones',
   },
   {
     id: 'vitality',
@@ -42,7 +42,7 @@ export default function EnergyScreen() {
 
   const handleOptionPress = (option: EnergyOption) => {
     if (option.destination) {
-      router.push(option.destination);
+      router.push('/(tabs)/herramientas/'+option.destination);
       return;
     }
 
@@ -53,9 +53,25 @@ export default function EnergyScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <>
+    <Stack.Screen
+        options={{
+          headerLeft: () => (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              onPress={() => router.push('/(tabs)/library')}
+              style={styles.headerBackButton}
+              hitSlop={10}
+            >
+              <Ionicons name="arrow-back" size={24} color="#031355" />
+            </Pressable>
+          ),
+        }}
+      />
+    <ScrollView style={[styles.screen, {backgroundColor:'#fff'}]} contentContainerStyle={styles.content}>
+      <MedioLogo />
       <View style={styles.heroCard}>
-        <MedioLogo />
         <View style={styles.heroTextBlock}>
           <Text style={styles.heroTitle}>Energía</Text>
           <Text style={styles.heroSubtitle}>
@@ -85,6 +101,7 @@ export default function EnergyScreen() {
         ))}
       </View>
     </ScrollView>
+    </>
   );
 }
 
@@ -93,13 +110,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF9F2',
   },
+  headerBackButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f2ff',
+    marginLeft: 20
+  },
   content: {
     padding: 24,
     gap: 24,
   },
   heroCard: {
     borderRadius: 32,
-    paddingVertical: 32,
+    paddingBottom:32,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',

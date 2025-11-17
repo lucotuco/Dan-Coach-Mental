@@ -60,7 +60,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="sessions"
+        name="sesions"
         options={{
           title: 'Sesiones',
           tabBarLabel: 'Sesiones',
@@ -105,16 +105,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="energia"
+        name="herramientas/energia"
         options={{
           href: null,
           }}
       />
       <Tabs.Screen
-        name="energiaSesiones"
+        name="herramientas/energiaSesiones"
         options={{
           href: null,
-
         }}
       />
       <Tabs.Screen

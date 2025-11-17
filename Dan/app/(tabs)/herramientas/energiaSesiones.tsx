@@ -137,7 +137,7 @@ export default function LibraryScreenEnergia() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Volver"
-              onPress={() => router.push('/(tabs)/library')}
+              onPress={() => router.push('/(tabs)/herramientas/energia')}
               style={styles.headerBackButton}
               hitSlop={10}
             >
