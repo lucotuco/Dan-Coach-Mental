@@ -22,10 +22,13 @@ const formatTime = (timeInSeconds: number | null | undefined) => {
 export default function LibraryScreenEnergia() {
   const router = useRouter();
   const playerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const scriptScrollRef = useRef<ScrollView | null>(null);
   const [audioReady, setAudioReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playerStatus, setPlayerStatus] = useState<AudioStatus | null>(null);
   const [showProgressBar, setShowProgressBar] = useState(false);
+  const [scriptContainerHeight, setScriptContainerHeight] = useState(0);
+  const [scriptContentHeight, setScriptContentHeight] = useState(0);
 
   const progressPercentage = playerStatus?.duration
     ? Math.min(
@@ -90,6 +93,7 @@ export default function LibraryScreenEnergia() {
 
     if (!playerStatus || finished) {
       player.seekTo(0);
+      scriptScrollRef.current?.scrollTo({ y: 0, animated: false });
     }
 
     player.play();
@@ -111,6 +115,20 @@ export default function LibraryScreenEnergia() {
   const handleSkipBack = () => seekBySeconds(-10);
   const handleSkipForward = () => seekBySeconds(10);
 
+  useEffect(() => {
+    if (!isPlaying) return;
+    const duration = playerStatus?.duration ?? 0;
+    const current = playerStatus?.currentTime ?? 0;
+    if (!duration || !scriptScrollRef.current) return;
+    const scrollableHeight = Math.max(0, scriptContentHeight - scriptContainerHeight);
+    if (scrollableHeight <= 0) return;
+    const progress = Math.min(1, Math.max(0, current / duration));
+    scriptScrollRef.current.scrollTo({
+      y: scrollableHeight * progress,
+      animated: true,
+    });
+  }, [isPlaying, playerStatus?.currentTime, playerStatus?.duration, scriptContentHeight, scriptContainerHeight]);
+
   return (
     <>
       <Stack.Screen
@@ -128,7 +146,7 @@ export default function LibraryScreenEnergia() {
           ),
         }}
       />
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <View style={styles.screen}>
         <View style={styles.heroCard}>
           <Text style={styles.heroTitle}>Movilidad suave para recargar energía</Text>
 
@@ -190,8 +208,16 @@ export default function LibraryScreenEnergia() {
             </View>
           )}
         </View>
-        <ScrollView>
-          <View style={styles.infoBlock}>
+        <View
+          style={styles.scriptContainer}
+          onLayout={(event) => setScriptContainerHeight(event.nativeEvent.layout.height)}
+        >
+          <ScrollView
+            ref={scriptScrollRef}
+            onContentSizeChange={(_, height) => setScriptContentHeight(height)}
+            contentContainerStyle={styles.infoBlock}
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={styles.infoTitle}>Respira hondo...</Text>
             <Text style={styles.infoParagraph}>
               Bienvenido a esta breve sesión para renovar tu energía.
@@ -221,10 +247,10 @@ export default function LibraryScreenEnergia() {
               Y cuando estés listo… abrí los ojos.
               Tu energía está volviendo.
             </Text>
-          </View>
-        </ScrollView>
+          </ScrollView>
+        </View>
 
-      </ScrollView>
+      </View>
     </>
   );
 }
@@ -233,10 +259,7 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  content: {
     padding: 24,
-    paddingBottom: 48,
     gap: 24,
   },
   headerBackButton: {
@@ -306,6 +329,7 @@ const styles = StyleSheet.create({
   },
   infoBlock: {
     gap: 8,
+    paddingBottom: 48,
   },
   infoTitle: {
     fontSize: 20,
@@ -348,5 +372,8 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 999,
     backgroundColor: '#031355',
+  },
+  scriptContainer: {
+    flex: 1,
   },
 });
