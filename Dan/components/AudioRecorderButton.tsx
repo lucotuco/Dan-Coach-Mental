@@ -68,7 +68,9 @@ export default function RecordingButton() {
               accessibilityRole="button"
               style={styles.dismissButton}
               hitSlop={10}
-              onPress={() => setModalVisible(false)}>
+              onPress={() => {setModalVisible(false)
+                player.pause();}
+              }>
               <FontAwesome5 name={'arrow-left'} size={16} color={modalText} />
             </Pressable>
             <View style={styles.modalContent}>
