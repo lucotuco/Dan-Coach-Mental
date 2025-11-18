@@ -37,7 +37,17 @@ app.use((req, res, next) => {
 
 // ROUTES
 // Attach defined routes to their corresponding endpoints:
-app.use("/test/test", userRoutes);
+app.use("/user", userRoutes);
+app.use("/event", eventRoutes);
+
+/*
+GET localhost:27017/user
+GET localhost:27017/user/1234
+POST localhost:27017/user  json en el body con los datos del usuario a crear{}
+DELETE localhost:27017/user/1234
+PATCH localhost:27017/user/1234 json en el body con los datos del usuario a crear{}
+*/
+
 // app.use("/palz/events", eventRoutes);
 // app.use("/palz/messages", messageRoutes);
 
