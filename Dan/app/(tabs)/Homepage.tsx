@@ -35,7 +35,7 @@ const quickActions: QuickAction[] = [
     wrapped: true,
   },
   {
-    key: '/(tabs)/sessions',
+    key: '/(tabs)/sesions',
     title: 'Sesiones con tu coach',
     subtitle: 'sesion en tiempo real Dan, tu coach mental deportivo',
     icon: 'headphones',
