@@ -93,7 +93,7 @@ export default function EnergyScreen() {
             <View style={[styles.optionIcon, { backgroundColor: option.iconBackground }]}>
               <Ionicons name={option.icon} size={28} color="#fff" />
             </View>
-            <View style={styles.optionTextContainer}>
+            <View style={[styles.optionTextContainer,{ backgroundColor: option.backgroundColor }]}>
               <Text style={styles.optionTitle}>{option.title}</Text>
               <Text style={styles.optionSubtitle}>{option.subtitle}</Text>
             </View>

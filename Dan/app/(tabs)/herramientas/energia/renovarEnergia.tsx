@@ -45,7 +45,7 @@ export default function LibraryScreenEnergia() {
       try {
         await setAudioModeAsync({ playsInSilentMode: true });
         const meditationAsset = Asset.fromModule(
-          require('@/assets/audios/reliable-safe-327618.mp3')
+          require('@/assets/audios/ttsmaker-file-2025-11-18-0-6-21.mp3')
         );
         await meditationAsset.downloadAsync();
         if (!isMounted) return;
