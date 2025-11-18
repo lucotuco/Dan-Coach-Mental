@@ -24,6 +24,7 @@ const energyOptions = [
     icon: 'sunny-outline' as IconName,
     backgroundColor: '#FFF5E8',
     iconBackground: '#F2A341',
+     destination: 'vitalidadMinutos',
   },
   {
     id: 'mood',
@@ -42,7 +43,7 @@ export default function EnergyScreen() {
 
   const handleOptionPress = (option: EnergyOption) => {
     if (option.destination) {
-      router.push('/(tabs)/herramientas/'+option.destination);
+      router.push('/(tabs)/herramientas/energia/'+option.destination);
       return;
     }
 

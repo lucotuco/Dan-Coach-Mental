@@ -27,7 +27,7 @@ export default function CheckupsScreen() {
     'Detectamos algo de dolor o molestia. Te recomendamos un ejercicio guiado para aliviarlo.',
   ];
   const sliderRoutes = [
-    '/energia',
+    '/herramientas/energia',
     '/motivacion',
     '/estado-emocional',
     '/sueno',
