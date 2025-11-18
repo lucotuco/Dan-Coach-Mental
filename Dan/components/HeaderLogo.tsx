@@ -1,11 +1,25 @@
 import React from 'react';
-import { Image, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Image, StyleSheet, View, useWindowDimensions, Platform } from 'react-native';
 import '../assets/images/DAN_coach_mental_sin_fondo_v1.png';
 
 const logoSource = require('../assets/images/DAN_coach_mental_sin_fondo_v1.png');
-const { width: assetWidth, height: assetHeight } = Image.resolveAssetSource(logoSource);
-const LOGO_ASPECT_RATIO = assetHeight === 0 ? 1 : assetWidth / assetHeight;
 
+const getLogoAspectRatio = () => {
+  // En web (o si no existe resolveAssetSource), devolvemos 1 para evitar el crash
+  if (Platform.OS === 'web' || typeof Image.resolveAssetSource !== 'function') {
+    return 1;
+  }
+
+  const resolvedAsset = Image.resolveAssetSource(logoSource);
+
+  if (!resolvedAsset?.height) {
+    return 1;
+  }
+
+  return resolvedAsset.width / resolvedAsset.height;
+};
+
+const LOGO_ASPECT_RATIO = getLogoAspectRatio();
 
 export default function HeaderLogo() {
   const { width } = useWindowDimensions();
