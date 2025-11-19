@@ -34,10 +34,15 @@
       "expo-router"
     ],
     "extra": {
-      "apiUrl": "http://localhost:3000"
+      "apiUrl": "http://localhost:3000",
+      "router": {},
+      "eas": {
+        "projectId": "6210d95e-f5e4-43a3-9c11-0d1ee9145c2b"
+      }
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "luco"
   }
 }
