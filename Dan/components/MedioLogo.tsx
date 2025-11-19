@@ -3,16 +3,18 @@ import { Image, StyleSheet, Platform, View, useWindowDimensions } from 'react-na
 import '../assets/images/DAN_coach_mental_sin_fondo_v3.png';
 
 const logoSource = require('../assets/images/DAN_coach_mental_sin_fondo_v3.png');
+// The source asset is 1024x121 px which gives the right ratio for the web fallback.
+const FALLBACK_LOGO_ASPECT_RATIO = 1024 / 121;
 
 const getLogoAspectRatio = () => {
   if (Platform.OS === 'web' || typeof Image.resolveAssetSource !== 'function') {
-    return 1;
+    return FALLBACK_LOGO_ASPECT_RATIO;
   }
 
   const resolvedAsset = Image.resolveAssetSource(logoSource);
 
   if (!resolvedAsset?.height) {
-    return 1;
+    return FALLBACK_LOGO_ASPECT_RATIO;
   }
 
   return resolvedAsset.width / resolvedAsset.height;

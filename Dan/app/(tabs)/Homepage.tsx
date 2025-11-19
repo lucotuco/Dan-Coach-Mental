@@ -68,8 +68,12 @@ export default function HomeScreen() {
 
   return (
     
-    <ScrollView style={[styles.container, { backgroundColor },]} contentContainerStyle={styles.content}>
-
+  <ScrollView
+      style={[styles.container, { backgroundColor }]}
+      contentContainerStyle={styles.content}
+      scrollEnabled={false}
+      showsVerticalScrollIndicator={false}
+    >
       <MedioLogo/>
       
       <Link href="/profile">

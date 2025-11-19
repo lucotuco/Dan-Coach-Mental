@@ -76,7 +76,10 @@ export default function LibraryScreenEnergia() {
       playerRef.current = null;
     };
   }, []);
-
+  const handleBotonvolver=()=>{
+    handlePlayPausePress();
+    router.push('/(tabs)/herramientas/energia')
+  }
   const handlePlayPausePress = () => {
     const player = playerRef.current;
     if (!player) return;
@@ -137,7 +140,7 @@ export default function LibraryScreenEnergia() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Volver"
-              onPress={() => router.push('/(tabs)/herramientas/energia')}
+              onPress={(handleBotonvolver)}
               style={styles.headerBackButton}
               hitSlop={10}
             >

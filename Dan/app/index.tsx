@@ -31,6 +31,8 @@ export default function LoginScreen() {
     >
     <ScrollView
       keyboardShouldPersistTaps="handled"
+       scrollEnabled={false}
+      showsVerticalScrollIndicator={false}
       style={{ backgroundColor }}
     >
       <View style={styles.container}>
