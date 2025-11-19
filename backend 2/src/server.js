@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
-import noteRoutes from './routes/noteRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import { connectToDatabase } from './config/mongo.js';
 
 dotenv.config();
@@ -26,7 +26,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/notes', noteRoutes);
+app.use('/api/users', userRoutes);
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error(err);
