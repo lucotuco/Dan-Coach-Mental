@@ -32,6 +32,7 @@ export default function HeaderLogo() {
         accessibilityRole="image"
         accessibilityLabel="Dan Coach Mental Deportivo logo"
         source={logoSource}
+        resizeMode="contain"
         style={[styles.logo, { width: logoWidth, height: logoHeight }]}
       />
     </View>
@@ -45,6 +46,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    resizeMode: 'contain',
   },
 });

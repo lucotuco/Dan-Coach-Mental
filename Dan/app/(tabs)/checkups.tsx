@@ -30,7 +30,7 @@ const checkupCards: CheckupCard[] = [
     title: 'Chequeo Diario',
     description:
       'Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.',
-    href: '/ChequeoDiario',
+    href: '/chequeoDiario',
     tag: 'Rutina diaria',
     colors: {
       background: '#f3f5ff',
@@ -47,7 +47,7 @@ const checkupCards: CheckupCard[] = [
     title: 'Chequeo pre competencia',
     description:
       'Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.',
-    href: '/ChequeoDiario',
+    href: '/chequeoDiario',
     tag: 'Estado emocional',
     colors: {
       background: '#fff4f5',
@@ -64,7 +64,7 @@ const checkupCards: CheckupCard[] = [
     title: 'Chequeo post competencia',
     description:
       'Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.',
-    href: '/ChequeoDiario',
+    href: '/chequeoDiario',
     tag: 'Seguimiento',
     colors: {
       background: '#f7f2ff',

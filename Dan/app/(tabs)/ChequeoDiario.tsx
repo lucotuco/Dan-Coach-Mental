@@ -1,5 +1,4 @@
-import { StyleSheet, ScrollView, Modal, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { StyleSheet, ScrollView, Modal, View,Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
@@ -87,7 +86,7 @@ export default function CheckupsScreen() {
     const feedbackOptions = [
       {
         message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-        href: 'Homepage',
+        href: 'homePage',
       },
       ...sliderMessages.map((message, index) => ({
         message,
@@ -199,13 +198,16 @@ export default function CheckupsScreen() {
              <RecordingButton />
           </View>
 
-         <Button
-           mode="contained"
-           style={{ backgroundColor:'#1d1564ff'}}
-           onPress={handleSubmit}
-         >
-            <Text style={{color:'#ffffffff',fontSize:20, fontWeight:'600'}}>Guardar Chequeo</Text>
-         </Button>
+         <Pressable
+          accessibilityRole="button"
+          onPress={handleSubmit}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
+          ]}
+        >
+          <Text style={styles.primaryButtonText}>Guardar Chequeo</Text>
+        </Pressable>
 
          <Modal
            visible={modalVisible}
@@ -226,12 +228,16 @@ export default function CheckupsScreen() {
                 asChild
                 onPress={() => setModalVisible(false)}
               >
-                <Button
-                  mode="contained"
-                  style={styles.modalButton}
+                <Pressable
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.primaryButton,
+                    styles.modalButton,
+                    pressed && styles.primaryButtonPressed,
+                  ]}
                 >
-                  <Text style={{color:'#ffffffff',fontSize:16, fontWeight:'600'}}>Ir ahora</Text>
-                </Button>
+                  <Text style={styles.primaryButtonText}>Ir ahora</Text>
+                </Pressable>
               </Link>
             </View>
           </View>
@@ -338,6 +344,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#1d1564',
+  },
+  primaryButtonPressed: {
+    opacity: 0.85,
   },
   primaryButtonText: {
     color: '#fff',

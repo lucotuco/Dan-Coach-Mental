@@ -19,10 +19,16 @@ const getLogoAspectRatio = () => {
 };
 
 const LOGO_ASPECT_RATIO = getLogoAspectRatio();
+// Limit the logo size to what a ~380px wide device would display so the
+// experience matches iOS/Android even when the app runs on large web screens.
+const TARGET_MOBILE_WIDTH = 380;
+const MAX_LOGO_WIDTH = TARGET_MOBILE_WIDTH * 0.5;
+
 
 export default function MedioLogo() {
   const { width } = useWindowDimensions();
-  const logoWidth = Math.max(width * 0.5, 0);
+  const responsiveLogoWidth = Math.max(width * 0.5, 0);
+  const logoWidth = Math.min(responsiveLogoWidth, MAX_LOGO_WIDTH);
   const logoHeight = logoWidth / LOGO_ASPECT_RATIO;
 
   return (
@@ -31,6 +37,7 @@ export default function MedioLogo() {
         accessibilityRole="image"
         accessibilityLabel="Dan Coach Mental Deportivo logo"
         source={logoSource}
+        resizeMode="contain"
         style={[styles.logo, { width: logoWidth, height: logoHeight, marginTop: -20 }]}
       />
     </View>
@@ -44,6 +51,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    resizeMode: 'contain',
   },
 });

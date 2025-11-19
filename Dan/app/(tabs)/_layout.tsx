@@ -42,7 +42,7 @@ export default function TabLayout() {
         headerShown: useClientOnlyValue(false, true),
       }}>
       <Tabs.Screen
-        name="Homepage"
+        name="homePage"
         options={{
           title: 'Inicio',
           tabBarLabel: 'Inicio',
@@ -84,7 +84,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ChequeoDiario"
+        name="chequeoDiario"
         options={{
           href: null,
           

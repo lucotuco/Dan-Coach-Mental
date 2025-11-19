@@ -19,7 +19,13 @@ export function Avatar({ name, size = 48, imageUrl }: AvatarProps) {
     .toUpperCase();
 
   if (imageUrl) {
-    return <Image source={{ uri: imageUrl }} style={[styles.image, { width: size, height: size }]} />;
+    return (
+      <Image
+        source={{ uri: imageUrl }}
+        resizeMode="cover"
+        style={[styles.image, { width: size, height: size }]}
+      />
+    );
   }
 
   return (
@@ -32,7 +38,6 @@ export function Avatar({ name, size = 48, imageUrl }: AvatarProps) {
 const styles = StyleSheet.create({
   image: {
     borderRadius: 999,
-    resizeMode: 'cover',
   },
   fallback: {
     borderRadius: 999,
