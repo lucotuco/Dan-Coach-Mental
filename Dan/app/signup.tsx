@@ -4,14 +4,14 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
-  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
+import { Text, View, useThemeColor } from '@/components/Themed';
+
 
 function Field({
   icon,
@@ -22,6 +22,7 @@ function Field({
   keyboardType = 'default',
   autoCapitalize = 'none',
   returnKeyType = 'done',
+  
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   placeholder: string;
@@ -31,13 +32,17 @@ function Field({
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   returnKeyType?: 'done' | 'next' | 'go';
+  
 }) {
+  const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
+  const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
+
   return (<View style={styles.inputWrapper}>
       <Ionicons name={icon} size={20} color="#54545a" style={styles.inputIcon} />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
         placeholder={placeholder}
-        placeholderTextColor="#9a9aa1"
+        placeholderTextColor={mutedColor}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
@@ -57,20 +62,33 @@ export default function SignupScreen() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const handleSignup = async () => {
     try {
-      const response = await fetch('${API_URL}', {
+      const response = await fetch(API_URL+'/api/users/', {
         method: 'POST',
-        
-        body: JSON.stringify({ name: name, email }),
+        headers: {
+        'Content-Type': 'application/json',
+      },
+        body: JSON.stringify({ 'name': name, 'email': email }),
       });
 
-      const data = await response.json();
-      console.log('Usuario creado:', data);
-    } catch (error) {
-      console.error('Error al crear el usuario:', error);
+      const data = await response.json();if (!response.ok) {
+      if (response.status === 409) {
+        console.log('Email ya registrado:', data.message);
+        // acá podrías mostrar un alert o setear un estado de error
+        alert('Error '+ data.message);
+      } else {
+        console.log('Error desde el backend:', data);
+      }
+      return;
     }
+
+    console.log('Usuario creado OK:', data);
+    // acá podrías redirigir al login, etc.
+  } catch (error) {
+    console.error('Error al crear el usuario (fetch):', error);
+  }
   };
 
   return (

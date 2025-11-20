@@ -44,9 +44,9 @@ export default function LoginScreen() {
       style={{ backgroundColor }}
     >
       <View style={styles.container}>
-        <View style={styles.logoWrapper}>
+        
           <MedioLogo />
-        </View>
+        
 
         <View style={[styles.card, { backgroundColor: cardColor }]}>
           <Text style={[styles.title, { color: textColor }]}>Bienvenido de vuelta</Text>
