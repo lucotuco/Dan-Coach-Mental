@@ -2,7 +2,7 @@ import { StyleSheet, ScrollView, Modal, View,Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import Slider from '@react-native-community/slider';
-import { ComponentProps, useState } from 'react';
+import { ComponentProps, useEffect, useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
 import { Link } from 'expo-router';
@@ -17,6 +17,42 @@ export default function CheckupsScreen() {
   const [modalTitle, setModalTitle] = useState('Chequeo Diario');
   const [modalIconName, setModalIconName] = useState<ComponentProps<typeof FeatherIcon>['name']>('check-circle');
   const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
+  const [hasCompletedToday, setHasCompletedToday] = useState(false);
+
+  const todayKey = new Date().toISOString().split('T')[0];
+
+  const getStoredDailyCheckDate = () => {
+    const maybeLocalStorage = (globalThis as {
+      localStorage?: { getItem: (key: string) => string | null };
+      dailyCheckDate?: string;
+    }).localStorage;
+
+    if (maybeLocalStorage && typeof maybeLocalStorage.getItem === 'function') {
+      return maybeLocalStorage.getItem('dailyCheckDate');
+    }
+
+    if (typeof globalThis !== 'undefined') {
+      return (globalThis as { dailyCheckDate?: string }).dailyCheckDate ?? null;
+    }
+
+    return null;
+  };
+
+  const setStoredDailyCheckDate = (value: string) => {
+    const maybeLocalStorage = (globalThis as {
+      localStorage?: { setItem: (key: string, val: string) => void };
+      dailyCheckDate?: string;
+    }).localStorage;
+
+    if (maybeLocalStorage && typeof maybeLocalStorage.setItem === 'function') {
+      maybeLocalStorage.setItem('dailyCheckDate', value);
+      return;
+    }
+
+    if (typeof globalThis !== 'undefined') {
+      (globalThis as { dailyCheckDate?: string }).dailyCheckDate = value;
+    }
+  };
   
   const sliderMessages = [
     'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
@@ -77,7 +113,37 @@ export default function CheckupsScreen() {
     'moon',
     'alert-triangle',
   ];
+
+  useEffect(() => {
+    const storedDate = getStoredDailyCheckDate();
+
+    if (storedDate === todayKey) {
+      setHasCompletedToday(true);
+      setModalMessage('Ya registraste tu chequeo diario hoy. Vuelve mañana para cargar uno nuevo.');
+      setModalLink('index');
+      setModalBackgroundColor('#ddccf5');
+      setModalTitle('Chequeo ya registrado');
+      setModalIconName('calendar');
+      setModalAccentColor('#1d1564');
+      setModalVisible(true);
+    }
+  }, [todayKey]);
+
+  const handleAlreadyCompleted = () => {
+    setModalMessage('Ya registraste tu chequeo diario hoy. Vuelve mañana para cargar uno nuevo.');
+    setModalLink('index');
+    setModalBackgroundColor('#ddccf5');
+    setModalTitle('Chequeo ya registrado');
+    setModalIconName('calendar');
+    setModalAccentColor('#1d1564');
+    setModalVisible(true);
+  };
   const handleSubmit = () => {
+    if (hasCompletedToday) {
+      handleAlreadyCompleted();
+      return;
+    }
+
     const newValues = [...sliderValues];
     const lowIndex = newValues
       .map((value, index) => (value < 6 ? index : null))
@@ -111,6 +177,8 @@ export default function CheckupsScreen() {
     setModalAccentColor(selectedAccent);
     setModalVisible(true);
     setSliderValues([0, 0, 0, 0, 0]);
+    setStoredDailyCheckDate(todayKey);
+    setHasCompletedToday(true);
   };
 
   return (
