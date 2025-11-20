@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 32,
-    paddingBottom:32,
+    paddingBottom:10,
     paddingHorizontal: 16,
     backgroundColor: '#FFFFFF',
     alignItems: 'center',
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   heroTextBlock: {
     alignItems: 'center',
-    gap: 4,
+    
   },
   heroTitle: {
     fontSize: 32,

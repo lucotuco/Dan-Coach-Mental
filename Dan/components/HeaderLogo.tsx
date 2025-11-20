@@ -3,17 +3,20 @@ import { Image, StyleSheet, View, useWindowDimensions, Platform } from 'react-na
 import '../assets/images/DAN_coach_mental_sin_fondo_v1.png';
 
 const logoSource = require('../assets/images/DAN_coach_mental_sin_fondo_v1.png');
+const FALLBACK_LOGO_ASPECT_RATIO = 1;
+const TARGET_MOBILE_WIDTH = 380;
+const MAX_LOGO_WIDTH = TARGET_MOBILE_WIDTH * 0.6;
 
 const getLogoAspectRatio = () => {
   // En web (o si no existe resolveAssetSource), devolvemos 1 para evitar el crash
   if (Platform.OS === 'web' || typeof Image.resolveAssetSource !== 'function') {
-    return 1;
+    return FALLBACK_LOGO_ASPECT_RATIO;
   }
 
   const resolvedAsset = Image.resolveAssetSource(logoSource);
 
   if (!resolvedAsset?.height) {
-    return 1;
+    return FALLBACK_LOGO_ASPECT_RATIO;
   }
 
   return resolvedAsset.width / resolvedAsset.height;
@@ -23,7 +26,9 @@ const LOGO_ASPECT_RATIO = getLogoAspectRatio();
 
 export default function HeaderLogo() {
   const { width } = useWindowDimensions();
-  const logoWidth = Math.max(width * 0.4, 0);
+  const effectiveWidth = width || TARGET_MOBILE_WIDTH;
+  const responsiveLogoWidth = effectiveWidth * 0.4;
+  const logoWidth = Math.min(responsiveLogoWidth, MAX_LOGO_WIDTH);
   const logoHeight = logoWidth / LOGO_ASPECT_RATIO;
 
   return (

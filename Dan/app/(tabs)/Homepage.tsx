@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
-
+import { useAuth } from '@/components/AuthContext';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 
 import Avatar from '@/components/Avatar';
@@ -10,10 +10,6 @@ import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
-
-const user = {
-  name: 'Lucas Schlez',
-};
 
 type QuickAction = {
   key: string;
@@ -65,13 +61,19 @@ export default function HomeScreen() {
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');
-
+  const { user, isAuthenticated, logout } = useAuth();
+  const username = {name: user?.name,};
+  if (!isAuthenticated) {
+    return (
+    router.push('/')
+    );
+  }
   return (
     
   <ScrollView
       style={[styles.container, { backgroundColor }]}
       contentContainerStyle={styles.content}
-      scrollEnabled={false}
+      scrollEnabled={true}
       showsVerticalScrollIndicator={false}
     >
       <MedioLogo/>
@@ -80,10 +82,10 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.headerText}>
           <Text style={styles.greeting}>Buenos días,</Text>
-          <Text style={styles.userName}>{user.name}</Text>
+          <Text style={styles.userName}>{username.name}</Text>
           <Text style={[styles.subtitle, { color: mutedColor }]}>¿Listo para continuar con tu plan?</Text>
         </View>        
-        <Avatar name={user.name} size={56} />
+        <Avatar name={username.name} size={56} />
       </View>
       </Link>
 

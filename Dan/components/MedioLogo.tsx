@@ -29,9 +29,10 @@ const MAX_LOGO_WIDTH = TARGET_MOBILE_WIDTH * 0.5;
 
 export default function MedioLogo() {
   const { width } = useWindowDimensions();
-  const responsiveLogoWidth = Math.max(width * 0.5, 0);
+  const effectiveWidth = width || TARGET_MOBILE_WIDTH;
+  const responsiveLogoWidth = effectiveWidth * 0.5;
   const logoWidth = Math.min(responsiveLogoWidth, MAX_LOGO_WIDTH);
-  const logoHeight = (logoWidth / LOGO_ASPECT_RATIO)*0.7 ;
+  const logoHeight = (logoWidth / LOGO_ASPECT_RATIO) * 0.7;
   
 
   return (
@@ -49,7 +50,6 @@ export default function MedioLogo() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

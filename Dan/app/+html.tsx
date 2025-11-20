@@ -10,8 +10,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=0.90, shrink-to-fit=no" />
-
+        <meta
+          name="viewport"
+          content="width=device-width, height=device-height, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"
+        />
         {/* 
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native. 
           However, body scrolling is often nice to have for mobile web. If you want to enable it, remove this line.
@@ -28,8 +30,25 @@ export default function Root({ children }: { children: React.ReactNode }) {
 }
 
 const responsiveBackground = `
+  {
+  box-sizing: border-box;
+}
+
+html,
 body {
-  background-color: #fff;
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  background-color: #fff;\
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 @media (prefers-color-scheme: dark) {
   body {

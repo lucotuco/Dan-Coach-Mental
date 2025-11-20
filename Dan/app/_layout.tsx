@@ -5,7 +5,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
-
+import { AuthProvider } from '@/components/AuthContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { createSharedHeaderOptions } from '@/constants/navigation';
@@ -54,7 +54,9 @@ function RootLayoutNav() {
   );
 
   return (
+    
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <AuthProvider>
       <Stack
         screenOptions={sharedHeaderOptions}
       >
@@ -62,9 +64,12 @@ function RootLayoutNav() {
         options={{gestureEnabled: false}} />
         <Stack.Screen name="signup" 
         options={{gestureEnabled: false}} />
+        <Stack.Screen name="cargarInfo" 
+        options={{gestureEnabled: false,}} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

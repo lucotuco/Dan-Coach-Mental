@@ -37,10 +37,11 @@ function Field({
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-  return (<View style={styles.inputWrapper}>
-      <Ionicons name={icon} size={20} color="#54545a" style={styles.inputIcon} />
+   return (
+    <View style={[styles.inputWrapper, { borderColor: mutedColor }]}>
+      <Ionicons name={icon} size={20} color={mutedColor} style={styles.inputIcon} />
       <TextInput
-        style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
+        style={[styles.input, { color: inputTextColor }]}
         placeholder={placeholder}
         placeholderTextColor={mutedColor}
         value={value}
@@ -64,32 +65,48 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const handleSignup = async () => {
-    try {
-      const response = await fetch(API_URL+'/api/users/', {
-        method: 'POST',
-        headers: {
+  if (!name || !email || !phone || !password || !confirmPassword) {
+    alert('Por favor completá todos los campos');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    alert('Las contraseñas no coinciden');
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL + '/api/users', {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
       },
-        body: JSON.stringify({ 'name': name, 'email': email }),
-      });
+      body: JSON.stringify({ name, email, phone, password }),
+    });
 
-      const data = await response.json();if (!response.ok) {
+    const data = await response.json();
+
+    if (!response.ok) {
       if (response.status === 409) {
-        console.log('Email ya registrado:', data.message);
-        // acá podrías mostrar un alert o setear un estado de error
-        alert('Error '+ data.message);
+        alert('Error: ' + data.message); // mail repetido
+      } else if (response.status === 400) {
+        alert('Error: ' + data.message);
+        console.log('Campos que faltan:', data.missingFields);
       } else {
         console.log('Error desde el backend:', data);
+        alert('Ocurrió un error creando el usuario');
       }
       return;
     }
 
     console.log('Usuario creado OK:', data);
-    // acá podrías redirigir al login, etc.
+    // acá redirigís al login, por ej:
+     router.replace('/cargarInfo');
   } catch (error) {
     console.error('Error al crear el usuario (fetch):', error);
+    alert('Error de conexión con el servidor');
   }
-  };
+};
 
   return (
     <KeyboardAvoidingView
@@ -211,20 +228,19 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f2f6',
-    borderRadius: 12,
-    paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: '#dedde2',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   inputIcon: {
-    marginRight: 8,
+    marginRight: 12,
   },
   input: {
     flex: 1,
-    height: 48,
     fontSize: 16,
-    color: '#1f1f24',
+    fontWeight: '500',
+    paddingVertical: 2,
   },
   button: {
     height: 52,

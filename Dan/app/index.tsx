@@ -3,9 +3,11 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, Touc
 import { useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
+import { useAuth } from '@/components/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
+   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -17,14 +19,31 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch(API_URL+'/health');
+      const response = await fetch(API_URL + '/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
       const data = await response.json();
-      console.log('Respuesta API:', data);
-      router.push('/(tabs)/homePage');
+
+      if (!response.ok) {
+        alert(data.message || 'Error al iniciar sesión');
+        return;
+      }
+
+      // 👇 Acá guardamos el user en el contexto
+      login(data.user);
+
+      // y te mando a la home (ajustá la ruta a la tuya)
+      router.replace('/(tabs)/homePage');
     } catch (error) {
-      console.error('Error al llamar a la API:', error);
+      console.error('Error en login:', error);
+      alert('Error de conexión con el servidor');
     }
-    router.push('/(tabs)/homePage');
   };
 
   const handleCreateAccount = () => {
@@ -44,9 +63,9 @@ export default function LoginScreen() {
       style={{ backgroundColor }}
     >
       <View style={styles.container}>
-        
+        <View style={styles.logoWrapper}>
           <MedioLogo />
-        
+        </View>
 
         <View style={[styles.card, { backgroundColor: cardColor }]}>
           <Text style={[styles.title, { color: textColor }]}>Bienvenido de vuelta</Text>
