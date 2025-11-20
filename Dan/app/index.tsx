@@ -8,14 +8,22 @@ export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#0b1026' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#141b33' }, 'background');
   const textColor = useThemeColor({ light: '#031355', dark: '#e5e9ff' }, 'tint');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(API_URL+'/health');
+      const data = await response.json();
+      console.log('Respuesta API:', data);
+      router.push('/(tabs)/homePage');
+    } catch (error) {
+      console.error('Error al llamar a la API:', error);
+    }
     router.push('/(tabs)/homePage');
   };
 

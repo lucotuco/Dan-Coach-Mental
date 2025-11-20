@@ -4,7 +4,7 @@ import '../assets/images/DAN_coach_mental_sin_fondo_v3.png';
 
 const logoSource = require('../assets/images/DAN_coach_mental_sin_fondo_v3.png');
 // The source asset is 1024x121 px which gives the right ratio for the web fallback.
-const FALLBACK_LOGO_ASPECT_RATIO = 1024 / 121;
+const FALLBACK_LOGO_ASPECT_RATIO = 920 / 121;
 
 const getLogoAspectRatio = () => {
   if (Platform.OS === 'web' || typeof Image.resolveAssetSource !== 'function') {
@@ -31,7 +31,8 @@ export default function MedioLogo() {
   const { width } = useWindowDimensions();
   const responsiveLogoWidth = Math.max(width * 0.5, 0);
   const logoWidth = Math.min(responsiveLogoWidth, MAX_LOGO_WIDTH);
-  const logoHeight = logoWidth / LOGO_ASPECT_RATIO;
+  const logoHeight = (logoWidth / LOGO_ASPECT_RATIO)*0.7 ;
+  
 
   return (
     <View style={styles.container}>

@@ -32,8 +32,7 @@ function Field({
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   returnKeyType?: 'done' | 'next' | 'go';
 }) {
-  return (
-    <View style={styles.inputWrapper}>
+  return (<View style={styles.inputWrapper}>
       <Ionicons name={icon} size={20} color="#54545a" style={styles.inputIcon} />
       <TextInput
         style={styles.input}
@@ -51,12 +50,28 @@ function Field({
 }
 
 export default function SignupScreen() {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const router = useRouter();
-  const [fullName, setFullName] = useState('');
+  const [name, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleSignup = async () => {
+    try {
+      const response = await fetch('${API_URL}', {
+        method: 'POST',
+        
+        body: JSON.stringify({ name: name, email }),
+      });
+
+      const data = await response.json();
+      console.log('Usuario creado:', data);
+    } catch (error) {
+      console.error('Error al crear el usuario:', error);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -71,7 +86,7 @@ export default function SignupScreen() {
             <Field
               icon="person"
               placeholder="Nombre y apellido"
-              value={fullName}
+              value={name}
               onChangeText={setFullName}
               autoCapitalize="words"
               returnKeyType="next"
@@ -107,7 +122,10 @@ export default function SignupScreen() {
             />
           </View>
 
-          <TouchableOpacity style={[styles.button, styles.primaryButton]}>
+          <TouchableOpacity
+            style={[styles.button, styles.primaryButton]}
+            onPress={handleSignup}
+          >
             <Text style={styles.primaryButtonText}>CREAR CUENTA</Text>
           </TouchableOpacity>
 

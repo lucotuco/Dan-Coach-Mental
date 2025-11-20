@@ -120,6 +120,7 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 48,
     gap: 24,
+    flexGrow: 1,
   },
   header: {
     flexDirection: 'row',
