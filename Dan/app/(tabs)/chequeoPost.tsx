@@ -15,7 +15,7 @@ export default function CheckupsScreen() {
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
   const [modalBackgroundColor, setModalBackgroundColor] = useState('#fff');
-  const [modalTitle, setModalTitle] = useState('Chequeo Diario');
+  const [modalTitle, setModalTitle] = useState('Chequeo post competencia');
   const [modalIconName, setModalIconName] = useState<ComponentProps<typeof FeatherIcon>['name']>('check-circle');
   const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,19 +23,20 @@ export default function CheckupsScreen() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const sliderMessages = [
-    'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
-    'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
-    'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
-    'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
-    'Detectamos algo de dolor o molestia. Te recomendamos un ejercicio guiado para aliviarlo.',
-    'ya que el resultado no fue el esperado te recomiendo estos ejercicios para trabajar '
+    'El cierre emocional quedó pendiente. Regulate y registrá lo que sentís tras competir.',
+    'Te quedaste sin energía. Enfocate en recuperación activa y nutrición post competencia.',
+    'La reflexión fue baja. Tomate unos minutos para revisar decisiones y aprendizajes.',
+    'Registramos molestias físicas. Priorizá cuidado y descarga para evitar lesiones.',
+    'No sentiste que cumpliste el objetivo. Revisemos qué podés ajustar para la próxima.',
+    'El resultado no fue el esperado. Evaluá con calma y planificá un siguiente paso.',
   ];
   const sliderRoutes = [
-    '/herramientas/energia',
-    '/motivacion',
     '/estado-emocional',
-    '/sueno',
+    '/herramientas/energia',
+    '/progress',
     '/dolor',
+    '/progress',
+    '/progress',
   ];
 
   const fecha = new Date();
@@ -70,12 +71,12 @@ export default function CheckupsScreen() {
   ];
 
   const modalTitles = [
-    'Tu energía está baja',
-    'Tu motivación está baja',
-    'Tu estado emocional necesita atención',
-    'Tu descanso fue insuficiente',
-    'Detectamos molestias en tu cuerpo',
-    'El resultado no fue el esperado'
+    'Tu estado emocional necesita cierre',
+    'Necesitás recuperar energía',
+    'Profundizá tu reflexión',
+    'Detectamos molestias físicas',
+    'Revisá tu objetivo',
+    'Analicemos el resultado'
   ];
 
   const modalIcons: ComponentProps<typeof FeatherIcon>['name'][] = [
@@ -96,7 +97,7 @@ export default function CheckupsScreen() {
 
     const feedbackOptions = [
       {
-        message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+        message: '¡Buen cierre! Guardamos tu chequeo post competencia.',
         href: 'homePage',
       },
       ...sliderMessages.map((message, index) => ({
@@ -109,7 +110,7 @@ export default function CheckupsScreen() {
     const selectedBackground =
       typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
     const selectedTitle =
-      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
+      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo post competencia';
     const selectedIcon =
       typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
     const selectedAccent =
@@ -125,7 +126,7 @@ export default function CheckupsScreen() {
         body: JSON.stringify({
           owner: user?._id,
           fecha: fechaFormateada,
-          tipo:'chequeo diario',
+          tipo:'chequeo post competencia',
           variable1: newValues[0],
           variable2: newValues[1],
           variable3: newValues[2],
