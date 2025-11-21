@@ -8,6 +8,7 @@ import React from 'react';
 import { Link } from 'expo-router';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 import RecordingButton from '@/components/AudioRecorderButton';
+import { useAuth } from '@/components/AuthContext';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -18,9 +19,10 @@ export default function CheckupsScreen() {
   const [modalIconName, setModalIconName] = useState<ComponentProps<typeof FeatherIcon>['name']>('check-circle');
   const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
   const [hasCompletedToday, setHasCompletedToday] = useState(false);
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const todayKey = new Date().toISOString().split('T')[0];
-
+  const { user, isAuthenticated, logout } = useAuth();
   const getStoredDailyCheckDate = () => {
     const maybeLocalStorage = (globalThis as {
       localStorage?: { getItem: (key: string) => string | null };
@@ -120,7 +122,7 @@ export default function CheckupsScreen() {
     if (storedDate === todayKey) {
       setHasCompletedToday(true);
       setModalMessage('Ya registraste tu chequeo diario hoy. Vuelve mañana para cargar uno nuevo.');
-      setModalLink('index');
+      setModalLink('checkups');
       setModalBackgroundColor('#ddccf5');
       setModalTitle('Chequeo ya registrado');
       setModalIconName('calendar');
@@ -131,14 +133,14 @@ export default function CheckupsScreen() {
 
   const handleAlreadyCompleted = () => {
     setModalMessage('Ya registraste tu chequeo diario hoy. Vuelve mañana para cargar uno nuevo.');
-    setModalLink('index');
+    setModalLink('checkups');
     setModalBackgroundColor('#ddccf5');
     setModalTitle('Chequeo ya registrado');
     setModalIconName('calendar');
     setModalAccentColor('#1d1564');
     setModalVisible(true);
   };
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (hasCompletedToday) {
       handleAlreadyCompleted();
       return;
@@ -169,16 +171,51 @@ export default function CheckupsScreen() {
       typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
     const selectedAccent =
       typeof lowIndex === 'number' ? modalAccentColors[lowIndex] : '#1d1564';
-    setModalMessage(selectedFeedback.message);
-    setModalLink(selectedFeedback.href);
-    setModalBackgroundColor(selectedBackground);
-    setModalTitle(selectedTitle);
-    setModalIconName(selectedIcon);
-    setModalAccentColor(selectedAccent);
-    setModalVisible(true);
-    setSliderValues([0, 0, 0, 0, 0]);
-    setStoredDailyCheckDate(todayKey);
-    setHasCompletedToday(true);
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/chequeos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          owner: user?._id,
+          fecha: fechaFormateada,
+          tipo:'chequeo diario',
+          variable1: newValues[0],
+          variable2: newValues[1],
+          variable3: newValues[2],
+          variable4: newValues[3],
+          variable5: newValues[4],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudo guardar el chequeo diario');
+      }
+
+      setModalMessage(selectedFeedback.message);
+      setModalLink(selectedFeedback.href);
+      setModalBackgroundColor(selectedBackground);
+      setModalTitle(selectedTitle);
+      setModalIconName(selectedIcon);
+      setModalAccentColor(selectedAccent);
+      setModalVisible(true);
+      setSliderValues([0, 0, 0, 0, 0]);
+      setStoredDailyCheckDate(todayKey);
+      setHasCompletedToday(true);
+    } catch (error) {
+      setModalMessage('No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.');
+      setModalLink('index');
+      setModalBackgroundColor('#fff3e7');
+      setModalTitle('No pudimos guardar');
+      setModalIconName('alert-circle');
+      setModalAccentColor('#c00a0a');
+      setModalVisible(true);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -199,7 +236,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#1d1564ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 0)}
-               value={0}
+               value={sliderValues[0]}
              />
 
              <Text style={styles.sliderLabel}>Motivación :</Text>
@@ -214,7 +251,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#c00a0aff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 1)}
-               value={0}
+               value={sliderValues[1]}
              />
 
              <Text style={styles.sliderLabel}>Estado Emocional:</Text>
@@ -229,7 +266,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#16800cff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 2)}
-               value={0}
+               value={sliderValues[2]}
              />
 
              <Text style={styles.sliderLabel}>Sueño :</Text>
@@ -244,7 +281,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#31a9c7ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 3)}
-               value={0}
+               value={sliderValues[3]}
              />
              <Text style={styles.sliderLabel}>Dolor o Molestia:</Text>
              <Slider 
@@ -258,7 +295,7 @@ export default function CheckupsScreen() {
                thumbTintColor='#fda531ff'
                testID='1'
                onValueChange={(value) => handleSliderChange(value, 4)}
-               value={0}
+               value={sliderValues[4]}
              />
             
          </Card>
