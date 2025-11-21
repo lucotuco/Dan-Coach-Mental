@@ -6,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useMemo } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider } from '@/components/AuthContext';
+import { NavigationHistoryProvider } from '@/components/NavigationHistoryContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { createSharedHeaderOptions } from '@/constants/navigation';
@@ -57,18 +58,18 @@ function RootLayoutNav() {
     
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
-      <Stack
-        screenOptions={sharedHeaderOptions}
-      >
-        <Stack.Screen name="index" 
-        options={{gestureEnabled: false}} />
-        <Stack.Screen name="signup" 
-        options={{gestureEnabled: false}} />
-        <Stack.Screen name="cargarInfo" 
-        options={{gestureEnabled: false,}} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
+        <NavigationHistoryProvider>
+          <Stack screenOptions={sharedHeaderOptions}>
+            <Stack.Screen name="index" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="signup" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: false, gestureEnabled: false }}
+            />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </NavigationHistoryProvider>
       </AuthProvider>
     </ThemeProvider>
   );
