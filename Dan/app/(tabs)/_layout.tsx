@@ -91,6 +91,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="chequeoPost"
+        options={{
+          href: null,
+          
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           href: null,
