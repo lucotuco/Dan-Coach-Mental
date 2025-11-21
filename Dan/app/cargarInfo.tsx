@@ -113,6 +113,7 @@ export default function ProfileScreen() {
   const [sport, setSport] = useState('');
   const [level, setLevel] = useState('');
   const [competitionStyle, setCompetitionStyle] = useState('');
+  const webDateInputRef = useRef<HTMLInputElement | null>(null);
 
   const backgroundColor = useThemeColor({ light: '#ffffff', dark: '#0b1026' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#141b33' }, 'background');
@@ -126,11 +127,21 @@ export default function ProfileScreen() {
       alert('Completa tus datos Por favor, llena todos los campos para continuar.');
       return;
     }
-    router.replace('/bienvenida')
+    router.replace('/bienvenida');
   };
   const formattedBirthDate = birthDate?.toLocaleDateString('es-ES');
 
   const toggleDatePicker = () => setShowDatePicker((prev) => !prev);
+  const handleDatePress = () => {
+    if (Platform.OS === 'web') {
+      const node = webDateInputRef.current;
+      node?.showPicker?.();
+      node?.focus();
+      return;
+    }
+
+    toggleDatePicker();
+  };
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor }]}
@@ -154,7 +165,7 @@ export default function ProfileScreen() {
             <Text style={[styles.label, { color: mutedColor }]}>Fecha de nacimiento</Text>
             <Pressable
               style={[styles.input, styles.selectTrigger, { borderColor: mutedColor }]}
-              onPress={toggleDatePicker}
+              onPress={handleDatePress}
             >
               <Text
                 style={[
@@ -163,47 +174,65 @@ export default function ProfileScreen() {
                 ]}
               >
                 {formattedBirthDate ?? 'Elegí tu fecha'}
-              </Text>
-              <Feather name="calendar" size={18} color={mutedColor} />
-            </Pressable>
-          </View>
-<Modal
-            visible={showDatePicker}
-            transparent
-            animationType="fade"
-            onRequestClose={toggleDatePicker}
-          >
-            <Pressable style={styles.modalBackdrop} onPress={toggleDatePicker}>
-              <Pressable
-                style={[styles.pickerContainer, { backgroundColor: cardColor }]}
-                onPress={() => {}}
-              >
-                <DateTimePicker
-                  value={birthDate ?? new Date(2000, 0, 1)}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-                  maximumDate={new Date()}
-                  locale="es-ES"
-                  onChange={(event, selectedDate) => {
-                    if (Platform.OS !== 'ios') {
-                      toggleDatePicker();
-                    }
-                    if (event.type !== 'dismissed' && selectedDate) {
-                      setBirthDate(selectedDate);
+            </Text>
+            <Feather name="calendar" size={18} color={mutedColor} />
+            {Platform.OS === 'web' && (
+              
+              <input
+                ref={webDateInputRef}
+                type="date"
+                  style={styles.hiddenDateInput as any}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value) {
+                      const [year, month, day] = value.split('-').map(Number);
+                      setBirthDate(new Date(year, month - 1, day));
                     }
                   }}
                 />
-                {Platform.OS === 'ios' && (
-                  <TouchableOpacity
-                    style={[styles.primaryButton, { backgroundColor: textColor }]}
-                    onPress={toggleDatePicker}
-                  >
-                    <Text style={styles.primaryButtonText}>Listo</Text>
-                  </TouchableOpacity>
-                )}
+            )}
+                        </Pressable>
+          </View>
+          {Platform.OS !== 'web' && (
+            <Modal
+              visible={showDatePicker}
+              transparent
+              animationType="fade"
+              onRequestClose={toggleDatePicker}
+            >
+              <Pressable style={styles.modalBackdrop} onPress={toggleDatePicker}>
+                <Pressable
+                  style={[styles.pickerContainer, { backgroundColor: cardColor }]}
+                  onPress={() => {}}
+                >
+                  <DateTimePicker
+                    value={birthDate ?? new Date(2000, 0, 1)}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                    maximumDate={new Date()}
+                    locale="es-ES"
+                    onChange={(event, selectedDate) => {
+                      if (Platform.OS !== 'ios') {
+                        toggleDatePicker();
+                      }
+                      if (event.type !== 'dismissed' && selectedDate) {
+                        setBirthDate(selectedDate);
+                      }
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <TouchableOpacity
+                      style={[styles.primaryButton, { backgroundColor: textColor }]}
+                      onPress={toggleDatePicker}
+                    >
+                      <Text style={styles.primaryButtonText}>Listo</Text>
+                    </TouchableOpacity>
+                  )}
+                </Pressable>
               </Pressable>
-            </Pressable>
-          </Modal>
+            </Modal>
+          )}
           <View style={styles.selectorGrid}>
           <OptionSelector
             label="Seleccionar deporte"
@@ -240,6 +269,14 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  hiddenDateInput: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    opacity: 0,
+  },
    pickerContainer: {
     position: 'absolute',
     left: 20,
