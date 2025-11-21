@@ -28,7 +28,6 @@ export default function CheckupsScreen() {
     'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
     'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
     'Detectamos algo de dolor o molestia. Te recomendamos un ejercicio guiado para aliviarlo.',
-    'ya que el resultado no fue el esperado te recomiendo estos ejercicios para trabajar '
   ];
   const sliderRoutes = [
     '/herramientas/energia',
@@ -57,7 +56,7 @@ export default function CheckupsScreen() {
     '#ebffe4',
     '#ddccf5',
     '#fff4e2',
-    '#e0aee2ff'
+  
   ];
 
   const modalAccentColors = [
@@ -66,7 +65,7 @@ export default function CheckupsScreen() {
     '#16800c',
     '#31a9c7',
     '#fda531',
-    '#fd86ed',
+
   ];
 
   const modalTitles = [
@@ -75,7 +74,7 @@ export default function CheckupsScreen() {
     'Tu estado emocional necesita atención',
     'Tu descanso fue insuficiente',
     'Detectamos molestias en tu cuerpo',
-    'El resultado no fue el esperado'
+
   ];
 
   const modalIcons: ComponentProps<typeof FeatherIcon>['name'][] = [
@@ -84,7 +83,6 @@ export default function CheckupsScreen() {
     'heart',
     'moon',
     'alert-triangle',
-    'frown',
   ];
 
   const handleSubmit = async () => {
@@ -131,7 +129,6 @@ export default function CheckupsScreen() {
           variable3: newValues[2],
           variable4: newValues[3],
           variable5: newValues[4],
-          variable6: newValues[5],
         }),
       });
       const data = await response.json();
@@ -163,10 +160,10 @@ export default function CheckupsScreen() {
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
-         <Text style={{fontSize:20, fontWeight:'700', color:'#1d1564',marginBottom:-20, alignItems: 'center',justifyContent:'center' }}>Chequeo post competencia del dia: </Text>
+         <Text style={{fontSize:20, fontWeight:'700', color:'#1d1564',marginBottom:-20, alignItems: 'center',justifyContent:'center' }}>Como esta tu mente antes de competir?: </Text>
          <Text style={{fontSize:16, fontWeight:'600', color:'#1d1564',  alignItems: 'center',justifyContent:'center' }}>{fechaFormateada}</Text>
          <Card>
-             <Text style={styles.sliderLabel}>Estado Emocional:</Text>
+             <Text style={styles.sliderLabel}>Energia:</Text>
              <Slider 
                style={{width: 270, height: 40}}
                minimumValue={0}
@@ -181,7 +178,7 @@ export default function CheckupsScreen() {
                value={sliderValues[0]}
              />
 
-             <Text style={styles.sliderLabel}>Energia:</Text>
+             <Text style={styles.sliderLabel}>Motivacion:</Text>
              <Slider 
                style={{width: 270, height: 40}}
                minimumValue={0}
@@ -196,7 +193,7 @@ export default function CheckupsScreen() {
                value={sliderValues[1]}
              />
 
-             <Text style={styles.sliderLabel}>Reflexion:</Text>
+             <Text style={styles.sliderLabel}>Concentracion:</Text>
              <Slider 
                style={{width: 270, height: 40}}
                minimumValue={0}
@@ -211,7 +208,7 @@ export default function CheckupsScreen() {
                value={sliderValues[2]}
              />
 
-             <Text style={styles.sliderLabel}>Dolor o molestia:</Text>
+             <Text style={styles.sliderLabel}>Estado Emocional:</Text>
              <Slider 
                style={{width: 270, height: 40}}
                minimumValue={0}
@@ -225,7 +222,7 @@ export default function CheckupsScreen() {
                onValueChange={(value) => handleSliderChange(value, 3)}
                value={sliderValues[3]}
              />
-             <Text style={styles.sliderLabel}>Cumplio el Objetivo:</Text>
+             <Text style={styles.sliderLabel}>Dialogo Interior:</Text>
              <Slider 
                style={{width: 270, height: 40}}
                minimumValue={0}
@@ -239,20 +236,7 @@ export default function CheckupsScreen() {
                onValueChange={(value) => handleSliderChange(value, 4)}
                value={sliderValues[4]}
              />
-             <Text style={styles.sliderLabel}>Resultado:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#fd86edff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#fd86edff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 5)}
-               value={sliderValues[5]}
-             />
+            
             
          </Card>
          <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>

@@ -10,9 +10,9 @@ import {
   View
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-
-import { Text } from '@/components/Themed';
+import { Text  } from '@/components/Themed';
 import RecordingButton from '@/components/AudioRecorderButton';
+import MedioLogo from '@/components/MedioLogo';
 
 const months = [
   'Enero',
@@ -127,6 +127,7 @@ export default function SessionsScreen() {
       contentContainerStyle={[styles.content,{backgroundColor:"#fff"}]}
       showsVerticalScrollIndicator={false}
     >
+      <MedioLogo/>
       <View style={styles.container }>
         <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.description}>

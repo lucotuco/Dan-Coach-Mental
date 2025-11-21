@@ -40,7 +40,7 @@ const levels = [
   '07:00 PM',
 ];
 
-const competitionStyle = [
+const competitionStyles = [
   '08:00 AM',
   '09:30 AM',
   '11:00 AM',
@@ -204,6 +204,7 @@ export default function ProfileScreen() {
               </Pressable>
             </Pressable>
           </Modal>
+          <View style={styles.selectorGrid}>
           <OptionSelector
             label="Seleccionar deporte"
             value={sport}
@@ -222,8 +223,9 @@ export default function ProfileScreen() {
             label="Cómo competís?"
             value={competitionStyle}
             onSelect={setCompetitionStyle}
-            options={competitionStyle}
+            options={competitionStyles}
           />
+          </View>
 
           <TouchableOpacity
             style={[styles.primaryButton, { backgroundColor: textColor }]}
@@ -248,6 +250,49 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d4d7e2',
     gap: 12,
+  },
+   optionItem: {
+    paddingVertical: 12,
+  },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#eceff5',
+  },
+  selectorGrid: {
+    gap: 12,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f1b4c',
+    marginBottom: 12,
+  },
+  selectorValue: {
+    fontSize: 15,
+    color: '#1f2b6c',
+    fontWeight: '600',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '60%',
+  },
+  selector: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#d6d9e6',
+  },
+  selectorLabel: {
+    fontSize: 14,
+    color: '#1f2b6c',
+    fontWeight: '600',
   },
   flex: {
     flex: 1,
@@ -314,7 +359,9 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    justifyContent: 'center',
+    padding: 24,
   },
   optionList: {
     zIndex: 20,
@@ -334,6 +381,7 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 15,
     fontWeight: '600',
+    color: '#1f2b6c',
   },
   primaryButton: {
     marginTop: 8,
@@ -347,5 +395,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 1,
+  },selectorWrapper: {
+    gap: 6,
   },
 });

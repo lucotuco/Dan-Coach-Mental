@@ -3,21 +3,19 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text,  useThemeColor } from './Themed';
 
-import { Feather as FeatherIcon } from '@expo/vector-icons';
-
-type FeatherName = ComponentProps<typeof FeatherIcon>['name'];
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+type FontAwesome5 = ComponentProps<typeof FontAwesome5>['name'];
 
 type DashboardTileProps = {
-  icon: FeatherName;
+  icon: FontAwesome5;
   title: string;
-  subtitle?: string;
   onPress?: () => void;
   accentColor?: string;
   wrapped?: boolean;
 };
 
 
-export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wrapped }: DashboardTileProps) {
+export function DashboardTile({ icon, title, onPress, accentColor, wrapped }: DashboardTileProps) {
   const backgroundColor = accentColor ? hexToRgba(accentColor, 0.8) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
@@ -38,13 +36,11 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
     >
       
       <View style={[styles.iconWrap, { backgroundColor: '#fff' }]}>
-        <FeatherIcon name={icon} size={30} color={iconColor} />
+        <FontAwesome5 name={icon} size={30} color={iconColor} />
       </View>
       <View style={styles.textContent}>
         <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-        {subtitle ? (
-          <Text style={[styles.subtitle, { color: mutedColor }]}>{subtitle}</Text>
-        ) : null}
+        
       </View>
     </Pressable>
   );
@@ -54,10 +50,10 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 18,
     padding: 16,
-     gap: 10,
+    gap: 10,
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    minWidth: 140,
+    minHeight: 100,
+    justifyContent: 'space-between',
     shadowColor: '#00000015',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
@@ -65,17 +61,15 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   fullWidthTile: {
-    flexBasis: '100%',
+    width: '100%',
     flexGrow: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
 
   },
   halfWidthTile: {
-    flexBasis: '48%',
-    maxWidth: '48%',
-    flexGrow: 0,
-    flexShrink: 0,
+    width: '100%',
+    flexGrow: 1,
   },
   iconWrap: {
     width: 50,
@@ -90,7 +84,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   title: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -104,7 +98,7 @@ const styles = StyleSheet.create({
   },
   textContent: {
     flex: 1,
-    gap: 4,
+    gap: 3,
     alignItems: 'center',
   },
 });

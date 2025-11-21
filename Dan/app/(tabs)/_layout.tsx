@@ -45,7 +45,7 @@ export default function TabLayout() {
         name="homePage"
         options={{
           title: 'Inicio',
-          tabBarLabel: 'Inicio',
+          tabBarLabel: '',
           tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
           ...withoutBackButton,
         }}
@@ -54,7 +54,7 @@ export default function TabLayout() {
         name="checkups"
         options={{
           title: 'Chequeos',
-          tabBarLabel: 'Chequeos',
+          tabBarLabel: '',
           tabBarIcon: ({ color }) => (
             <TabBarIcon name="clipboard-check" color={color} />
           ),
@@ -64,26 +64,44 @@ export default function TabLayout() {
         name="sesions"
         options={{
           title: 'Sesiones',
-          tabBarLabel: 'Sesiones',
-          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="comment-alt" color={color} />,
         }}
       />
       <Tabs.Screen
         name="progress"
         options={{
           title: 'Progreso',
-          tabBarLabel: 'Progreso',
+          tabBarLabel: '',
           tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="entrenamientosPersonales"
+        options={{
+          title: 'Entrenamientos Personales',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="dumbbell" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ejerciciosGuiados"
+        options={{
+          title: 'Ejercicios Guiados',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="headphones" color={color} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: 'Biblioteca',
-          tabBarLabel: 'Biblioteca',
+          tabBarLabel: '',
           tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
         }}
       />
+      
+      
       <Tabs.Screen
         name="chequeoDiario"
         options={{

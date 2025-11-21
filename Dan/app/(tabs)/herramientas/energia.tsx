@@ -55,21 +55,7 @@ export default function EnergyScreen() {
 
   return (
     <>
-    <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Volver"
-              onPress={() => router.push('/(tabs)/library')}
-              style={styles.headerBackButton}
-              hitSlop={10}
-            >
-              <Ionicons name="arrow-back" size={24} color="#031355" />
-            </Pressable>
-          ),
-        }}
-      />
+    <Stack.Screen/>
     <ScrollView style={[styles.screen, {backgroundColor:'#fff'}]} contentContainerStyle={styles.content}>
       <MedioLogo />
       <View style={styles.heroCard}>

@@ -131,21 +131,7 @@ export default function LibraryScreenVitalidad() {
 
     return (
         <>
-            <Stack.Screen
-                options={{
-                    headerLeft: () => (
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Volver"
-                            onPress={() => router.push('/(tabs)/herramientas/energia')}
-                            style={styles.headerBackButton}
-                            hitSlop={10}
-                        >
-                            <Ionicons name="arrow-back" size={24} color="#031355" />
-                        </Pressable>
-                    ),
-                }}
-            />
+            <Stack.Screen/>
             <View style={styles.screen}>
                 <View style={styles.heroCard}>
                     <Text style={styles.heroTitle}>Vitalidad en minutos</Text>

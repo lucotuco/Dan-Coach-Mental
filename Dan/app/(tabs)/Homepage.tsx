@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 import { useAuth } from '@/components/AuthContext';
-import { Feather as FeatherIcon } from '@expo/vector-icons';
-
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Avatar from '@/components/Avatar';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
@@ -14,7 +13,7 @@ type QuickAction = {
   key: string;
   title: string;
   subtitle: string;
-  icon: ComponentProps<typeof FeatherIcon>['name'];
+  icon: ComponentProps<typeof FontAwesome5>['name'];
   accent: string;
   wrapped?: boolean;
 };
@@ -25,7 +24,7 @@ const quickActions: QuickAction[] = [
     key: '/(tabs)/checkups',
     title: 'Chequeos mentales',
     subtitle: 'Tu estado en minutos',
-    icon: 'activity',
+    icon: 'check-circle',
     accent: '#a5c5ff',
     wrapped: false,
   },
@@ -33,15 +32,23 @@ const quickActions: QuickAction[] = [
     key: '/(tabs)/sesions',
     title: 'Sesiones',
     subtitle: 'Agenda y seguimiento',
-    icon: 'headphones',
-    accent: '#ffd7ce',
+    icon: 'comment-alt',
+    accent: '#ffceceff',
+    wrapped: false,
+  },
+  {
+    key: '/(tabs)/progress',
+    title: 'Progresos',
+    subtitle: 'Mide tus avances',
+    icon: 'chart-line',
+    accent: '#d6f3d2',
     wrapped: false,
   },
   {
     key: '/(tabs)/motivacion',
     title: 'Entrenamientos personales',
     subtitle: 'Rutinas a tu medida',
-    icon: 'calendar',
+    icon: 'dumbbell',
     accent: '#ffeab6',
     wrapped: false,
   },
@@ -49,24 +56,17 @@ const quickActions: QuickAction[] = [
     key: '/(tabs)/herramientas',
     title: 'Ejercicios guiados',
     subtitle: 'Respiración y relajación',
-    icon: 'wind',
-    accent: '#d4e4ff',
+    icon: 'headphones',
+    accent: '#e8d4ffff',
     wrapped: false,
   },
-  {
-    key: '/(tabs)/progress',
-    title: 'Progresos',
-    subtitle: 'Mide tus avances',
-    icon: 'trending-up',
-    accent: '#d6f3d2',
-    wrapped: false,
-  },
+  
   {
     key: '/(tabs)/library',
     title: 'Biblioteca',
     subtitle: 'Recursos y lecturas',
     icon: 'book-open',
-    accent: '#ffe2d1',
+    accent: '#fddac2ff',
     wrapped: false,
   },
 ];
@@ -88,6 +88,11 @@ export default function HomeScreen() {
   if (!isAuthenticated) {
     return null
   }
+  const tileRows: QuickAction[][] = [];
+  for (let i = 0; i < quickActions.length; i += 2) {
+    tileRows.push(quickActions.slice(i, i + 2));
+  }
+
   return (
     
   <ScrollView
@@ -112,17 +117,22 @@ export default function HomeScreen() {
       <View style={styles.tilesWrapper}>
         <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento</Text>
         <View style={styles.tilesGrid}>
-          {quickActions.map((action) => (
-
-            <DashboardTile
-              key={action.key}
-              icon={action.icon}
-              title={action.title}
-              subtitle={action.subtitle}
-              accentColor={action.accent}
-              wrapped={action.wrapped}
-              onPress={()=> router.navigate(action.key)}
-            />
+          {tileRows.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.tilesRow}>
+              {row.map((action) => (
+                <View key={action.key} style={styles.tileCell}>
+                  <DashboardTile
+                    icon={action.icon}
+                    title={action.title}
+                    subtitle={action.subtitle}
+                    accentColor={action.accent}
+                    wrapped={action.wrapped}
+                    onPress={() => router.navigate(action.key)}
+                  />
+                </View>
+              ))}
+              {row.length === 1 ? <View style={[styles.tileCell, styles.placeholderCell]} /> : null}
+            </View>
             
           ))}
         </View>
@@ -237,8 +247,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tilesGrid: {
+    gap: 16,
+  },
+  tilesRow: {
     flexDirection: 'row',
-     flexWrap: 'wrap',
-    gap: 20,
+    columnGap: 16,
+    rowGap: 16,
+  },
+  tileCell: {
+    flex: 1,
+  },
+  placeholderCell: {
+    opacity: 0,
   },
 });
