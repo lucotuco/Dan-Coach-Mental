@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
 import { useAuth } from '@/components/AuthContext';
@@ -63,10 +63,15 @@ export default function HomeScreen() {
   const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');
   const { user, isAuthenticated, logout } = useAuth();
   const username = {name: user?.name,};
+  
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isAuthenticated, router]);
+
   if (!isAuthenticated) {
-    return (
-    router.push('/')
-    );
+    return null
   }
   return (
     

@@ -174,7 +174,7 @@ export default function CheckupsScreen() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/chequeos`, {
+      const response = await fetch(API_URL+'/api/chequeos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,10 +190,8 @@ export default function CheckupsScreen() {
           variable5: newValues[4],
         }),
       });
+      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error('No se pudo guardar el chequeo diario');
-      }
 
       setModalMessage(selectedFeedback.message);
       setModalLink(selectedFeedback.href);
@@ -206,6 +204,7 @@ export default function CheckupsScreen() {
       setStoredDailyCheckDate(todayKey);
       setHasCompletedToday(true);
     } catch (error) {
+      
       setModalMessage('No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.');
       setModalLink('index');
       setModalBackgroundColor('#fff3e7');
@@ -341,7 +340,7 @@ export default function CheckupsScreen() {
                     pressed && styles.primaryButtonPressed,
                   ]}
                 >
-                  <Text style={styles.primaryButtonText}>Ir ahora</Text>
+                  <Text style={styles.bottonIrAhora}>Ir ahora</Text>
                 </Pressable>
               </Link>
             </View>
@@ -352,6 +351,11 @@ export default function CheckupsScreen() {
   );
 }
 const styles = StyleSheet.create({
+  bottonIrAhora:{
+color: '#000000ff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
   icon:{
     position: 'absolute',
     top: 6,

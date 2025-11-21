@@ -1,19 +1,17 @@
 import { useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
+import DateTimePicker from '@react-native-community/datetimepicker';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, useThemeColor } from '@/components/Themed';
 
@@ -134,7 +132,8 @@ function SelectField({
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const [age, setAge] = useState('');
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [sport, setSport] = useState('');
   const [level, setLevel] = useState('');
   const [competitionStyle, setCompetitionStyle] = useState('');
@@ -170,13 +169,15 @@ export default function ProfileScreen() {
   ];
 
   const handleContinue = () => {
-    if (!age || !sport || !level || !competitionStyle) {
+    if (!birthDate || !sport || !level || !competitionStyle) {
       alert('Completa tus datos Por favor, llena todos los campos para continuar.');
       return;
     }
     router.replace('/(tabs)/homePage')
   };
+  const formattedBirthDate = birthDate?.toLocaleDateString('es-ES');
 
+  const toggleDatePicker = () => setShowDatePicker((prev) => !prev);
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor }]}
@@ -197,18 +198,59 @@ export default function ProfileScreen() {
           <Text style={[styles.subtitle, { color: mutedColor }]}>Queremos conocerte mejor para ajustar tu acompañamiento.</Text>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: mutedColor }]}>Edad</Text>
-            <TextInput
-              style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
-              placeholder="Ej: 23"
-              placeholderTextColor={mutedColor}
-              value={age}
-              onChangeText={setAge}
-              keyboardType="numeric"
-              returnKeyType="done"
-            />
+            <Text style={[styles.label, { color: mutedColor }]}>Fecha de nacimiento</Text>
+            <Pressable
+              style={[styles.input, styles.selectTrigger, { borderColor: mutedColor }]}
+              onPress={toggleDatePicker}
+            >
+              <Text
+                style={[
+                  styles.selectText,
+                  { color: formattedBirthDate ? inputTextColor : mutedColor },
+                ]}
+              >
+                {formattedBirthDate ?? 'Elegí tu fecha'}
+              </Text>
+              <Feather name="calendar" size={18} color={mutedColor} />
+            </Pressable>
           </View>
-
+<Modal
+            visible={showDatePicker}
+            transparent
+            animationType="fade"
+            onRequestClose={toggleDatePicker}
+          >
+            <Pressable style={styles.modalBackdrop} onPress={toggleDatePicker}>
+              <Pressable
+                style={[styles.pickerContainer, { backgroundColor: cardColor }]}
+                onPress={() => {}}
+              >
+                <DateTimePicker
+                  value={birthDate ?? new Date(2000, 0, 1)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                  maximumDate={new Date()}
+                  locale="es-ES"
+                  onChange={(event, selectedDate) => {
+                    if (Platform.OS !== 'ios') {
+                      toggleDatePicker();
+                    }
+                    if (event.type !== 'dismissed' && selectedDate) {
+                      setBirthDate(selectedDate);
+                    }
+                  }}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    style={[styles.primaryButton, { backgroundColor: textColor }]}
+                    onPress={toggleDatePicker}
+                  >
+                    <Text style={styles.primaryButtonText}>Listo</Text>
+                  </TouchableOpacity>
+                )}
+              </Pressable>
+            </Pressable>
+          </Modal>
           <SelectField
             label="Seleccionar deporte"
             placeholder="Elegí tu deporte"
@@ -255,6 +297,17 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+   pickerContainer: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    bottom: 40,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#d4d7e2',
+    gap: 12,
+  },
   flex: {
     flex: 1,
   },
