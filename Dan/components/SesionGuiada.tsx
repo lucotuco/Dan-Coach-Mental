@@ -152,19 +152,6 @@ export default function GuidedAudioSession({
   return (
     <>
       <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Volver"
-              onPress={handleBackPress}
-              style={styles.headerBackButton}
-              hitSlop={10}
-            >
-              <Ionicons name="arrow-back" size={24} color="#031355" />
-            </Pressable>
-          ),
-        }}
       />
       <View style={styles.screen}>
         <View style={styles.heroCard}>
@@ -282,6 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 16,
     alignItems: 'center',
+    width:'100%'
   },
   controlButton: {
     backgroundColor: '#031355',

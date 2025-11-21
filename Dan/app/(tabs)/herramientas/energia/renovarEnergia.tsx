@@ -20,7 +20,7 @@ export default function LibraryScreenEnergia() {
       scriptTitle="Respirá hondo..."
       scriptParagraphs={renovarEnergiaScript}
       audioModule={require('@/assets/audios/ttsmaker-file-2025-11-18-0-6-21.mp3')}
-      heroImage={require('@/assets/images/DAN_coach_mental_sin_fondo_v2.png')}
+      heroImage={require('@/assets/images/WhatsApp Image 2025-11-18 at 17.02.29_3ecbb00b.jpg')}
       onBack={() => router.push('/(tabs)/herramientas/energia')}
     />
   );
