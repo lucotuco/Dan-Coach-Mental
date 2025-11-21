@@ -7,10 +7,11 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  View
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { Text, View } from '@/components/Themed';
+import { Text } from '@/components/Themed';
 import RecordingButton from '@/components/AudioRecorderButton';
 
 const months = [
@@ -109,24 +110,24 @@ export default function SessionsScreen() {
 
   const handleStartSession = () => {
     Alert.alert(
-      'eEsta funcion todavia esta en desrrollo',
+      'Esta funcion todavia esta en desrrollo',
       'Gracias x confiar en Dan Coach Mental',
     );
   };
 
   const handleReserveCoach = () => {
     Alert.alert(
-      'eEsta funcion todavia esta en desrrollo',
+      'Esta funcion todavia esta en desrrollo',
       'Gracias x confiar en Dan Coach Mental',
     );
   };
 
   return (
     <ScrollView
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content,{backgroundColor:"#fff"}]}
       showsVerticalScrollIndicator={false}
     >
-      <View style={styles.container}>
+      <View style={styles.container }>
         <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.description}>
           Accede a sesiones guiadas con Coach DAN o agenda tu próximo encuentro con un coach personal.
@@ -189,14 +190,6 @@ export default function SessionsScreen() {
           >
             <Text style={styles.secondaryButtonText}>Reservar</Text>
           </Pressable>
-        </View>
-
-        <View style={styles.recorderCard}>
-          <Text style={styles.recorderTitle}>Registra tus sesiones</Text>
-          <Text style={styles.recorderText}>
-            Graba, guarda y reproduce tus conversaciones para repasar aprendizajes cuando lo necesites.
-          </Text>
-          <RecordingButton />
         </View>
       </View>
     </ScrollView>

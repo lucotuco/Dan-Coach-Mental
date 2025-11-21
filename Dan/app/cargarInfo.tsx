@@ -8,127 +8,103 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  FlatList
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, useThemeColor } from '@/components/Themed';
+const sports = [
+  'Enero',
+  'Febrero',
+  'Marzo',
+  'Abril',
+  'Mayo',
+  'Junio',
+  'Julio',
+  'Agosto',
+  'Septiembre',
+  'Octubre',
+  'Noviembre',
+  'Diciembre',
+];
 
-type SelectOption = {
+const levels = [
+  '08:00 AM',
+  '09:30 AM',
+  '11:00 AM',
+  '01:00 PM',
+  '03:00 PM',
+  '05:30 PM',
+  '07:00 PM',
+];
+
+const competitionStyle = [
+  '08:00 AM',
+  '09:30 AM',
+  '11:00 AM',
+  '01:00 PM',
+  '03:00 PM',
+  '05:30 PM',
+  '07:00 PM',
+];
+
+type SelectorProps = {
   label: string;
   value: string;
-};
-
-type SelectFieldProps = {
-  label: string;
-  placeholder: string;
-  value: string;
+  options: string[];
   onSelect: (value: string) => void;
-  options: SelectOption[];
-  cardColor: string;
-  mutedColor: string;
-  inputTextColor: string;
 };
 
-function SelectField({
-  label,
-  placeholder,
-  value,
-  onSelect,
-  options,
-  cardColor,
-  mutedColor,
-  inputTextColor,
-}: SelectFieldProps) {
+const OptionSelector = ({ label, value, options, onSelect }: SelectorProps) => {
   const [open, setOpen] = useState(false);
-  const triggerRef = useRef<View>(null);
-  const [dropdownLayout, setDropdownLayout] = useState({
-    x: 0,
-    y: 0,
-    width: 0,
-    height: 0,
-  });
-
-  const selectedLabel = options.find((option) => option.value === value)?.label;
-
-  const handleToggle = () => {
-    triggerRef.current?.measureInWindow((x, y, width, height) => {
-      setDropdownLayout({ x, y, width, height });
-      setOpen((prev) => !prev);
-    });
-  };
 
   return (
-    <View style={[styles.inputGroup, styles.selectContainer]}>
-      <Text style={[styles.label, { color: mutedColor }]}>{label}</Text>
-      <View>
-        <Pressable
-          ref={triggerRef}
-          onPress={handleToggle}
-          style={[styles.input, styles.selectTrigger, { borderColor: mutedColor }]}
-        >
-          <Text
-            style={[
-              styles.selectText,
-              { color: selectedLabel ? inputTextColor : mutedColor },
-            ]}
-          >
-            {selectedLabel ?? placeholder}
-          </Text>
-          <Feather
-            name={open ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={mutedColor}
-          />
+    <View style={styles.selectorWrapper}>
+      <Text style={styles.selectorLabel}>{label}</Text>
+      <Pressable
+        style={({ pressed }) => [
+          styles.selector,
+          pressed && { opacity: 0.9 },
+        ]}
+        onPress={() => setOpen(true)}
+      >
+        <Text style={styles.selectorValue}>{value}</Text>
+        <Feather name="chevron-down" size={18} color="#1f2b6c" />
+      </Pressable>
+
+      <Modal
+        transparent
+        visible={open}
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{label}</Text>
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    onSelect(item);
+                    setOpen(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.optionDivider} />}
+            />
+          </View>
         </Pressable>
-        <Modal
-          visible={open}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setOpen(false)}
-        >
-          <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-            <Pressable
-              style={{
-                position: 'absolute',
-                top: dropdownLayout.y + dropdownLayout.height + 6,
-                left: dropdownLayout.x,
-                width: dropdownLayout.width,
-              }}
-              onPress={() => {}}
-            >
-              <View
-                style={[
-                  styles.optionList,
-                  { backgroundColor: cardColor, borderColor: mutedColor },
-                ]}
-              >
-                {options.map((option) => (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => {
-                      onSelect(option.value);
-                      setOpen(false);
-                    }}
-                    style={({ pressed }) => [
-                      styles.option,
-                      pressed && { backgroundColor: '#f3f2f6' },
-                    ]}
-                  >
-                    <Text style={[styles.optionText, { color: inputTextColor }]}>
-                      {option.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </Pressable>
-          </Pressable>
-        </Modal>
-      </View>
+      </Modal>
     </View>
   );
-}
+};
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -144,29 +120,6 @@ export default function ProfileScreen() {
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-  const sports: SelectOption[] = [
-    { label: 'Atletismo', value: 'atletismo' },
-    { label: 'Básquet', value: 'basquet' },
-    { label: 'Ciclismo', value: 'ciclismo' },
-    { label: 'Fútbol', value: 'futbol' },
-    { label: 'Natación', value: 'natacion' },
-    { label: 'Tenis', value: 'tenis' },
-    { label: 'Triatlón', value: 'triatlon' },
-    { label: 'Vóley', value: 'voley' },
-  ];
-
-  const levels: SelectOption[] = [
-    { label: 'Inicial', value: 'inicial' },
-    { label: 'Intermedio', value: 'intermedio' },
-    { label: 'Avanzado', value: 'avanzado' },
-    { label: 'Profesional', value: 'profesional' },
-  ];
-
-  const competitionStyles: SelectOption[] = [
-    { label: 'Individual', value: 'individual' },
-    { label: 'Equipo', value: 'equipo' },
-    { label: 'Mixto', value: 'mixto' },
-  ];
 
   const handleContinue = () => {
     if (!birthDate || !sport || !level || !competitionStyle) {
@@ -251,37 +204,25 @@ export default function ProfileScreen() {
               </Pressable>
             </Pressable>
           </Modal>
-          <SelectField
+          <OptionSelector
             label="Seleccionar deporte"
-            placeholder="Elegí tu deporte"
             value={sport}
             onSelect={setSport}
             options={sports}
-            cardColor={cardColor}
-            mutedColor={mutedColor}
-            inputTextColor={inputTextColor}
           />
 
-          <SelectField
+          <OptionSelector
             label="Nivel"
-            placeholder="Seleccioná tu nivel"
             value={level}
             onSelect={setLevel}
             options={levels}
-            cardColor={cardColor}
-            mutedColor={mutedColor}
-            inputTextColor={inputTextColor}
           />
 
-          <SelectField
+          <OptionSelector
             label="Cómo competís?"
-            placeholder="Individual o en equipo"
             value={competitionStyle}
             onSelect={setCompetitionStyle}
-            options={competitionStyles}
-            cardColor={cardColor}
-            mutedColor={mutedColor}
-            inputTextColor={inputTextColor}
+            options={competitionStyle}
           />
 
           <TouchableOpacity

@@ -1,4 +1,3 @@
-import type { ComponentProps } from 'react';
 import { useState, useEffect } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
@@ -24,34 +23,50 @@ type QuickAction = {
 const quickActions: QuickAction[] = [
   {
     key: '/(tabs)/checkups',
-    title: 'Chequeos Diarios',
-    subtitle: 'Controla tu energia, motivación y emociones',
-    icon: 'sun',
-    accent: '#4c6ef5',
-    wrapped: true,
+    title: 'Chequeos mentales',
+    subtitle: 'Tu estado en minutos',
+    icon: 'activity',
+    accent: '#a5c5ff',
+    wrapped: false,
   },
   {
     key: '/(tabs)/sesions',
-    title: 'Sesiones con tu coach',
-    subtitle: 'sesion en tiempo real Dan, tu coach mental deportivo',
+    title: 'Sesiones',
+    subtitle: 'Agenda y seguimiento',
     icon: 'headphones',
-    accent: '#f76707',
-    wrapped: true,
+    accent: '#ffd7ce',
+    wrapped: false,
+  },
+  {
+    key: '/(tabs)/motivacion',
+    title: 'Entrenamientos personales',
+    subtitle: 'Rutinas a tu medida',
+    icon: 'calendar',
+    accent: '#ffeab6',
+    wrapped: false,
+  },
+  {
+    key: '/(tabs)/herramientas',
+    title: 'Ejercicios guiados',
+    subtitle: 'Respiración y relajación',
+    icon: 'wind',
+    accent: '#d4e4ff',
+    wrapped: false,
   },
   {
     key: '/(tabs)/progress',
-    title: 'Mi progreso',
-    subtitle: 'Seguimiento y evolcuion mental personalizada',
+    title: 'Progresos',
+    subtitle: 'Mide tus avances',
     icon: 'trending-up',
-    accent: '#20c997',
+    accent: '#d6f3d2',
     wrapped: false,
   },
   {
     key: '/(tabs)/library',
-    title: 'Recursos guiados',
-    subtitle: 'Respiracion, relajacion y mas',
+    title: 'Biblioteca',
+    subtitle: 'Recursos y lecturas',
     icon: 'book-open',
-    accent: '#845ef7',
+    accent: '#ffe2d1',
     wrapped: false,
   },
 ];
@@ -95,10 +110,10 @@ export default function HomeScreen() {
       </Link>
 
       <View style={styles.tilesWrapper}>
-        <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento </Text>
+        <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento</Text>
         <View style={styles.tilesGrid}>
           {quickActions.map((action) => (
-            
+
             <DashboardTile
               key={action.key}
               icon={action.icon}
@@ -216,8 +231,10 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 1,
   },
   tilesGrid: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import HeaderLogo from '@/components/HeaderLogo';
-
+import BackButton from '@/components/BackButton';
 type HeaderTheme = {
   background: string;
   text: string;
@@ -7,6 +7,9 @@ type HeaderTheme = {
 
 export const createSharedHeaderOptions = (theme: HeaderTheme) => ({
   headerTitle: () => <HeaderLogo />,
+  headerLeft: () => (
+    <BackButton />
+  ),
   headerTitleAlign: 'center' as const,
   headerStyle: {
     backgroundColor: theme.background,
@@ -16,3 +19,6 @@ export const createSharedHeaderOptions = (theme: HeaderTheme) => ({
   headerTintColor: theme.text,
   headerShadowVisible: false,
 });
+export const withoutBackButton = {
+  headerLeft: () => null,
+};

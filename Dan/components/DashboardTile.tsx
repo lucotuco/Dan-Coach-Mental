@@ -18,7 +18,7 @@ type DashboardTileProps = {
 
 
 export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wrapped }: DashboardTileProps) {
-  const backgroundColor = accentColor ? hexToRgba(accentColor, 0.35) : '#e4e7ff';
+  const backgroundColor = accentColor ? hexToRgba(accentColor, 0.8) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const iconColor = accentColor ?? '#4c6ef5';
@@ -37,7 +37,7 @@ export function DashboardTile({ icon, title, subtitle, onPress, accentColor, wra
       ]}
     >
       
-      <View style={[styles.iconWrap, { backgroundColor: "#fff" }]}>
+      <View style={[styles.iconWrap, { backgroundColor: '#fff' }]}>
         <FeatherIcon name={icon} size={30} color={iconColor} />
       </View>
       <View style={styles.textContent}>
@@ -54,23 +54,28 @@ const styles = StyleSheet.create({
   tile: {
     borderRadius: 18,
     padding: 16,
-    gap: 12,
-    flex: 1,
-    
+     gap: 10,
     alignItems: 'center',
+    alignSelf: 'flex-start',
     minWidth: 140,
+    shadowColor: '#00000015',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 3,
   },
-    fullWidthTile: {
+  fullWidthTile: {
     flexBasis: '100%',
     flexGrow: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    
+
   },
   halfWidthTile: {
-    width: '48%',
+    flexBasis: '48%',
     maxWidth: '48%',
-    flexGrow: 1,
+    flexGrow: 0,
+    flexShrink: 0,
   },
   iconWrap: {
     width: 50,
@@ -78,14 +83,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#00000010',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 2,
   },
   title: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 13,
     lineHeight: 18,
+    textAlign: 'center',
   },
   pressed: {
     transform: [{ scale: 0.98 }],
@@ -93,6 +105,7 @@ const styles = StyleSheet.create({
   textContent: {
     flex: 1,
     gap: 4,
+    alignItems: 'center',
   },
 });
 

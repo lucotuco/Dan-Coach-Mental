@@ -9,7 +9,7 @@ import { AuthProvider } from '@/components/AuthContext';
 import { NavigationHistoryProvider } from '@/components/NavigationHistoryContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { createSharedHeaderOptions } from '@/constants/navigation';
+import { createSharedHeaderOptions, withoutBackButton } from '@/constants/navigation';
 
 export {
   ErrorBoundary,
@@ -60,8 +60,14 @@ function RootLayoutNav() {
       <AuthProvider>
         <NavigationHistoryProvider>
           <Stack screenOptions={sharedHeaderOptions}>
-            <Stack.Screen name="index" options={{ gestureEnabled: false }} />
-            <Stack.Screen name="signup" options={{ gestureEnabled: false }} />
+            <Stack.Screen
+              name="index"
+              options={{ gestureEnabled: false, ...withoutBackButton }}
+            />
+            <Stack.Screen
+              name="signup"
+              options={{ gestureEnabled: false, ...withoutBackButton }}
+            />
             <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
             <Stack.Screen
               name="(tabs)"
