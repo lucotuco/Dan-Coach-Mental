@@ -1,7 +1,6 @@
 import { StyleSheet, ScrollView, Modal, View,Pressable } from 'react-native';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
-import Slider from '@react-native-community/slider';
 import { ComponentProps, useEffect, useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
@@ -9,8 +8,9 @@ import { Link } from 'expo-router';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 import RecordingButton from '@/components/AudioRecorderButton';
 import { useAuth } from '@/components/AuthContext';
+import CheckSlider from '@/components/CheckSlider';
 export default function CheckupsScreen() {
-  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
+  const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
@@ -144,7 +144,7 @@ export default function CheckupsScreen() {
       setModalIconName(selectedIcon);
       setModalAccentColor(selectedAccent);
       setModalVisible(true);
-      setSliderValues([0, 0, 0, 0, 0]);
+      setSliderValues([0, 0, 0, 0, 0, 0]);
     
     } catch (error) {
       
@@ -166,94 +166,51 @@ export default function CheckupsScreen() {
          <Text style={{fontSize:20, fontWeight:'700', color:'#1d1564',marginBottom:-20, alignItems: 'center',justifyContent:'center' }}>Chequeo post competencia del dia: </Text>
          <Text style={{fontSize:16, fontWeight:'600', color:'#1d1564',  alignItems: 'center',justifyContent:'center' }}>{fechaFormateada}</Text>
          <Card>
-             <Text style={styles.sliderLabel}>Estado Emocional:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#1d1564ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#1d1564ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 0)}
-               value={sliderValues[0]}
-             />
+            <View style={{ gap: 16 }}>
+              <CheckSlider
+                label="Estado emocional"
+                description="¿Cómo se siente tu estado emocional después de competir?"
+                color="#1d1564ff"
+                value={sliderValues[0]}
+                onValueChange={(value) => handleSliderChange(value, 0)}
+              />
+              <CheckSlider
+                label="Energía"
+                description="¿Qué tanta energía te queda tras competir?"
+                color="#c00a0aff"
+                value={sliderValues[1]}
+                onValueChange={(value) => handleSliderChange(value, 1)}
+              />
+              <CheckSlider
+                label="Reflexión"
+                description="¿Qué tan satisfecho quedaste con tus decisiones y enfoque?"
+                color="#16800cff"
+                value={sliderValues[2]}
+                onValueChange={(value) => handleSliderChange(value, 2)}
+              />
+              <CheckSlider
+                label="Dolor o molestia"
+                description="¿Tenés dolor o molestia física ahora?"
+                color="#31a9c7ff"
+                value={sliderValues[3]}
+                onValueChange={(value) => handleSliderChange(value, 3)}
+              />
+              <CheckSlider
+                label="Cumplió el objetivo"
+                description="¿Sentís que cumpliste el objetivo que te propusiste?"
+                color="#fda531ff"
+                value={sliderValues[4]}
+                onValueChange={(value) => handleSliderChange(value, 4)}
+              />
+              <CheckSlider
+                label="Resultado"
+                description="¿Cómo evaluás el resultado final de la competencia?"
+                color="#fd86edff"
+                value={sliderValues[5]}
+                onValueChange={(value) => handleSliderChange(value, 5)}
+              />
+            </View>
 
-             <Text style={styles.sliderLabel}>Energia:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#c00a0aff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#c00a0aff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 1)}
-               value={sliderValues[1]}
-             />
-
-             <Text style={styles.sliderLabel}>Reflexion:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#16800cff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#16800cff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 2)}
-               value={sliderValues[2]}
-             />
-
-             <Text style={styles.sliderLabel}>Dolor o molestia:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#31a9c7ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#31a9c7ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 3)}
-               value={sliderValues[3]}
-             />
-             <Text style={styles.sliderLabel}>Cumplio el Objetivo:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#fda531ff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#fda531ff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 4)}
-               value={sliderValues[4]}
-             />
-             <Text style={styles.sliderLabel}>Resultado:</Text>
-             <Slider 
-               style={{width: 270, height: 40}}
-               minimumValue={0}
-               maximumValue={10}
-               minimumTrackTintColor="#fd86edff"
-               maximumTrackTintColor="#949494ff"
-               step={1}
-               tapToSeek={true}
-               thumbTintColor='#fd86edff'
-               testID='1'
-               onValueChange={(value) => handleSliderChange(value, 5)}
-               value={sliderValues[5]}
-             />
-            
          </Card>
          <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>
              <RecordingButton />
