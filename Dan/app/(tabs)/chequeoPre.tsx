@@ -15,7 +15,7 @@ export default function CheckupsScreen() {
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
   const [modalBackgroundColor, setModalBackgroundColor] = useState('#fff');
-  const [modalTitle, setModalTitle] = useState('Chequeo Diario');
+  const [modalTitle, setModalTitle] = useState('Chequeo pre competencia');
   const [modalIconName, setModalIconName] = useState<ComponentProps<typeof FeatherIcon>['name']>('check-circle');
   const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,18 +23,18 @@ export default function CheckupsScreen() {
   const { user, isAuthenticated, logout } = useAuth();
 
   const sliderMessages = [
-    'Parece que tu energía está un poco baja. Considera tomar un descanso y recargar fuerzas.',
-    'Tu motivación necesita un impulso hoy. Piensa en algo que te inspire o te anime.',
-    'Tu estado emocional está sensible. Dedica unos minutos a respirar y enfocarte en ti.',
-    'El descanso es clave. Intenta priorizar el sueño para recuperar tu bienestar.',
-    'Detectamos algo de dolor o molestia. Te recomendamos un ejercicio guiado para aliviarlo.',
+    'Tu energía de salida está por debajo de lo ideal. Activá con una rutina breve antes de competir.',
+    'La motivación previa es baja. Revisá tu porqué y visualizá cómo querés rendir hoy.',
+    'La concentración está dispersa. Tomate un momento para respirar y definir tu foco de la competencia.',
+    'Tus emociones previas están intensas. Regulá con una pausa consciente antes de entrar.',
+    'Tu diálogo interno suena exigente. Cambiá a mensajes de apoyo para encarar la competencia.',
   ];
   const sliderRoutes = [
     '/herramientas/energia',
     '/motivacion',
     '/estado-emocional',
-    '/sueno',
-    '/dolor',
+    '/estado-emocional',
+    '/motivacion',
   ];
 
   const fecha = new Date();
@@ -69,11 +69,11 @@ export default function CheckupsScreen() {
   ];
 
   const modalTitles = [
-    'Tu energía está baja',
-    'Tu motivación está baja',
-    'Tu estado emocional necesita atención',
-    'Tu descanso fue insuficiente',
-    'Detectamos molestias en tu cuerpo',
+    'Tu energía previa está baja',
+    'Tu motivación previa necesita impulso',
+    'Tu concentración está dispersa',
+    'Tus emociones necesitan regulación',
+    'Tu diálogo interior necesita apoyo',
 
   ];
 
@@ -94,7 +94,7 @@ export default function CheckupsScreen() {
 
     const feedbackOptions = [
       {
-        message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+        message: '¡Listo para competir! Tu preparación mental está en buen nivel.',
         href: 'homePage',
       },
       ...sliderMessages.map((message, index) => ({
@@ -107,7 +107,7 @@ export default function CheckupsScreen() {
     const selectedBackground =
       typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
     const selectedTitle =
-      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
+      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo pre competencia';
     const selectedIcon =
       typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
     const selectedAccent =
@@ -123,7 +123,7 @@ export default function CheckupsScreen() {
         body: JSON.stringify({
           owner: user?._id,
           fecha: fechaFormateada,
-          tipo:'chequeo diario',
+          tipo:'chequeo pre competencia',
           variable1: newValues[0],
           variable2: newValues[1],
           variable3: newValues[2],
