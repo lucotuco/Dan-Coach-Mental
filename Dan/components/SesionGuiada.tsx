@@ -7,6 +7,7 @@ import type { AudioStatus } from 'expo-audio';
 import { Subscription } from 'expo-modules-core';
 import { Asset } from 'expo-asset';
 import { Stack } from 'expo-router';
+import MedioLogo from './MedioLogo';
 
 const formatTime = (timeInSeconds: number | null | undefined) => {
   if (typeof timeInSeconds !== 'number' || Number.isNaN(timeInSeconds)) {
@@ -24,7 +25,7 @@ type GuidedAudioSessionProps = {
   scriptTitle: string;
   scriptParagraphs: string[];
   audioModule: number;
-  heroImage: ImageSourcePropType;
+  heroImage?: ImageSourcePropType;
   onBack: () => void;
 };
 
@@ -154,8 +155,11 @@ export default function GuidedAudioSession({
       <Stack.Screen
       />
       <View style={styles.screen}>
+        <MedioLogo/>
         <View style={styles.heroCard}>
-          <Image source={heroImage} resizeMode="contain" style={styles.heroImage} />
+          {heroImage ? (
+            <Image source={heroImage} resizeMode="contain" style={styles.heroImage} />
+          ) : null}
           <Text style={styles.heroTitle}>{title}</Text>
 
           {isPlaying ? (
@@ -355,4 +359,4 @@ const styles = StyleSheet.create({
   scriptContainer: {
     flex: 1,
   },
-  });
+});

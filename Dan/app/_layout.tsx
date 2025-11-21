@@ -68,6 +68,10 @@ function RootLayoutNav() {
               name="signup"
               options={{ gestureEnabled: false, ...withoutBackButton }}
             />
+            <Stack.Screen
+              name="bienvenida"
+              options={{ gestureEnabled: false, ...withoutBackButton }}
+            />
             <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
             <Stack.Screen
               name="(tabs)"

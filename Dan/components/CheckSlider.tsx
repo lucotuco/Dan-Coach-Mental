@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   tooltip: {
     position: 'absolute',
-    top: 4,
+    top: -15,
     width: 36,
     height: 36,
     borderRadius: 6,
@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 1,
+    elevation: 2,
     transform: [{ translateX: -18 }],
   },
   tooltipText: {

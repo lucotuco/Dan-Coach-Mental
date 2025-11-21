@@ -126,7 +126,7 @@ export default function ProfileScreen() {
       alert('Completa tus datos Por favor, llena todos los campos para continuar.');
       return;
     }
-    router.replace('/(tabs)/homePage')
+    router.replace('/bienvenida')
   };
   const formattedBirthDate = birthDate?.toLocaleDateString('es-ES');
 

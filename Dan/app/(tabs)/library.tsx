@@ -9,41 +9,33 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 const meditationCategories = [
   {
-    id: 'energy-boost',
-    title: 'Carga de energía',
-    description: 'Recarga tu cuerpo y mente.',
-    icon: 'flash-outline' as IconName,
-    backgroundColor: '#FFF3E0',
-    accentColor: '#F5A524',
-    link:'/herramientas/energia'
+    id: 'renew',
+    title: 'Renovar la energía',
+    description: 'Recuperá la calma cuando la energía está baja.',
+    icon: 'leaf-outline' as IconName,
+    backgroundColor: '#FFEEDB',
+    accentColor: '#F07F24',
+    link:'/herramientas/renovarEnergia'
   },
   {
-    id: 'motivation',
-    title: 'Motivación',
-    description: 'Activa la intención y el foco.',
-    icon: 'ribbon-outline' as IconName,
-    backgroundColor: '#FFF7E7',
-    accentColor: '#E68A00',
-    link:'motivacion'
+    id: 'vitality',
+    title: 'Vitalidad en minutos',
+    description: 'Activaciones cortas para retomar el foco.',
+    icon: 'sunny-outline' as IconName,
+    backgroundColor: '#FFF5E8',
+    accentColor: '#F2A341',
+    link:'/herramientas/vitalidadMinutos'
   },
   {
-    id: 'concentration',
-    title: 'Concentración',
-    description: 'Respira y vuelve al presente.',
-    icon: 'eye-outline' as IconName,
-    backgroundColor: '#EEF7F6',
-    accentColor: '#4EA3A1',
-    link:'estado-emocional'
+    id: 'mood',
+    title: 'Ánimo y positividad',
+    description: 'Respira, equilibrate y recuperá confianza.',
+    icon: 'happy-outline' as IconName,
+    backgroundColor: '#FFEFD1',
+    accentColor: '#F6C046',
+    link:'/herramientas/estadoEmocional'
   },
-  {
-    id: 'focus',
-    title: 'Energía y enfoque',
-    description: 'Integra cuerpo, mente y respiración.',
-    icon: 'pulse-outline' as IconName,
-    backgroundColor: '#F2FBFC',
-    accentColor: '#0092A5',
-    link:'sueno'
-  },
+  
 ] as const;
 
 type MeditationCategory = (typeof meditationCategories)[number];

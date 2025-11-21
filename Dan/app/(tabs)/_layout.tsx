@@ -138,19 +138,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="herramientas/energia"
+        name="herramientas/estadoEmocional"
         options={{
           href: null,
           }}
       />
       <Tabs.Screen
-        name="herramientas/energia/renovarEnergia"
+        name="herramientas/renovarEnergia"
         options={{
           href: null,
         }}
       />
       <Tabs.Screen
-        name="herramientas/energia/vitalidadMinutos"
+        name="herramientas/vitalidadMinutos"
         options={{
           href: null,
         }}
