@@ -58,7 +58,7 @@ export default function LibraryScreen() {
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <MedioLogo/>
       <View style={styles.headingBlock}>
-        <Text style={styles.heading}>Biblioteca de meditaciones</Text>
+        <Text style={styles.heading}>Ejercitaciones Guiadas</Text>
         
       </View>
       <Text style={styles.description}>

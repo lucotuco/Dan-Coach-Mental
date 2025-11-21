@@ -16,38 +16,38 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, useThemeColor } from '@/components/Themed';
 const sports = [
-  'Enero',
-  'Febrero',
-  'Marzo',
-  'Abril',
-  'Mayo',
-  'Junio',
-  'Julio',
-  'Agosto',
-  'Septiembre',
-  'Octubre',
-  'Noviembre',
-  'Diciembre',
+  'Fútbol',
+  'Básquet',
+  'Tenis',
+  'Pádel',
+  'Hockey',
+  'Rugby',
+  'Vóley',
+  'Handball',
+  'Natación',
+  'Running',
+  'Ciclismo',
+  'Triatlón',
+  'Atletismo',
+  'CrossFit',
+  'Boxeo',
+  'Artes marciales',
+  'Gimnasia artística',
+  'Esgrima',
+  'Surf',
+  'Ski / Snowboard',
 ];
 
 const levels = [
-  '08:00 AM',
-  '09:30 AM',
-  '11:00 AM',
-  '01:00 PM',
-  '03:00 PM',
-  '05:30 PM',
-  '07:00 PM',
+  'Recreativo',
+  'Amateur',
+  'Profecional'
 ];
 
 const competitionStyles = [
-  '08:00 AM',
-  '09:30 AM',
-  '11:00 AM',
-  '01:00 PM',
-  '03:00 PM',
-  '05:30 PM',
-  '07:00 PM',
+  'Individial',
+  'En pareja',
+  'En equipo'
 ];
 
 type SelectorProps = {
