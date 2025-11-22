@@ -23,36 +23,41 @@ export default function CheckupsScreen() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const todayKey = new Date().toISOString().split('T')[0];
   const { user, isAuthenticated, logout } = useAuth();
-  const getStoredDailyCheckDate = () => {
+  const getDailyCheckStorageKey = () => {
+    const userId = user?._id ?? 'guest';
+    return `dailyCheckDate:${userId}`;
+  };
+
+  const getStoredDailyCheckDate = (storageKey: string) => {
     const maybeLocalStorage = (globalThis as {
       localStorage?: { getItem: (key: string) => string | null };
       dailyCheckDate?: string;
     }).localStorage;
 
     if (maybeLocalStorage && typeof maybeLocalStorage.getItem === 'function') {
-      return maybeLocalStorage.getItem('dailyCheckDate');
+      return maybeLocalStorage.getItem(storageKey);
     }
 
     if (typeof globalThis !== 'undefined') {
-      return (globalThis as { dailyCheckDate?: string }).dailyCheckDate ?? null;
+      return (globalThis as { [key: string]: string | undefined })[storageKey] ?? null;
     }
 
     return null;
   };
 
-  const setStoredDailyCheckDate = (value: string) => {
+  const setStoredDailyCheckDate = (storageKey: string, value: string) => {
     const maybeLocalStorage = (globalThis as {
       localStorage?: { setItem: (key: string, val: string) => void };
       dailyCheckDate?: string;
     }).localStorage;
 
     if (maybeLocalStorage && typeof maybeLocalStorage.setItem === 'function') {
-      maybeLocalStorage.setItem('dailyCheckDate', value);
+      maybeLocalStorage.setItem(storageKey, value);
       return;
     }
 
     if (typeof globalThis !== 'undefined') {
-      (globalThis as { dailyCheckDate?: string }).dailyCheckDate = value;
+      (globalThis as { [key: string]: string | undefined })[storageKey] = value;
     }
   };
   
@@ -117,7 +122,8 @@ export default function CheckupsScreen() {
   ];
 
   useEffect(() => {
-    const storedDate = getStoredDailyCheckDate();
+    const storageKey = getDailyCheckStorageKey();
+    const storedDate = getStoredDailyCheckDate(storageKey);
 
     if (storedDate === todayKey) {
       setHasCompletedToday(true);
@@ -128,8 +134,11 @@ export default function CheckupsScreen() {
       setModalIconName('calendar');
       setModalAccentColor('#1d1564');
       setModalVisible(true);
+    } else {
+      setHasCompletedToday(false);
+      setModalVisible(false);
     }
-  }, [todayKey]);
+  }, [todayKey, user?._id]);
 
   const handleAlreadyCompleted = () => {
     setModalMessage('Ya registraste tu chequeo diario hoy. Vuelve mañana para cargar uno nuevo.');
@@ -201,7 +210,7 @@ export default function CheckupsScreen() {
       setModalAccentColor(selectedAccent);
       setModalVisible(true);
       setSliderValues([0, 0, 0, 0, 0]);
-      setStoredDailyCheckDate(todayKey);
+      setStoredDailyCheckDate(getDailyCheckStorageKey(), todayKey);
       setHasCompletedToday(true);
     } catch (error) {
       
