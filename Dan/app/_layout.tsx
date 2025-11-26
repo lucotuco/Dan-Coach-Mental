@@ -65,6 +65,10 @@ function RootLayoutNav() {
               options={{ gestureEnabled: false, ...withoutBackButton }}
             />
             <Stack.Screen
+              name="introVideo"
+              options={{ headerShown: false, gestureEnabled: false }}
+            />
+            <Stack.Screen
               name="signup"
               options={{ gestureEnabled: false, ...withoutBackButton }}
             />

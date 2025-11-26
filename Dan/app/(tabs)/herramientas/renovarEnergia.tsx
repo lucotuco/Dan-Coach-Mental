@@ -21,7 +21,7 @@ export default function LibraryScreenEnergia() {
       scriptParagraphs={renovarEnergiaScript}
       audioModule={require('@/assets/audios/ttsmaker-file-2025-11-18-0-6-21.mp3')}
      
-      onBack={() => router.push('/(tabs)/herramientas/energia')}
+      onBack={() => router.push('/(tabs)/library')}
     />
   );
 }
