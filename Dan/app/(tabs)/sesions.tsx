@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { Text  } from '@/components/Themed';
+import { useRouter } from 'expo-router';
 import RecordingButton from '@/components/AudioRecorderButton';
 import MedioLogo from '@/components/MedioLogo';
 
@@ -98,7 +99,7 @@ const OptionSelector = ({ label, value, options, onSelect }: SelectorProps) => {
 export default function SessionsScreen() {
   const currentDay = useMemo(() => new Date().getDate().toString(), []);
   const currentMonth = useMemo(() => months[new Date().getMonth()], []);
-
+  const router = useRouter();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedDay, setSelectedDay] = useState(currentDay);
   const [selectedHour, setSelectedHour] = useState(hours[0]);
@@ -109,10 +110,8 @@ export default function SessionsScreen() {
   );
 
   const handleStartSession = () => {
-    Alert.alert(
-      'Esta funcion todavia esta en desrrollo',
-      'Gracias x confiar en Dan Coach Mental',
-    );
+    router.push('/(tabs)/coachVirtual');
+
   };
 
   const handleReserveCoach = () => {

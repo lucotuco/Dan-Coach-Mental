@@ -38,6 +38,7 @@ export default function CheckupsScreen() {
   ];
 
   const fecha = new Date();
+  const fechaISO = fecha.toISOString();
   const fechaFormateada = fecha.toLocaleDateString('es-ES', {
     year: 'numeric',
     month: 'long',
@@ -123,8 +124,8 @@ export default function CheckupsScreen() {
         },
         body: JSON.stringify({
           owner: user?._id,
-          fecha: fechaFormateada,
-          tipo: 'chequeo pre competencia',
+          fecha: fechaISO,
+          tipo: 'chequeo pre-competencia',
           variable1: newValues[0],
           variable2: newValues[1],
           variable3: newValues[2],
@@ -154,7 +155,7 @@ export default function CheckupsScreen() {
           ? error.message
           : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
       );
-      setModalLink('index');
+      setModalLink('homePage');
       setModalBackgroundColor('#fff3e7');
       setModalTitle('No pudimos guardar');
       setModalIconName('alert-circle');

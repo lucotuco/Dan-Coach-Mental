@@ -77,6 +77,7 @@ export default function CheckupsScreen() {
   ];
 
   const fecha = new Date();
+  const fechaISO = fecha.toISOString();
   const fechaFormateada = fecha.toLocaleDateString('es-ES', {
     year: 'numeric',
     month: 'long',
@@ -190,7 +191,7 @@ export default function CheckupsScreen() {
         },
         body: JSON.stringify({
           owner: user?._id,
-          fecha: fechaFormateada,
+          fecha: fechaISO,
           tipo: 'chequeo diario',
           variable1: newValues[0],
           variable2: newValues[1],

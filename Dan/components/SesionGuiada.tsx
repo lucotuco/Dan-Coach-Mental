@@ -218,8 +218,8 @@ export default function GuidedAudioSession({
             showsVerticalScrollIndicator={false}
           >
             <Text style={styles.infoTitle}>{scriptTitle}</Text>
-            {scriptParagraphs.map((paragraph) => (
-              <Text key={paragraph} style={styles.infoParagraph}>
+            {scriptParagraphs.map((paragraph,index) => (
+              <Text key={`paragraph-${index}`} style={styles.infoParagraph}>
                 {paragraph}
               </Text>
             ))}

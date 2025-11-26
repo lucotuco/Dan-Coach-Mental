@@ -1,4 +1,3 @@
-import MedioLogo from '@/components/MedioLogo';
 import GuidedAudioSession from '@/components/SesionGuiada';
 import { useRouter } from 'expo-router';
 
@@ -16,7 +15,6 @@ export default function LibraryScreenEstadoEmocional() {
   const router = useRouter();
 
   return (
-    
     <GuidedAudioSession
       title="Movilidad suave para recargar energía"
       scriptTitle="Respirá hondo..."

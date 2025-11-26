@@ -85,9 +85,7 @@ export default function HomeScreen() {
     }
   }, [isAuthenticated, router]);
 
-  if (!isAuthenticated) {
-    return null
-  }
+  
   const tileRows: QuickAction[][] = [];
   for (let i = 0; i < quickActions.length; i += 2) {
     tileRows.push(quickActions.slice(i, i + 2));

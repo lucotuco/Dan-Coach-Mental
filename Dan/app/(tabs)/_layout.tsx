@@ -103,7 +103,7 @@ export default function TabLayout() {
       
       
       <Tabs.Screen
-        name="chequeoDiario"
+        name="ChequeoDiario"
         options={{
           href: null,
           
@@ -128,6 +128,12 @@ export default function TabLayout() {
         options={{
           href: null,
           
+        }}
+      />
+      <Tabs.Screen
+        name="coachVirtual"
+        options={{
+          href: null,
         }}
       />
       <Tabs.Screen
