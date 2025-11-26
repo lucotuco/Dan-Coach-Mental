@@ -30,11 +30,11 @@ export default function CheckupsScreen() {
     'Tu diálogo interno suena exigente. Cambiá a mensajes de apoyo para encarar la competencia.',
   ];
   const sliderRoutes = [
-    '/herramientas/energia',
-    '/motivacion',
-    '/estado-emocional',
-    '/estado-emocional',
-    '/motivacion',
+    '/herramientas/estadoEmocional',
+    '/library',
+    '/library',
+    '/library',
+    '/library',
   ];
 
   const fecha = new Date();

@@ -31,12 +31,12 @@ export default function CheckupsScreen() {
     'El resultado no fue el esperado. Evaluá con calma y planificá un siguiente paso.',
   ];
   const sliderRoutes = [
-    '/estado-emocional',
-    '/herramientas/energia',
-    '/progress',
-    '/dolor',
-    '/progress',
-    '/progress',
+    '/library',
+    '/herramientas/vitalidadMinutos',
+    '/library',
+    '/library',
+    '/library',
+    '/library',
   ];
 
   const fecha = new Date();
