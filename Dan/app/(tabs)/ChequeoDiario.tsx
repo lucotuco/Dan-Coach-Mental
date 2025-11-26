@@ -150,7 +150,7 @@ export default function CheckupsScreen() {
     setModalVisible(true);
   };
   const handleSubmit = async () => {
-    if (hasCompletedToday) {
+    if (hasCompletedToday || isSubmitting) {
       handleAlreadyCompleted();
       return;
     }
@@ -183,7 +183,7 @@ export default function CheckupsScreen() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(API_URL+'/api/chequeos', {
+      const response = await fetch(API_URL + '/api/chequeos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,7 +191,7 @@ export default function CheckupsScreen() {
         body: JSON.stringify({
           owner: user?._id,
           fecha: fechaFormateada,
-          tipo:'chequeo diario',
+          tipo: 'chequeo diario',
           variable1: newValues[0],
           variable2: newValues[1],
           variable3: newValues[2],
@@ -201,6 +201,9 @@ export default function CheckupsScreen() {
       });
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data?.message || '');
+      }
 
       setModalMessage(selectedFeedback.message);
       setModalLink(selectedFeedback.href);
@@ -213,8 +216,11 @@ export default function CheckupsScreen() {
       setStoredDailyCheckDate(getDailyCheckStorageKey(), todayKey);
       setHasCompletedToday(true);
     } catch (error) {
-      
-      setModalMessage('No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.');
+      setModalMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
+      );
       setModalLink('index');
       setModalBackgroundColor('#fff3e7');
       setModalTitle('No pudimos guardar');
@@ -277,12 +283,16 @@ export default function CheckupsScreen() {
          <Pressable
           accessibilityRole="button"
           onPress={handleSubmit}
+          disabled={isSubmitting}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
+            isSubmitting && styles.primaryButtonDisabled,
           ]}
         >
-          <Text style={styles.primaryButtonText}>Guardar Chequeo</Text>
+          <Text style={styles.primaryButtonText}>
+            {isSubmitting ? 'Guardando...' : 'Guardar Chequeo'}
+          </Text>
         </Pressable>
 
          <Modal
@@ -426,6 +436,9 @@ color: '#000000ff',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1d1564',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonPressed: {
     opacity: 0.85,

@@ -1,14 +1,14 @@
-import { StyleSheet, ScrollView, Modal, View,Pressable } from 'react-native';
-import { Text } from '@/components/Themed';
-import MedioLogo from '@/components/MedioLogo';
-import { ComponentProps, useEffect, useState } from 'react';
-import Card from '@/components/Card';
+import { StyleSheet, ScrollView, Modal, View, Pressable } from 'react-native';
+import { ComponentProps, useState } from 'react';
 import React from 'react';
 import { Link } from 'expo-router';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
+import Card from '@/components/Card';
 import RecordingButton from '@/components/AudioRecorderButton';
 import { useAuth } from '@/components/AuthContext';
 import CheckSlider from '@/components/CheckSlider';
+import MedioLogo from '@/components/MedioLogo';
+import { Text } from '@/components/Themed';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
   const [modalVisible, setModalVisible] = useState(false);
@@ -89,6 +89,7 @@ export default function CheckupsScreen() {
   ];
 
   const handleSubmit = async () => {
+    if (isSubmitting) return;
 
     const newValues = [...sliderValues];
     const lowIndex = newValues
@@ -118,7 +119,7 @@ export default function CheckupsScreen() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(API_URL+'/api/chequeos', {
+      const response = await fetch(API_URL + '/api/chequeos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,7 +127,7 @@ export default function CheckupsScreen() {
         body: JSON.stringify({
           owner: user?._id,
           fecha: fechaFormateada,
-          tipo:'chequeo post competencia',
+          tipo: 'chequeo post competencia',
           variable1: newValues[0],
           variable2: newValues[1],
           variable3: newValues[2],
@@ -137,6 +138,9 @@ export default function CheckupsScreen() {
       });
       const data = await response.json();
 
+      if (!response.ok) {
+        throw new Error(data?.message || '');
+      }
 
       setModalMessage(selectedFeedback.message);
       setModalLink(selectedFeedback.href);
@@ -146,10 +150,14 @@ export default function CheckupsScreen() {
       setModalAccentColor(selectedAccent);
       setModalVisible(true);
       setSliderValues([0, 0, 0, 0, 0, 0]);
-    
+
     } catch (error) {
-      
-      setModalMessage('No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.');
+
+      setModalMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
+      );
       setModalLink('index');
       setModalBackgroundColor('#fff3e7');
       setModalTitle('No pudimos guardar');
@@ -220,12 +228,16 @@ export default function CheckupsScreen() {
          <Pressable
           accessibilityRole="button"
           onPress={handleSubmit}
+          disabled={isSubmitting}
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
+            isSubmitting && styles.primaryButtonDisabled,
           ]}
         >
-          <Text style={styles.primaryButtonText}>Guardar Chequeo</Text>
+          <Text style={styles.primaryButtonText}>
+            {isSubmitting ? 'Guardando...' : 'Guardar Chequeo'}
+          </Text>
         </Pressable>
 
          <Modal
@@ -369,6 +381,9 @@ color: '#000000ff',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#1d1564',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.6,
   },
   primaryButtonPressed: {
     opacity: 0.85,
