@@ -30,7 +30,7 @@ const checkupCards: CheckupCard[] = [
     title: 'Chequeo Diario',
     description:
       'Hacé un chequeo rápido de tu estado físico y mental: sueño, energía, motivación, emociones y molestias. Tu termómetro diario como deportista.',
-    href: '/ChequeoDiario',
+    href: '/chequeoDiario',
     tag: 'Rutina diaria',
     colors: {
       background: '#b4c2ffff',

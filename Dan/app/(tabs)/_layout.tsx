@@ -103,7 +103,7 @@ export default function TabLayout() {
       
       
       <Tabs.Screen
-        name="ChequeoDiario"
+        name="chequeoDiario"
         options={{
           href: null,
           
