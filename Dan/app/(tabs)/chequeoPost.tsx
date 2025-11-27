@@ -256,7 +256,7 @@ export default function CheckupsScreen() {
                </View>
                <Text style={styles.modalMessage}>{modalMessage}</Text>
               <Link
-                href={'(tabs)/'+modalLink}
+                href={'(tabs)'+modalLink}
                 asChild
                 onPress={() => setModalVisible(false)}
               >

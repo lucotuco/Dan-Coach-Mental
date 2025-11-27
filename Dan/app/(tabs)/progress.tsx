@@ -1,33 +1,94 @@
-+157
--18
-
-import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-import { Link, useRouter } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
 
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
+import { useAuth } from '@/components/AuthContext';
 
-const chartData = [
-  { label: 'Energía', value: 4, color: '#1d1564' },
-  { label: 'Motiva', value: 7, color: '#c00a0a' },
-  { label: 'Estado emocional', value: 6, color: '#16800c' },
-  { label: 'Sueño', value: 5, color: '#31a9c7' },
-  { label: 'Dolor o molestia', value: 4, color: '#fda531' },
+type ChartItem = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+const BASE_CHART: ChartItem[] = [
+  { label: 'Energía', value: 0, color: '#1d1564' },
+  { label: 'Motiva', value: 0, color: '#c00a0a' },
+  { label: 'Estado emocional', value: 0, color: '#16800c' },
+  { label: 'Sueño', value: 0, color: '#31a9c7' },
+  { label: 'Dolor o molestia', value: 0, color: '#fda531' },
 ];
 
 const MAX_VALUE = 10;
 
 export default function ProgressScreen() {
-  const router = useRouter();
+  const { user } = useAuth();
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+  const [chartData, setChartData] = useState<ChartItem[]>(BASE_CHART);
+  const [isLoading, setIsLoading] = useState(false);
+  const userId = user?._id;
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#0b0f1c' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#111827' }, 'background');
   const textColor = useThemeColor({ light: '#021456', dark: '#cdd5ff' }, 'text');
-  const accentColor = useThemeColor({ light: '#b25959', dark: '#f27777' }, 'tint');
+
+  useEffect(() => {
+    const fetchDailyAverages = async () => {
+      if (!API_URL || !userId) {
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `${API_URL}/api/chequeos?owner=${encodeURIComponent(userId)}&tipo=${encodeURIComponent(
+            'chequeo diario',
+          )}`,
+        );
+        if (!response.ok) {
+          throw new Error('No se pudo obtener el progreso desde los chequeos diarios');
+        }
+
+        const data: { variable1?: number; variable2?: number; variable3?: number; variable4?: number; variable5?: number }[] =
+          await response.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          setChartData(BASE_CHART);
+          return;
+        }
+
+        const totals = data.reduce(
+          (acc, current) => {
+            acc[0] += current.variable1 ?? 0;
+            acc[1] += current.variable2 ?? 0;
+            acc[2] += current.variable3 ?? 0;
+            acc[3] += current.variable4 ?? 0;
+            acc[4] += current.variable5 ?? 0;
+            return acc;
+          },
+          [0, 0, 0, 0, 0],
+        );
+
+        const divisor = data.length || 1;
+        const averages: ChartItem[] = BASE_CHART.map((item, index) => ({
+          ...item,
+          value: Math.min(MAX_VALUE, Math.round((totals[index] / divisor) * 10) / 10),
+        }));
+
+        setChartData(averages);
+      } catch (error) {
+        console.error('Error al obtener chequeos diarios para progreso', error);
+        setChartData(BASE_CHART);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDailyAverages();
+  }, [API_URL, userId]);
 
   return (
-    <View style={[styles.screen, { backgroundColor }]}> 
-  <MedioLogo/>
+    <View style={[styles.screen, { backgroundColor }]}>
+      <MedioLogo />
       <Text style={[styles.heading, { color: textColor }]}>EVOLUCIÓN DE TU</Text>
       <Text style={[styles.heading, { color: textColor }]}>PROGRESO MENTAL</Text>
 
@@ -45,8 +106,8 @@ export default function ProgressScreen() {
           </View>
           <View style={styles.barWrapper}> 
             {chartData.map((item) => (
-              <View key={item.label} style={styles.barItem}> 
-                <View style={styles.barBackground}> 
+              <View key={item.label} style={styles.barItem}>
+                <View style={styles.barBackground}>
                   <View
                     style={[
                       styles.bar,
@@ -57,7 +118,10 @@ export default function ProgressScreen() {
                     ]}
                   />
                 </View>
-                <Text style={[styles.barLabel, { color: '#4a5771' }]}>{item.label}</Text>
+                <Text style={[styles.barLabel, { color: '#4a5771' }]}>
+                  {item.label}
+                  {isLoading ? ' ...' : ''}
+                </Text>
               </View>
             ))}
           </View>
