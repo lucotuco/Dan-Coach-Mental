@@ -9,22 +9,35 @@ import {
   createAudioPlayer,
 } from 'expo-audio';
 import { FontAwesome5 } from '@expo/vector-icons';
-import Colors from '../constants/Colors';
-import { useColorScheme } from './useColorScheme';
+type RecordingButtonProps = {
+  onRecordingComplete?: (uri: string | null) => void;
+  onRecordingStateChange?: (isRecording: boolean) => void;
+  initialUri?: string | null;
+};
 
-export default function RecordingButton() {
+export default function RecordingButton({
+  onRecordingComplete,
+  onRecordingStateChange,
+  initialUri = null,
+}: RecordingButtonProps) {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
+  const [recordedUri, setRecordedUri] = useState<string | null>(initialUri);
   const record = async () => {
     setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
+    onRecordingStateChange?.(true);
   };
   const stopRecording = async () => {
     // The recording will be available on `audioRecorder.uri`.
     await audioRecorder.stop();
     setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    const uri = audioRecorder.uri ?? null;
+    setRecordedUri(uri);
+    onRecordingStateChange?.(false);
+    onRecordingComplete?.(uri);
   };
   const player = createAudioPlayer(audioRecorder.uri);
 
@@ -64,13 +77,13 @@ export default function RecordingButton() {
                 backgroundColor: modalPrimary,
               },
             ]}>
-            <Pressable
-              accessibilityRole="button"
-              style={styles.dismissButton}
-              hitSlop={10}
-              onPress={() => {setModalVisible(false)
-                player.pause();}
-              }>
+              <Pressable
+                accessibilityRole="button"
+                style={styles.dismissButton}
+                hitSlop={10}
+                onPress={() => {setModalVisible(false)
+                  player.pause();}
+                }>
               <FontAwesome5 name={'arrow-left'} size={16} color={modalText} />
             </Pressable>
             <View style={styles.modalContent}>
@@ -98,6 +111,9 @@ export default function RecordingButton() {
                 }}>
                 <FontAwesome5 name={'play'} size={12} color={modalText} />
               </Pressable>
+              {recordedUri ? (
+                <Text style={[styles.modalDescription, { color: modalText }]}>Audio listo para enviar</Text>
+              ) : null}
             </View>
           </View>
         </View>

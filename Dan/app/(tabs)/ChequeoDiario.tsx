@@ -20,6 +20,11 @@ export default function CheckupsScreen() {
   const [modalAccentColor, setModalAccentColor] = useState('#1d1564');
   const [hasCompletedToday, setHasCompletedToday] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAudioSubmitting, setIsAudioSubmitting] = useState(false);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioSummary, setAudioSummary] = useState<string | null>(null);
+  const [audioTags, setAudioTags] = useState<string[]>([]);
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const todayKey = new Date().toISOString().split('T')[0];
   const { user, isAuthenticated, logout } = useAuth();
@@ -233,6 +238,123 @@ export default function CheckupsScreen() {
     }
   };
 
+  const handleSubmitWithAudio = async () => {
+    if (hasCompletedToday || isAudioSubmitting) {
+      handleAlreadyCompleted();
+      return;
+    }
+
+    if (!user?._id) {
+      setModalMessage('Necesitamos tu usuario para guardar el audio. Inicia sesión nuevamente.');
+      setModalLink('index');
+      setModalBackgroundColor('#fff3e7');
+      setModalTitle('Sesión no válida');
+      setModalIconName('alert-circle');
+      setModalAccentColor('#c00a0a');
+      setModalVisible(true);
+      return;
+    }
+
+    if (!audioUri) {
+      setModalMessage('Primero grabá un audio para poder enviarlo.');
+      setModalLink('checkups');
+      setModalBackgroundColor('#fff3e7');
+      setModalTitle('Audio pendiente');
+      setModalIconName('alert-circle');
+      setModalAccentColor('#c00a0a');
+      setModalVisible(true);
+      return;
+    }
+
+    const newValues = [...sliderValues];
+    const lowIndex = newValues
+      .map((value, index) => (value < 6 ? index : null))
+      .find((index): index is number => index !== null);
+
+    const feedbackOptions = [
+      {
+        message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+        href: 'homePage',
+      },
+      ...sliderMessages.map((message, index) => ({
+        message,
+        href: sliderRoutes[index],
+      })),
+    ];
+
+    const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
+    const selectedBackground =
+      typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
+    const selectedTitle =
+      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
+    const selectedIcon =
+      typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
+    const selectedAccent =
+      typeof lowIndex === 'number' ? modalAccentColors[lowIndex] : '#1d1564';
+
+    const formData = new FormData();
+    formData.append('owner', user._id);
+    formData.append('fecha', fechaISO);
+    formData.append('tipo', 'chequeo diario');
+    formData.append('variable1', String(newValues[0]));
+    formData.append('variable2', String(newValues[1]));
+    formData.append('variable3', String(newValues[2]));
+    formData.append('variable4', String(newValues[3]));
+    formData.append('variable5', String(newValues[4]));
+
+    formData.append('audio', {
+      uri: audioUri,
+      name: 'chequeo-audio.m4a',
+      type: 'audio/m4a',
+    } as any);
+
+    setIsAudioSubmitting(true);
+
+    try {
+      const response = await fetch(`${API_URL}/api/chequeos/audio`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || '');
+      }
+
+      setModalMessage('Chequeo con audio guardado correctamente.');
+      setModalLink(selectedFeedback.href);
+      setModalBackgroundColor(selectedBackground);
+      setModalTitle(selectedTitle);
+      setModalIconName(selectedIcon);
+      setModalAccentColor(selectedAccent);
+      setModalVisible(true);
+      setSliderValues([0, 0, 0, 0, 0]);
+      setStoredDailyCheckDate(getDailyCheckStorageKey(), todayKey);
+      setHasCompletedToday(true);
+      setAudioSummary(data?.audio?.summary ?? null);
+      setAudioTags(Array.isArray(data?.audio?.tags) ? data.audio.tags : []);
+    } catch (error) {
+      console.error('Error al subir audio de chequeo', error);
+      setModalMessage(
+        error instanceof Error && error.message
+          ? error.message
+          : 'Hubo un problema procesando el audio. Intentá de nuevo.',
+      );
+      setModalLink('checkups');
+      setModalBackgroundColor('#fff3e7');
+      setModalTitle('No pudimos guardar');
+      setModalIconName('alert-circle');
+      setModalAccentColor('#c00a0a');
+      setModalVisible(true);
+    } finally {
+      setIsAudioSubmitting(false);
+    }
+  };
+
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
          <MedioLogo/>
@@ -277,24 +399,69 @@ export default function CheckupsScreen() {
               />
             </View>
          </Card>
-         <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>
-             <RecordingButton />
+         <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-4,}}>
+             <RecordingButton
+              onRecordingComplete={(uri) => setAudioUri(uri)}
+              onRecordingStateChange={setIsRecording}
+              initialUri={audioUri}
+            />
+            <Text style={styles.audioStatus}>
+              {isRecording
+                ? 'Grabando…'
+                : audioUri
+                  ? 'Audio listo para enviar'
+                  : 'Aún no grabaste audio'}
+            </Text>
           </View>
 
-         <Pressable
-          accessibilityRole="button"
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-          style={({ pressed }) => [
+        <Pressable
+         accessibilityRole="button"
+         onPress={handleSubmit}
+         disabled={isSubmitting}
+         style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
             isSubmitting && styles.primaryButtonDisabled,
           ]}
         >
           <Text style={styles.primaryButtonText}>
-            {isSubmitting ? 'Guardando...' : 'Guardar Chequeo'}
+          {isSubmitting ? 'Guardando...' : 'Guardar Chequeo'}
+         </Text>
+        </Pressable>
+
+         <Pressable
+          accessibilityRole="button"
+          onPress={handleSubmitWithAudio}
+          disabled={isAudioSubmitting || !audioUri}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.primaryButtonPressed,
+            (isAudioSubmitting || !audioUri) && styles.primaryButtonDisabled,
+          ]}
+        >
+          <Text style={styles.secondaryButtonText}>
+            {isAudioSubmitting ? 'Procesando audio...' : 'Guardar chequeo con audio'}
           </Text>
         </Pressable>
+
+        {(audioSummary || audioTags.length > 0) && (
+          <Card>
+            <View style={{ gap: 8 }}>
+              {audioSummary ? (
+                <View style={{ gap: 4 }}>
+                  <Text style={styles.sectionTitle}>Resumen del audio</Text>
+                  <Text style={styles.modalMessage}>{audioSummary}</Text>
+                </View>
+              ) : null}
+              {audioTags.length > 0 ? (
+                <View style={{ gap: 4 }}>
+                  <Text style={styles.sectionTitle}>Tags generadas</Text>
+                  <Text style={styles.modalMessage}>{audioTags.join(', ')}</Text>
+                </View>
+              ) : null}
+            </View>
+          </Card>
+        )}
 
          <Modal
            visible={modalVisible}
@@ -448,6 +615,24 @@ color: '#000000ff',
     color: '#fff',
     fontSize: 16,
     fontWeight: '700',
+  },
+  secondaryButton: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#31a9c7',
+  },
+  secondaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  audioStatus: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#1d1564',
+    textAlign: 'center',
   },
   ctaCard: {
     padding: 20,
