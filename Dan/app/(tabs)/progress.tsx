@@ -13,7 +13,7 @@ type ChartItem = {
 
 const BASE_CHART: ChartItem[] = [
   { label: 'Energía', value: 0, color: '#1d1564' },
-  { label: 'Motiva', value: 0, color: '#c00a0a' },
+  { label: 'Motivacion', value: 0, color: '#c00a0a' },
   { label: 'Estado emocional', value: 0, color: '#16800c' },
   { label: 'Sueño', value: 0, color: '#31a9c7' },
   { label: 'Dolor o molestia', value: 0, color: '#fda531' },
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   barLabel: {
     marginTop: 12,
     textAlign: 'center',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     lineHeight: 14,
     minHeight:32,

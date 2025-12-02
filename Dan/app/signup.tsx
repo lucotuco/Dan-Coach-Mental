@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
-
+import { useAuth } from '@/components/AuthContext';
 
 function Field({
   icon,
@@ -58,6 +58,7 @@ function Field({
 export default function SignupScreen() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const router = useRouter();
+  const { login } = useAuth();
   const [name, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -88,7 +89,7 @@ export default function SignupScreen() {
 
     if (!response.ok) {
       if (response.status === 409) {
-        alert('Error: ' + data.message); // mail repetido
+        alert('Error: ' + data.message);
       } else if (response.status === 400) {
         alert('Error: ' + data.message);
         console.log('Campos que faltan:', data.missingFields);
@@ -100,7 +101,7 @@ export default function SignupScreen() {
     }
 
     console.log('Usuario creado OK:', data);
-    // acá redirigís al login, por ej:
+    login(data.user);
      router.replace('/cargarInfo');
   } catch (error) {
     console.error('Error al crear el usuario (fetch):', error);

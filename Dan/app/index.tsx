@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
-   const { login } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -54,7 +54,7 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
     <ScrollView
       keyboardShouldPersistTaps="handled"

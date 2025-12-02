@@ -11,6 +11,7 @@ import MedioLogo from '@/components/MedioLogo';
 import { Text } from '@/components/Themed';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0, 0]);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
@@ -120,28 +121,43 @@ export default function CheckupsScreen() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(API_URL + '/api/chequeos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          owner: user?._id,
-          fecha: fechaISO,
-          tipo: 'chequeo post competencia',
-          variable1: newValues[0],
-          variable2: newValues[1],
-          variable3: newValues[2],
-          variable4: newValues[3],
-          variable5: newValues[4],
-          variable6: newValues[5],
-        }),
-      });
-      const data = await response.json();
+    if (!API_URL) {
+      throw new Error('No se encontró la URL de la API (EXPO_PUBLIC_API_URL).');
+    }
+    if (!user?._id) {
+      throw new Error('No se encontró el usuario (owner).');
+    }
 
-      if (!response.ok) {
-        throw new Error(data?.message || '');
-      }
+    const formData = new FormData();
+    formData.append('owner', String(user._id));
+    formData.append('fecha', fechaISO);
+    formData.append('tipo', 'chequeo post');
+
+    formData.append('variable1', String(newValues[0]));
+    formData.append('variable2', String(newValues[1]));
+    formData.append('variable3', String(newValues[2]));
+    formData.append('variable4', String(newValues[3]));
+    formData.append('variable5', String(newValues[4]));
+    formData.append('variable6', String(newValues[5]));
+
+    if (audioUri) {
+      formData.append('audio', {
+        uri: audioUri,
+        name: 'chequeo-post.m4a',
+        type: 'audio/m4a',
+      } as any);
+    }
+
+    const response = await fetch(API_URL + '/api/chequeos', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || 'Error al guardar el chequeo');
+    }
 
       setModalMessage(selectedFeedback.message);
       setModalLink(selectedFeedback.href);
@@ -151,9 +167,9 @@ export default function CheckupsScreen() {
       setModalAccentColor(selectedAccent);
       setModalVisible(true);
       setSliderValues([0, 0, 0, 0, 0, 0]);
-
+      setAudioUri(null);
     } catch (error) {
-
+      console.error('Error guardando chequeo diario', error);
       setModalMessage(
         error instanceof Error && error.message
           ? error.message
@@ -223,7 +239,10 @@ export default function CheckupsScreen() {
 
          </Card>
          <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>
-             <RecordingButton />
+             <RecordingButton 
+                onRecordingComplete={(uri: string | null) => {
+                setAudioUri(uri);
+              }}/>
           </View>
 
          <Pressable

@@ -76,7 +76,9 @@ function RootLayoutNav() {
               name="bienvenida"
               options={{ gestureEnabled: false, ...withoutBackButton }}
             />
-            <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
+            <Stack.Screen 
+              name="cargarInfo" 
+              options={{ gestureEnabled: false }} />
             <Stack.Screen
               name="(tabs)"
               options={{ headerShown: false, gestureEnabled: false }}

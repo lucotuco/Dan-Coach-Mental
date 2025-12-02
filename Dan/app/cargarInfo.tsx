@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, useThemeColor } from '@/components/Themed';
+import { useAuth } from '@/components/AuthContext';
 const sports = [
   'Fútbol',
   'Básquet',
@@ -107,10 +108,13 @@ const OptionSelector = ({ label, value, options, onSelect }: SelectorProps) => {
 };
 
 export default function ProfileScreen() {
+  const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const router = useRouter();
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [sport, setSport] = useState('');
+  const { login } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [level, setLevel] = useState('');
   const [competitionStyle, setCompetitionStyle] = useState('');
   const webDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -121,14 +125,7 @@ export default function ProfileScreen() {
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-
-  const handleContinue = () => {
-    if (!birthDate || !sport || !level || !competitionStyle) {
-      alert('Completa tus datos Por favor, llena todos los campos para continuar.');
-      return;
-    }
-    router.replace('/bienvenida');
-  };
+  
   const formattedBirthDate = birthDate?.toLocaleDateString('es-ES');
 
   const toggleDatePicker = () => setShowDatePicker((prev) => !prev);
@@ -142,6 +139,52 @@ export default function ProfileScreen() {
 
     toggleDatePicker();
   };
+  const handleContinue = async() => {
+    if (!birthDate || !sport || !level || !competitionStyle) {
+      alert('Completa tus datos Por favor, llena todos los campos para continuar.');
+      return;
+    }
+    
+  try {
+    if (!user?._id) {
+      throw new Error('No se encontró el usuario (owner).');
+    }
+    const formData = new FormData();
+    formData.append('id',String(user._id))
+    formData.append('sport',String(sport))
+    formData.append('level',String(level))
+    formData.append('competitionType',String(competitionStyle))
+    formData.append('birthDate',Date(birthDate))
+    
+    const response = await fetch(API_URL + '/api/users/cargarInfo', {
+      method: 'POST',
+      body:formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (response.status === 409) {
+        alert('Error: ' + data.message);
+      } else if (response.status === 400) {
+        alert('Error: ' + data.message);
+        console.log('Campos que faltan:', data.missingFields);
+      } else {
+        console.log('Error desde el backend:', data);
+        alert('Ocurrió un error creando el usuario');
+      }
+      return;
+    }
+
+    console.log('Usuario creado OK:', data);
+    login(data.user);
+     router.replace('/bienvenida');
+  } catch (error) {
+    console.error('Error al crear el usuario (fetch):', error);
+    alert('Error de conexión con el servidor');
+  }
+};
+  
   return (
     <KeyboardAvoidingView
       style={[styles.flex, { backgroundColor }]}

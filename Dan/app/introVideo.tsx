@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
 
-const INTRO_VIDEO_URL = 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4';
+const INTRO_VIDEO_URL = require('@/assets/videos/Dan Coach depor FINAL EXPORT.MP4');
 
 export default function IntroVideoScreen() {
   const router = useRouter();

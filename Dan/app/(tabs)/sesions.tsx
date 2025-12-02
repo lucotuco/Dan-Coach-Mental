@@ -126,7 +126,9 @@ export default function SessionsScreen() {
       contentContainerStyle={[styles.content,{backgroundColor:"#fff"}]}
       showsVerticalScrollIndicator={false}
     >
-      <MedioLogo/>
+      <View style={[{'marginTop': 4}]}>
+        <MedioLogo />            
+      </View>
       <View style={styles.container }>
         <Text style={styles.title}>Sesiones</Text>
         <Text style={styles.description}>

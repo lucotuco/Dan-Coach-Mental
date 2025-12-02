@@ -9,23 +9,36 @@ import {
   createAudioPlayer,
 } from 'expo-audio';
 import { FontAwesome5 } from '@expo/vector-icons';
-import Colors from '../constants/Colors';
-import { useColorScheme } from './useColorScheme';
 
-export default function RecordingButton() {
+type RecordingButtonProps = {
+  onRecordingComplete?: (uri: string | null) => void;
+};
+
+export default function RecordingButton({ onRecordingComplete }: RecordingButtonProps) {
   const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(audioRecorder);
   const [modalVisible, setModalVisible] = useState(false);
+
   const record = async () => {
     setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
     await audioRecorder.prepareToRecordAsync();
     audioRecorder.record();
   };
+
   const stopRecording = async () => {
     // The recording will be available on `audioRecorder.uri`.
     await audioRecorder.stop();
     setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+
+    // 👇 NUEVO: avisar al padre que hay un audio listo
+    if (onRecordingComplete) {
+      onRecordingComplete(audioRecorder.uri ?? null);
+    }
+
+    // si querés que se cierre el modal al terminar de grabar:
+    // setModalVisible(false);
   };
+
   const player = createAudioPlayer(audioRecorder.uri);
 
   useEffect(() => {
@@ -52,9 +65,8 @@ export default function RecordingButton() {
         animationType="fade"
         transparent={true}
         visible={modalVisible}
-        //allowSwipeDismissal ={true}
-        //presentationStyle="pageSheet"
-        onRequestClose={() => setModalVisible(false)}>
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.centeredView}>
           <View
             style={[
@@ -63,14 +75,19 @@ export default function RecordingButton() {
                 borderColor: modalSecondary,
                 backgroundColor: modalPrimary,
               },
-            ]}>
+            ]}
+          >
             <Pressable
               accessibilityRole="button"
               style={styles.dismissButton}
               hitSlop={10}
-              onPress={() => {setModalVisible(false)
-                player.pause();}
-              }>
+              onPress={() => {
+                setModalVisible(false);
+                player.pause();
+                // opcional: si cerrás el modal sin grabar, podés avisar que no hay audio:
+                // if (onRecordingComplete) onRecordingComplete(null);
+              }}
+            >
               <FontAwesome5 name={'arrow-left'} size={16} color={modalText} />
             </Pressable>
             <View style={styles.modalContent}>
@@ -86,16 +103,19 @@ export default function RecordingButton() {
                   },
                 ]}
                 android_ripple={{ color: '#ffffff33', borderless: false }}
-                onPress={recorderState.isRecording ? stopRecording : record}>
+                onPress={recorderState.isRecording ? stopRecording : record}
+              >
                 <FontAwesome5 name={'microphone'} size={18} color={modalText} />
               </Pressable>
               <Pressable
                 accessibilityRole="button"
                 style={[styles.playButton, { borderColor: modalText }]}
                 onPress={() => {
+                  if (!audioRecorder.uri) return;
                   player.seekTo(0);
                   player.play();
-                }}>
+                }}
+              >
                 <FontAwesome5 name={'play'} size={12} color={modalText} />
               </Pressable>
             </View>
@@ -111,7 +131,6 @@ export default function RecordingButton() {
 
 const styles = StyleSheet.create({
   container: {
-    
     backgroundColor: '#ecf0f1',
     paddingTop: 10,
     borderRadius: 100,

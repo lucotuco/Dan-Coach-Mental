@@ -11,6 +11,7 @@ import { useAuth } from '@/components/AuthContext';
 import CheckSlider from '@/components/CheckSlider';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState('');
   const [modalLink, setModalLink] = useState('index');
@@ -151,87 +152,105 @@ export default function CheckupsScreen() {
     setModalVisible(true);
   };
   const handleSubmit = async () => {
-    if (hasCompletedToday || isSubmitting) {
-      handleAlreadyCompleted();
-      return;
+  if (hasCompletedToday || isSubmitting) {
+    handleAlreadyCompleted();
+    return;
+  }
+
+  const newValues = [...sliderValues];
+  const lowIndex = newValues
+    .map((value, index) => (value < 6 ? index : null))
+    .find((index): index is number => index !== null);
+
+  const feedbackOptions = [
+    {
+      message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
+      href: 'homePage',
+    },
+    ...sliderMessages.map((message, index) => ({
+      message,
+      href: sliderRoutes[index],
+    })),
+  ];
+
+  const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
+  const selectedBackground =
+    typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
+  const selectedTitle =
+    typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
+  const selectedIcon =
+    typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
+  const selectedAccent =
+    typeof lowIndex === 'number' ? modalAccentColors[lowIndex] : '#1d1564';
+
+  setIsSubmitting(true);
+
+  try {
+    if (!API_URL) {
+      throw new Error('No se encontró la URL de la API (EXPO_PUBLIC_API_URL).');
+    }
+    if (!user?._id) {
+      throw new Error('No se encontró el usuario (owner).');
     }
 
-    const newValues = [...sliderValues];
-    const lowIndex = newValues
-      .map((value, index) => (value < 6 ? index : null))
-      .find((index): index is number => index !== null);
+    const formData = new FormData();
+    formData.append('owner', String(user._id));
+    formData.append('fecha', fechaISO);
+    formData.append('tipo', 'chequeo diario');
 
-    const feedbackOptions = [
-      {
-        message: '¡Todo bien! Sigue así, estás cuidando muy bien tu bienestar.',
-        href: 'homePage',
-      },
-      ...sliderMessages.map((message, index) => ({
-        message,
-        href: sliderRoutes[index],
-      })),
-    ];
+    formData.append('variable1', String(newValues[0]));
+    formData.append('variable2', String(newValues[1]));
+    formData.append('variable3', String(newValues[2]));
+    formData.append('variable4', String(newValues[3]));
+    formData.append('variable5', String(newValues[4]));
 
-    const selectedFeedback = feedbackOptions[(lowIndex ?? -1) + 1];
-    const selectedBackground =
-      typeof lowIndex === 'number' ? modalBackgroundColors[lowIndex] : '#fff';
-    const selectedTitle =
-      typeof lowIndex === 'number' ? modalTitles[lowIndex] : 'Chequeo Diario';
-    const selectedIcon =
-      typeof lowIndex === 'number' ? modalIcons[lowIndex] : 'check-circle';
-    const selectedAccent =
-      typeof lowIndex === 'number' ? modalAccentColors[lowIndex] : '#1d1564';
-    setIsSubmitting(true);
-
-    try {
-      const response = await fetch(API_URL + '/api/chequeos', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          owner: user?._id,
-          fecha: fechaISO,
-          tipo: 'chequeo diario',
-          variable1: newValues[0],
-          variable2: newValues[1],
-          variable3: newValues[2],
-          variable4: newValues[3],
-          variable5: newValues[4],
-        }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.message || '');
-      }
-
-      setModalMessage(selectedFeedback.message);
-      setModalLink(selectedFeedback.href);
-      setModalBackgroundColor(selectedBackground);
-      setModalTitle(selectedTitle);
-      setModalIconName(selectedIcon);
-      setModalAccentColor(selectedAccent);
-      setModalVisible(true);
-      setSliderValues([0, 0, 0, 0, 0]);
-      setStoredDailyCheckDate(getDailyCheckStorageKey(), todayKey);
-      setHasCompletedToday(true);
-    } catch (error) {
-      setModalMessage(
-        error instanceof Error && error.message
-          ? error.message
-          : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
-      );
-      setModalLink('index');
-      setModalBackgroundColor('#fff3e7');
-      setModalTitle('No pudimos guardar');
-      setModalIconName('alert-circle');
-      setModalAccentColor('#c00a0a');
-      setModalVisible(true);
-    } finally {
-      setIsSubmitting(false);
+    if (audioUri) {
+      formData.append('audio', {
+        uri: audioUri,
+        name: 'chequeo-diario.m4a',
+        type: 'audio/m4a',
+      } as any);
     }
-  };
+
+    const response = await fetch(API_URL + '/api/chequeos', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || 'Error al guardar el chequeo');
+    }
+
+    setModalMessage(selectedFeedback.message);
+    setModalLink(selectedFeedback.href);
+    setModalBackgroundColor(selectedBackground);
+    setModalTitle(selectedTitle);
+    setModalIconName(selectedIcon);
+    setModalAccentColor(selectedAccent);
+    setModalVisible(true);
+    setSliderValues([0, 0, 0, 0, 0]);
+    setStoredDailyCheckDate(getDailyCheckStorageKey(), todayKey);
+    setHasCompletedToday(true);
+    setAudioUri(null);
+  } catch (error) {
+    console.error('Error guardando chequeo diario', error);
+    setModalMessage(
+      error instanceof Error && error.message
+        ? error.message
+        : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
+    );
+    setModalLink('index');
+    setModalBackgroundColor('#fff3e7');
+    setModalTitle('No pudimos guardar');
+    setModalIconName('alert-circle');
+    setModalAccentColor('#c00a0a');
+    setModalVisible(true);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <ScrollView style={[styles.container, {'backgroundColor': '#fff'},]} contentContainerStyle={styles.content}>
@@ -278,7 +297,10 @@ export default function CheckupsScreen() {
             </View>
          </Card>
          <View style={{alignContent:'center', alignItems:'center', marginTop:-17,marginBottom:-17,}}>
-             <RecordingButton />
+             <RecordingButton 
+             onRecordingComplete={(uri: string | null) => {
+      setAudioUri(uri);
+    }}/>
           </View>
 
          <Pressable

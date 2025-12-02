@@ -16,8 +16,6 @@ import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import { useAuth } from '@/components/AuthContext';
 
-// Tip: this screen assumes the backend exposes an endpoint that proxies
-// requests to ChatGPT. Update the URL if your backend path differs.
 const CHAT_ENDPOINT = '/api/dan/chat';
 
 type ChatMessage = {
@@ -106,7 +104,7 @@ export default function CoachVirtualScreen() {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
+      //keyboardVerticalOffset={90}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
@@ -114,13 +112,15 @@ export default function CoachVirtualScreen() {
             ref={scrollRef}
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
+            keyboardShouldPersistTaps="never"
           >
-            <MedioLogo />
+            <View style={[{'marginTop': 4}]}>
+              <MedioLogo />            
+            </View>
             <View style={styles.header}>
               <Text style={styles.title}>Coach Virtual</Text>
               <Text style={styles.subtitle}>
-                Pregúntale lo que quieras a DAN y recibe respuestas inmediatas desde nuestro backend conectado a la API de ChatGPT.
+                Pregúntale lo que quieras a DAN y recibe respuestas inmediatas
               </Text>
             </View>
 
@@ -186,7 +186,7 @@ export default function CoachVirtualScreen() {
 const styles = StyleSheet.create({
   flex: {
     flex: 1,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#ffffffff',
   },
   container: {
     flex: 1,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   inputBar: {
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#dde4faff',
     borderTopWidth: 1,
     borderTopColor: '#d8dcf0',
     gap: 10,
