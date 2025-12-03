@@ -42,7 +42,7 @@ const sports = [
 const levels = [
   'Recreativo',
   'Amateur',
-  'Profecional'
+  'Profesional'
 ];
 
 const competitionStyles = [
@@ -139,51 +139,51 @@ export default function ProfileScreen() {
 
     toggleDatePicker();
   };
-  const handleContinue = async() => {
-    if (!birthDate || !sport || !level || !competitionStyle) {
-      alert('Completa tus datos Por favor, llena todos los campos para continuar.');
-      return;
-    }
-    
+  const handleContinue = async () => {
+  if (!birthDate || !sport || !level || !competitionStyle) {
+    alert('Completa tus datos. Por favor, llena todos los campos para continuar.');
+    return;
+  }
+
   try {
     if (!user?._id) {
       throw new Error('No se encontró el usuario (owner).');
     }
-    const formData = new FormData();
-    formData.append('id',String(user._id))
-    formData.append('sport',String(sport))
-    formData.append('level',String(level))
-    formData.append('competitionType',String(competitionStyle))
-    formData.append('birthDate',Date(birthDate))
-    
+
+    const payload = {
+      id: user._id,
+      sport,
+      level,
+      competitionStyle,
+      birthDate: birthDate.toISOString(),
+    };
+
     const response = await fetch(API_URL + '/api/users/cargarInfo', {
-      method: 'POST',
-      body:formData,
+      method: 'POST', // podés usar PUT si querés, pero que coincida con tu ruta
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      if (response.status === 409) {
-        alert('Error: ' + data.message);
-      } else if (response.status === 400) {
-        alert('Error: ' + data.message);
-        console.log('Campos que faltan:', data.missingFields);
-      } else {
-        console.log('Error desde el backend:', data);
-        alert('Ocurrió un error creando el usuario');
-      }
+      console.log('Error desde el backend:', data);
+      alert('Error: ' + (data.message ?? 'Ocurrió un error actualizando el usuario'));
       return;
     }
 
-    console.log('Usuario creado OK:', data);
-    login(data.user);
-     router.replace('/bienvenida');
+    console.log('Usuario actualizado OK:', data);
+    // el backend (ver abajo) va a devolver { message, user }
+    login(data.user ?? data);
+    router.replace('/bienvenida');
   } catch (error) {
-    console.error('Error al crear el usuario (fetch):', error);
+    console.error('Error al actualizar el usuario (fetch):', error);
     alert('Error de conexión con el servidor');
   }
 };
+
   
   return (
     <KeyboardAvoidingView

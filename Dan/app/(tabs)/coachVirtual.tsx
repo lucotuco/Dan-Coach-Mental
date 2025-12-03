@@ -40,6 +40,8 @@ export default function CoachVirtualScreen() {
     });
   };
 
+  const handleDismissKeyboard = Platform.OS === 'web' ? undefined : Keyboard.dismiss;
+
   const sendMessage = async () => {
     if (!API_URL) {
       alert('Falta configurar la URL del servidor (EXPO_PUBLIC_API_URL).');
@@ -106,7 +108,7 @@ export default function CoachVirtualScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       //keyboardVerticalOffset={90}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
         <View style={styles.container}>
           <ScrollView
             ref={scrollRef}
