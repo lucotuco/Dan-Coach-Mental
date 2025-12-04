@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -31,6 +30,11 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [activeSpeaker, setActiveSpeaker] = useState<'user' | 'assistant' | null>(
+    null,
+  );
+
+  const activeSpeakerTimeout = useRef<NodeJS.Timeout | null>(null);
 
   const sessionRef = useRef<RealtimeSession | null>(null);
 
@@ -52,8 +56,24 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
         sessionRef.current.close();
         sessionRef.current = null;
       }
+      if (activeSpeakerTimeout.current) {
+        clearTimeout(activeSpeakerTimeout.current);
+        activeSpeakerTimeout.current = null;
+      }
     };
   }, []);
+
+  const markSpeaker = (role: 'user' | 'assistant') => {
+    if (activeSpeakerTimeout.current) {
+      clearTimeout(activeSpeakerTimeout.current);
+    }
+
+    setActiveSpeaker(role);
+
+    activeSpeakerTimeout.current = setTimeout(() => {
+      setActiveSpeaker(null);
+    }, 2600);
+  };
 
   const handleConnect = async () => {
     if (Platform.OS !== 'web') {
@@ -117,6 +137,8 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
           if (exists) return prev;
           return [...prev, { id: msg.itemId, role, text }];
         });
+
+        markSpeaker(role);
       });
 
       // En navegador, esto abre WebRTC, pide micrófono y configura audio I/O automáticamente
@@ -173,6 +195,46 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
             ? 'Conectando con DAN...'
             : 'Desconectado'}
         </Text>
+      </View>
+
+      <View style={styles.voiceVisualizer}>
+        <Text style={styles.visualizerTitle}>Actividad de la llamada</Text>
+        <Text style={styles.visualizerSubtitle}>
+          La animación refleja quién está hablando en este momento.
+        </Text>
+
+        <View style={styles.circleWrapper}>
+          <View
+            style={[
+              styles.wave,
+              activeSpeaker === 'assistant'
+                ? styles.assistantWave
+                : styles.inactiveWave,
+            ]}
+          />
+          <View
+            style={[
+              styles.wave,
+              styles.waveSecond,
+              activeSpeaker === 'user' ? styles.userWave : styles.inactiveWave,
+            ]}
+          />
+          <View
+            style={[
+              styles.circle,
+              activeSpeaker === 'assistant' && styles.assistantCircle,
+              activeSpeaker === 'user' && styles.userCircle,
+            ]}
+          >
+            <Text style={styles.circleText}>
+              {activeSpeaker === 'assistant'
+                ? 'Habla DAN'
+                : activeSpeaker === 'user'
+                ? 'Estás hablando'
+                : 'En espera'}
+            </Text>
+          </View>
+        </View>
       </View>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
@@ -263,6 +325,85 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: '#ff7675',
     fontSize: 13,
+  },
+  voiceVisualizer: {
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2e2e3a',
+    backgroundColor: '#0c0c16',
+  },
+  visualizerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  visualizerSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+    color: '#b8b8c8',
+  },
+  circleWrapper: {
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 180,
+  },
+  wave: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    opacity: 0.4,
+  },
+  waveSecond: {
+    width: 200,
+    height: 200,
+  },
+  assistantWave: {
+    borderColor: '#6c5ce7',
+    shadowColor: '#6c5ce7',
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  userWave: {
+    borderColor: '#2ecc71',
+    shadowColor: '#2ecc71',
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  inactiveWave: {
+    borderColor: '#2e2e3a',
+    shadowOpacity: 0,
+  },
+  circle: {
+    width: 110,
+    height: 110,
+    borderRadius: 999,
+    backgroundColor: '#1d1d27',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#2e2e3a',
+  },
+  assistantCircle: {
+    borderColor: '#6c5ce7',
+    backgroundColor: '#151426',
+  },
+  userCircle: {
+    borderColor: '#2ecc71',
+    backgroundColor: '#12241b',
+  },
+  circleText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   messagesBox: {
     maxHeight: 220,
