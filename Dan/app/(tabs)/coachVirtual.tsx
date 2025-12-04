@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -30,6 +31,7 @@ export default function CoachVirtualScreen() {
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { user, isAuthenticated, logout } = useAuth();
 
@@ -177,9 +179,41 @@ export default function CoachVirtualScreen() {
               )}
             </View>
           </ScrollView>
-          <View style={{ marginTop: 24 }}>
-            <DanVoiceCall />
+          <View style={styles.voiceSection}>
+            <Text style={styles.voiceTitle}>Hablar con DAN por llamada</Text>
+            <Text style={styles.voiceSubtitle}>
+              Abrí el módulo de llamada para charlar por voz con DAN en tiempo real.
+            </Text>
+            <TouchableOpacity
+              style={styles.voiceButton}
+              onPress={() => setIsVoiceModalVisible(true)}
+            >
+              <Feather name="phone-call" size={18} color="#fff" />
+              <Text style={styles.voiceButtonText}>Iniciar llamada de voz</Text>
+            </TouchableOpacity>
           </View>
+
+          <Modal
+            visible={isVoiceModalVisible}
+            animationType="slide"
+            transparent
+            onRequestClose={() => setIsVoiceModalVisible(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalTitle}>Llamada con DAN</Text>
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={() => setIsVoiceModalVisible(false)}
+                  >
+                    <Feather name="x" size={20} color="#0f1b4c" />
+                  </TouchableOpacity>
+                </View>
+                <DanVoiceCall />
+              </View>
+            </View>
+          </Modal>
 
           {/* INPUT TEXTO */}
           <View style={styles.inputBar}>
@@ -330,5 +364,74 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  voiceSection: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: '#eef2ff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#d0d7ff',
+    gap: 8,
+  },
+  voiceTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0f1b4c',
+  },
+  voiceSubtitle: {
+    fontSize: 14,
+    color: '#2f3c6f',
+    lineHeight: 20,
+  },
+  voiceButton: {
+    marginTop: 4,
+    backgroundColor: '#0f1b4c',
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  voiceButtonText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    maxWidth: 720,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0f1b4c',
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
   },
 });
