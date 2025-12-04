@@ -15,6 +15,7 @@ import { Feather } from '@expo/vector-icons';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import { useAuth } from '@/components/AuthContext';
+import DanVoiceCall from '@/components/DanVoiceCall';
 
 const CHAT_ENDPOINT = '/api/dan/chat';
 
@@ -40,7 +41,8 @@ export default function CoachVirtualScreen() {
     });
   };
 
-  const handleDismissKeyboard = Platform.OS === 'web' ? undefined : Keyboard.dismiss;
+  const handleDismissKeyboard =
+    Platform.OS === 'web' ? undefined : Keyboard.dismiss;
 
   const sendMessage = async () => {
     if (!API_URL) {
@@ -70,9 +72,9 @@ export default function CoachVirtualScreen() {
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
-        body: JSON.stringify({ 
-            userId: user?._id,
-            message: trimmedQuestion 
+        body: JSON.stringify({
+          userId: user?._id,
+          message: trimmedQuestion,
         }),
       });
 
@@ -83,13 +85,19 @@ export default function CoachVirtualScreen() {
         : { message: rawBody };
 
       if (!response.ok) {
-        throw new Error(data.message || 'No se pudo obtener una respuesta del coach.');
+        throw new Error(
+          data.message || 'No se pudo obtener una respuesta del coach.',
+        );
       }
 
       const answer: ChatMessage = {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
-        content: data.reply || data.response || data.message || 'No pude generar una respuesta en este momento.',
+        content:
+          data.reply ||
+          data.response ||
+          data.message ||
+          'No pude generar una respuesta en este momento.',
       };
 
       setMessages((prev) => [...prev, answer]);
@@ -106,9 +114,11 @@ export default function CoachVirtualScreen() {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      //keyboardVerticalOffset={90}
     >
-      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
+      <TouchableWithoutFeedback
+        onPress={handleDismissKeyboard}
+        accessible={false}
+      >
         <View style={styles.container}>
           <ScrollView
             ref={scrollRef}
@@ -116,28 +126,39 @@ export default function CoachVirtualScreen() {
             contentContainerStyle={styles.scrollContent}
             keyboardShouldPersistTaps="never"
           >
-            <View style={[{'marginTop': 4}]}>
-              <MedioLogo />            
+            <View style={{ marginTop: 4 }}>
+              <MedioLogo />
             </View>
+
             <View style={styles.header}>
               <Text style={styles.title}>Coach Virtual</Text>
               <Text style={styles.subtitle}>
-                Pregúntale lo que quieras a DAN y recibe respuestas inmediatas
+                Pregúntale lo que quieras a DAN por texto o mantené una charla
+                en tiempo real por voz.
               </Text>
             </View>
 
+            {/* BLOQUE DE CHAT TEXTO */}
             <View style={styles.chatWrapper}>
               {messages.length === 0 && !loading ? (
                 <Text style={styles.emptyText}>
-                  Aún no hay mensajes. Escribe tu consulta para iniciar la conversación.
+                  Aún no hay mensajes. Escribe tu consulta para iniciar la
+                  conversación.
                 </Text>
               ) : (
                 messages.map((msg) => (
                   <View
                     key={msg.id}
-                    style={[styles.message, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
+                    style={[
+                      styles.message,
+                      msg.role === 'user'
+                        ? styles.userMessage
+                        : styles.assistantMessage,
+                    ]}
                   >
-                    <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
+                    <Text style={styles.messageRole}>
+                      {msg.role === 'user' ? 'Tú' : 'Coach DAN'}
+                    </Text>
                     <Text style={styles.messageText}>{msg.content}</Text>
                   </View>
                 ))
@@ -148,13 +169,19 @@ export default function CoachVirtualScreen() {
                   <Text style={styles.messageRole}>Coach DAN</Text>
                   <View style={styles.loadingRow}>
                     <ActivityIndicator size="small" color="#0f1b4c" />
-                    <Text style={[styles.messageText, styles.loadingText]}>Pensando...</Text>
+                    <Text style={[styles.messageText, styles.loadingText]}>
+                      Pensando...
+                    </Text>
                   </View>
                 </View>
               )}
             </View>
           </ScrollView>
+          <View style={{ marginTop: 24 }}>
+            <DanVoiceCall />
+          </View>
 
+          {/* INPUT TEXTO */}
           <View style={styles.inputBar}>
             <TextInput
               style={styles.input}
@@ -167,7 +194,10 @@ export default function CoachVirtualScreen() {
               editable={!loading}
             />
             <TouchableOpacity
-              style={[styles.sendButton, (!trimmedQuestion || loading) && styles.sendButtonDisabled]}
+              style={[
+                styles.sendButton,
+                (!trimmedQuestion || loading) && styles.sendButtonDisabled,
+              ]}
               onPress={sendMessage}
               disabled={!trimmedQuestion || loading}
             >
