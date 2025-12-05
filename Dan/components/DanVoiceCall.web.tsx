@@ -34,7 +34,9 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
     null,
   );
 
+  const activeSpeakerRef = useRef<'user' | 'assistant' | null>(null);
   const activeSpeakerTimeout = useRef<NodeJS.Timeout | null>(null);
+  const detachSessionHandlers = useRef<(() => void) | null>(null);
 
   const sessionRef = useRef<RealtimeSession | null>(null);
 
@@ -52,6 +54,10 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
   // Cerrar la sesión si el componente se desmonta
   useEffect(() => {
     return () => {
+      if (detachSessionHandlers.current) {
+        detachSessionHandlers.current();
+        detachSessionHandlers.current = null;
+      }
       if (sessionRef.current) {
         sessionRef.current.close();
         sessionRef.current = null;
@@ -69,10 +75,21 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
     }
 
     setActiveSpeaker(role);
+    activeSpeakerRef.current = role;
 
     activeSpeakerTimeout.current = setTimeout(() => {
       setActiveSpeaker(null);
+      activeSpeakerRef.current = null;
     }, 2600);
+  };
+
+  const clearActiveSpeaker = () => {
+    if (activeSpeakerTimeout.current) {
+      clearTimeout(activeSpeakerTimeout.current);
+      activeSpeakerTimeout.current = null;
+    }
+    setActiveSpeaker(null);
+    activeSpeakerRef.current = null;
   };
 
   const handleConnect = async () => {
@@ -96,6 +113,10 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
       const data = await res.json();
 
+      // Soporta distintas formas de respuesta del backend:
+      // - { value: "ek_..." }           (client_secrets GA)
+      // - { client_secret: { value }}   (sessions beta)
+      // - { token: "ek_..." }           (si vos lo envolvés)
       const apiKey: string =
         data?.value ?? data?.client_secret?.value ?? data?.token ?? '';
 
@@ -111,8 +132,23 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
       sessionRef.current = session;
 
+      const unsubscribers: Array<() => void> = [];
+      const addHandler = (
+        event: string,
+        handler: (...args: any[]) => void,
+      ) => {
+        session.on(event, handler);
+        unsubscribers.push(() => {
+          if (typeof (session as any).off === 'function') {
+            (session as any).off(event, handler);
+          } else if (typeof (session as any).removeListener === 'function') {
+            (session as any).removeListener(event, handler);
+          }
+        });
+      };
+
       // Cada vez que se agrega algo al historial (usuario o asistente)
-      session.on('history_added', (item) => {
+      addHandler('history_added', (item) => {
         if (item.type !== 'message') return;
 
         const msg = item as RealtimeMessageItem;
@@ -137,9 +173,34 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
           if (exists) return prev;
           return [...prev, { id: msg.itemId, role, text }];
         });
-
         markSpeaker(role);
       });
+
+      // Detectar actividad de voz en vivo
+      addHandler('input_audio_buffer.speech_started', () => {
+        markSpeaker('user');
+      });
+
+      addHandler('input_audio_buffer.speech_stopped', () => {
+        if (activeSpeakerRef.current === 'user') {
+          clearActiveSpeaker();
+        }
+      });
+
+      addHandler('response.speech_started', () => {
+        markSpeaker('assistant');
+      });
+
+      addHandler('response.speech_stopped', () => {
+        if (activeSpeakerRef.current === 'assistant') {
+          clearActiveSpeaker();
+        }
+      });
+
+      detachSessionHandlers.current = () => {
+        unsubscribers.forEach((fn) => fn());
+        unsubscribers.length = 0;
+      };
 
       // En navegador, esto abre WebRTC, pide micrófono y configura audio I/O automáticamente
       await session.connect({ apiKey });
@@ -152,6 +213,10 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
         sessionRef.current.close();
         sessionRef.current = null;
       }
+      if (detachSessionHandlers.current) {
+        detachSessionHandlers.current();
+        detachSessionHandlers.current = null;
+      }
       setConnected(false);
     } finally {
       setConnecting(false);
@@ -163,7 +228,12 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
       sessionRef.current.close();
       sessionRef.current = null;
     }
+    if (detachSessionHandlers.current) {
+      detachSessionHandlers.current();
+      detachSessionHandlers.current = null;
+    }
     setConnected(false);
+    clearActiveSpeaker();
   };
 
   // Si por accidente lo montás en native, muestra aviso y no rompe
@@ -254,6 +324,7 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
           )}
         </TouchableOpacity>
       </View>
+
     </View>
   );
 }

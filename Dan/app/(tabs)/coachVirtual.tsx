@@ -32,7 +32,7 @@ export default function CoachVirtualScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollView>(null); 
   const { user, isAuthenticated, logout } = useAuth();
 
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
@@ -192,8 +192,7 @@ export default function CoachVirtualScreen() {
               <Text style={styles.voiceButtonText}>Iniciar llamada de voz</Text>
             </TouchableOpacity>
           </View>
-
-          <Modal
+<Modal
             visible={isVoiceModalVisible}
             animationType="slide"
             transparent
@@ -214,7 +213,6 @@ export default function CoachVirtualScreen() {
               </View>
             </View>
           </Modal>
-
           {/* INPUT TEXTO */}
           <View style={styles.inputBar}>
             <TextInput
