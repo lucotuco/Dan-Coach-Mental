@@ -106,7 +106,17 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
-      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}`);
+      const token = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('token')
+        : null;
+
+      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!res.ok) {
         throw new Error('No se pudo obtener el token efímero para Realtime.');
       }

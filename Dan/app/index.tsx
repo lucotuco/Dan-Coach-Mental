@@ -19,11 +19,16 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     try {
+      const token = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('token')
+        : null;
+
       const response = await fetch(API_URL + '/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ email, password }),
       });
@@ -36,6 +41,9 @@ export default function LoginScreen() {
       }
 
       // 👇 Acá guardamos el user en el contexto
+      if (typeof localStorage !== 'undefined' && data?.token) {
+        localStorage.setItem('token', data.token);
+      }
       login(data.user);
 
       // y te mando a la home (ajustá la ruta a la tuya)
