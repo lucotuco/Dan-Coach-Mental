@@ -16,6 +16,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, useThemeColor } from '@/components/Themed';
 import { useAuth } from '@/components/AuthContext';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 const sports = [
   'Fútbol',
   'Básquet',
@@ -113,8 +114,7 @@ export default function ProfileScreen() {
   const [birthDate, setBirthDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [sport, setSport] = useState('');
-  const { login } = useAuth();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { login, user, logout } = useAuth();
   const [level, setLevel] = useState('');
   const [competitionStyle, setCompetitionStyle] = useState('');
   const webDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -158,15 +158,28 @@ export default function ProfileScreen() {
       birthDate: birthDate.toISOString(),
     };
 
+    const token = getStoredToken();
+
+    if (!token) {
+      redirectToLogin(router, logout);
+      return;
+    }
+
     const response = await fetch(API_URL + '/api/users/cargarInfo', {
       method: 'POST', // podés usar PUT si querés, pero que coincida con tu ruta
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
 
     const data = await response.json();
+
+    if (isUnauthorizedStatus(response.status)) {
+      redirectToLogin(router, logout);
+      return;
+    }
 
     if (!response.ok) {
       console.log('Error desde el backend:', data);

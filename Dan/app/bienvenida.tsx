@@ -13,6 +13,7 @@ import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import RecordingButton from '@/components/AudioRecorderButton';
 import { useAuth } from '@/components/AuthContext';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -20,6 +21,8 @@ export default function WelcomeDreamScreen() {
   const router = useRouter();
   // const { token } = useAuth();
  const { user } = useAuth();
+  const { logout } = useAuth();
+
   const [writing, setWriting] = useState(false);
   const [dream, setDream] = useState('');
   const [audioUri, setAudioUri] = useState<string | null>(null);
@@ -44,14 +47,26 @@ export default function WelcomeDreamScreen() {
     const body = {id: user._id,  
       meta: dream };
 
+    const token = getStoredToken();
+
+    if (!token) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
+
     const res = await fetch(`${API_URL}/api/users/metaTexto`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
+
+    if (isUnauthorizedStatus(res.status)) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
 
     if (!res.ok) {
       throw new Error('Error al guardar meta de texto');
@@ -84,17 +99,31 @@ export default function WelcomeDreamScreen() {
     } as any);
   }
 
-  const res = await fetch(`${API_URL}/api/users/metaAudio`, {
-    method: 'POST',
-    body: formData,
-    // NO pongas Content-Type, RN lo arma solo
-  });
+    const token = getStoredToken();
 
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => null);
-    console.log('Error metaAudio', res.status, errorBody);
-    throw new Error(errorBody?.message || 'Error al guardar meta de audio');
-  }
+    if (!token) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
+
+    const res = await fetch(`${API_URL}/api/users/metaAudio`, {
+      method: 'POST',
+      headers: {
+        // NO pongas 'Content-Type', RN lo arma solo
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (isUnauthorizedStatus(res.status)) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
+
+    if (!res.ok) {
+      throw new Error('Error al guardar meta de audio');
+    }
+  };
 
   const json = await res.json().catch(() => null);
   console.log('Respuesta OK metaAudio', json);
