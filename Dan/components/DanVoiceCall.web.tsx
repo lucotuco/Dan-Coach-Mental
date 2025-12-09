@@ -106,7 +106,12 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
         ? localStorage.getItem('token')
         : null;
 
-      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}`, {
+      const userId = user?._id;  
+      console.log('userId front:', userId);
+
+      const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+
+      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}${query}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -119,10 +124,6 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
       const data = await res.json();
 
-      // Soporta distintas formas de respuesta del backend:
-      // - { value: "ek_..." }           (client_secrets GA)
-      // - { client_secret: { value }}   (sessions beta)
-      // - { token: "ek_..." }           (si vos lo envolvés)
       const apiKey: string =
         data?.value ?? data?.client_secret?.value ?? data?.token ?? '';
 
@@ -130,8 +131,7 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
         throw new Error('El backend no devolvió un client_secret válido.');
       }
 
-      const backendInstructions =
-        data.session.instructions;
+      const backendInstructions = data.session.instructions;
 
       console.log('Instrucciones desde backend:', backendInstructions);
 

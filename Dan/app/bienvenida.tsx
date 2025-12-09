@@ -5,7 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
-  Platform
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,15 +13,17 @@ import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import RecordingButton from '@/components/AudioRecorderButton';
 import { useAuth } from '@/components/AuthContext';
-import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
+import {
+  getStoredToken,
+  isUnauthorizedStatus,
+  redirectToLogin,
+} from '@/components/AuthContext';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function WelcomeDreamScreen() {
   const router = useRouter();
-  // const { token } = useAuth();
- const { user } = useAuth();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const [writing, setWriting] = useState(false);
   const [dream, setDream] = useState('');
@@ -30,10 +32,22 @@ export default function WelcomeDreamScreen() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const backgroundColor = useThemeColor({ light: '#f8fafc', dark: '#0b1026' }, 'background');
-  const cardColor = useThemeColor({ light: '#ffffff', dark: '#0f172a' }, 'background');
-  const primaryText = useThemeColor({ light: '#0b164c', dark: '#e5e9ff' }, 'text');
-  const secondaryText = useThemeColor({ light: '#4b5563', dark: '#a6aac4' }, 'text');
+  const backgroundColor = useThemeColor(
+    { light: '#f8fafc', dark: '#0b1026' },
+    'background',
+  );
+  const cardColor = useThemeColor(
+    { light: '#ffffff', dark: '#0f172a' },
+    'background',
+  );
+  const primaryText = useThemeColor(
+    { light: '#0b164c', dark: '#e5e9ff' },
+    'text',
+  );
+  const secondaryText = useThemeColor(
+    { light: '#4b5563', dark: '#a6aac4' },
+    'text',
+  );
   const accent = '#d5e7fb';
 
   const goHome = () => router.replace('/(tabs)/homePage');
@@ -42,10 +56,13 @@ export default function WelcomeDreamScreen() {
 
   const sendTextMeta = async () => {
     if (!user?._id) {
-    throw new Error('Usuario no logueado');
-  }
-    const body = {id: user._id,  
-      meta: dream };
+      throw new Error('Usuario no logueado');
+    }
+
+    const body = {
+      id: user._id,
+      meta: dream,
+    };
 
     const token = getStoredToken();
 
@@ -68,36 +85,37 @@ export default function WelcomeDreamScreen() {
       throw new Error('Sesión expirada');
     }
 
+    const json = await res.json().catch(() => null);
+    console.log('Respuesta metaTexto', res.status, json);
+
     if (!res.ok) {
-      throw new Error('Error al guardar meta de texto');
+      throw new Error(json?.message || 'Error al guardar meta de texto');
     }
   };
 
- const sendAudioMeta = async () => {
-  if (!audioUri) {
-    console.log('No hay audioUri en estado');
-    return;
-  }
-  if (!user?._id) throw new Error('Usuario no logueado');
+  const sendAudioMeta = async () => {
+    if (!audioUri) {
+      console.log('No hay audioUri en estado');
+      return;
+    }
+    if (!user?._id) throw new Error('Usuario no logueado');
 
-  console.log('Voy a enviar audio, uri =', audioUri);
+    console.log('Voy a enviar audio, uri =', audioUri);
 
-  const formData = new FormData();
-  formData.append('id', String(user._id));  // siempre string
+    const formData = new FormData();
+    formData.append('id', String(user._id)); // siempre string
 
-  if (Platform.OS === 'web') {
-    // 🖥️ WEB: necesitamos un Blob
-    const resp = await fetch(audioUri);
-    const blob = await resp.blob();
-    formData.append('audio', blob, 'meta.webm'); // el nombre es simbólico
-  } else {
-    // 📱 NATIVE (iOS / Android): el hack de { uri, type, name } sí funciona
-    formData.append('audio', {
-      uri: audioUri,
-      name: 'meta.m4a',
-      type: 'audio/m4a',
-    } as any);
-  }
+    if (Platform.OS === 'web') {
+      const resp = await fetch(audioUri);
+      const blob = await resp.blob();
+      formData.append('audio', blob, 'meta.webm');
+    } else {
+      formData.append('audio', {
+        uri: audioUri,
+        name: 'meta.m4a',
+        type: 'audio/m4a',
+      } as any);
+    }
 
     const token = getStoredToken();
 
@@ -120,14 +138,14 @@ export default function WelcomeDreamScreen() {
       throw new Error('Sesión expirada');
     }
 
+    const json = await res.json().catch(() => null);
+    console.log('Respuesta metaAudio', res.status, json);
+
     if (!res.ok) {
-      throw new Error('Error al guardar meta de audio');
+      throw new Error(json?.message || 'Error al guardar meta de audio');
     }
   };
 
-  const json = await res.json().catch(() => null);
-  console.log('Respuesta OK metaAudio', json);
-};
   // --- HANDLERS ---
 
   const handleContinue = async () => {
@@ -136,10 +154,7 @@ export default function WelcomeDreamScreen() {
       if (loading) return;
       setLoading(true);
 
-      // Si no eligió ni texto ni audio → podés dejar pasar o exigir algo
       if (!inputMode) {
-        // acá podés simplemente ir al home sin guardar nada:
-        // return goHome();
         setErrorMsg('Contame tu sueño por texto o audio antes de continuar.');
         return;
       }
@@ -171,22 +186,20 @@ export default function WelcomeDreamScreen() {
   };
 
   const handleOpenWrite = () => {
-    // El usuario elige texto → anulamos cualquier audio previo
     setInputMode('texto');
     setAudioUri(null);
     setWriting(true);
   };
 
   const handleRecordingFinished = (uri: string | null) => {
-  console.log('[handleRecordingFinished] uri recibida:', uri);
-  if (!uri) return; // por si algo falló
-  setInputMode('audio');
-  setAudioUri(uri);
-  setDream('');
-};
+    console.log('[handleRecordingFinished] uri recibida:', uri);
+    if (!uri) return;
+    setInputMode('audio');
+    setAudioUri(uri);
+    setDream('');
+  };
 
   const handleSendTextAndClose = () => {
-    // Sólo cerramos el modal; el envío real se hace en "Continuar"
     if (!dream.trim()) return;
     setWriting(false);
   };
@@ -205,7 +218,8 @@ export default function WelcomeDreamScreen() {
             Hola, soy DAN, tu Coach Mental Deportivo.
           </Text>
           <Text style={[styles.subtitle, { color: secondaryText }]}>
-            Estoy acá para entrenar tu mente y acompañarte en tu camino hacia la cima deportiva.
+            Estoy acá para entrenar tu mente y acompañarte en tu camino hacia la
+            cima deportiva.
           </Text>
         </View>
 
@@ -215,11 +229,11 @@ export default function WelcomeDreamScreen() {
           </Text>
 
           <View style={[styles.recordingCard, { backgroundColor: accent }]}>
-            <RecordingButton
-              onRecordingComplete={handleRecordingFinished}
-            />
+            <RecordingButton onRecordingComplete={handleRecordingFinished} />
             <View style={styles.recordingTextContainer}>
-              <Text style={[styles.recordLabel, { color: primaryText }]}>Grabar mensaje</Text>
+              <Text style={[styles.recordLabel, { color: primaryText }]}>
+                Grabar mensaje
+              </Text>
               <Text style={[styles.recordHint, { color: secondaryText }]}>
                 Contame con tus palabras y luego iremos al inicio.
               </Text>
@@ -229,12 +243,17 @@ export default function WelcomeDreamScreen() {
           <Pressable
             style={[
               styles.writeButton,
-              { borderColor: primaryText, opacity: inputMode === 'audio' ? 0.4 : 1 },
+              {
+                borderColor: primaryText,
+                opacity: inputMode === 'audio' ? 0.4 : 1,
+              },
             ]}
             onPress={handleOpenWrite}
             disabled={inputMode === 'audio'}
           >
-            <Text style={[styles.writeButtonText, { color: primaryText }]}>Escribir</Text>
+            <Text style={[styles.writeButtonText, { color: primaryText }]}>
+              Escribir
+            </Text>
           </Pressable>
 
           {errorMsg ? (
@@ -263,12 +282,17 @@ export default function WelcomeDreamScreen() {
         animationType="fade"
         onRequestClose={() => setWriting(false)}
       >
-        <Pressable style={styles.modalBackdrop} onPress={() => setWriting(false)}>
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setWriting(false)}
+        >
           <Pressable
             style={[styles.modalCard, { backgroundColor: cardColor }]}
             onPress={() => {}}
           >
-            <Text style={[styles.modalTitle, { color: primaryText }]}>Escribí tu sueño</Text>
+            <Text style={[styles.modalTitle, { color: primaryText }]}>
+              Escribí tu sueño
+            </Text>
             <TextInput
               value={dream}
               onChangeText={(text) => {
@@ -291,10 +315,18 @@ export default function WelcomeDreamScreen() {
               <Text style={styles.primaryButtonText}>Listo</Text>
             </Pressable>
             <Pressable
-              style={[styles.secondaryButton, { borderColor: secondaryText }]}
+              style={[
+                styles.secondaryButton,
+                { borderColor: secondaryText },
+              ]}
               onPress={() => setWriting(false)}
             >
-              <Text style={[styles.secondaryButtonText, { color: secondaryText }]}>
+              <Text
+                style={[
+                  styles.secondaryButtonText,
+                  { color: secondaryText },
+                ]}
+              >
                 Cancelar
               </Text>
             </Pressable>
@@ -304,7 +336,6 @@ export default function WelcomeDreamScreen() {
     </SafeAreaView>
   );
 }
-
 
 const styles = StyleSheet.create({
   safeArea: {

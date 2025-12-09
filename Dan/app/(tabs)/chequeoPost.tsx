@@ -1,5 +1,4 @@
 import { StyleSheet, ScrollView, Modal, View, Pressable } from 'react-native';
-import { ComponentProps, useState } from 'react';
 import React, { ComponentProps, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
