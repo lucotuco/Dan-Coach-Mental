@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import { useAuth } from '@/components/AuthContext';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 function Field({
   icon,
@@ -77,15 +78,23 @@ export default function SignupScreen() {
   }
 
   try {
+    const token = getStoredToken();
+
     const response = await fetch(API_URL + '/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ name, email, phone, password }),
     });
 
     const data = await response.json();
+
+    if (isUnauthorizedStatus(response.status)) {
+      redirectToLogin(router);
+      return;
+    }
 
     if (!response.ok) {
       if (response.status === 409) {

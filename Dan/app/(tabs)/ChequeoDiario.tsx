@@ -4,11 +4,12 @@ import MedioLogo from '@/components/MedioLogo';
 import { ComponentProps, useEffect, useState } from 'react';
 import Card from '@/components/Card';
 import React from 'react';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Feather as FeatherIcon } from '@expo/vector-icons';
 import RecordingButton from '@/components/AudioRecorderButton';
 import { useAuth } from '@/components/AuthContext';
 import CheckSlider from '@/components/CheckSlider';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 export default function CheckupsScreen() {
   const [sliderValues, setSliderValues] = useState([0, 0, 0, 0, 0]);
   const [audioUri, setAudioUri] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export default function CheckupsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const todayKey = new Date().toISOString().split('T')[0];
+  const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
   const getDailyCheckStorageKey = () => {
     const userId = user?._id ?? 'guest';
@@ -212,12 +214,27 @@ export default function CheckupsScreen() {
       } as any);
     }
 
+    const token = getStoredToken();
+
+    if (!token) {
+      redirectToLogin(router, logout);
+      return;
+    }
+
     const response = await fetch(API_URL + '/api/chequeos', {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
 
     const data = await response.json();
+
+    if (isUnauthorizedStatus(response.status)) {
+      redirectToLogin(router, logout);
+      return;
+    }
 
     if (!response.ok) {
       throw new Error(data?.message || 'Error al guardar el chequeo');

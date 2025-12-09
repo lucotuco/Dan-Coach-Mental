@@ -13,10 +13,12 @@ import {
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import { useAuth } from '@/components/AuthContext';
 import DanVoiceCall from '@/components/DanVoiceCall';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 const CHAT_ENDPOINT = '/api/dan/chat';
 
@@ -28,11 +30,12 @@ type ChatMessage = {
 
 export default function CoachVirtualScreen() {
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
+  const router = useRouter();
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
-  const scrollRef = useRef<ScrollView>(null); 
+  const scrollRef = useRef<ScrollView>(null);
   const { user, isAuthenticated, logout } = useAuth();
 
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
@@ -68,17 +71,30 @@ export default function CoachVirtualScreen() {
     scrollToEnd();
 
     try {
+      const token = getStoredToken();
+
+      if (!token) {
+        redirectToLogin(router, logout);
+        return;
+      }
+
       const response = await fetch(`${API_URL}${CHAT_ENDPOINT}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           userId: user?._id,
           message: trimmedQuestion,
         }),
       });
+
+      if (isUnauthorizedStatus(response.status)) {
+        redirectToLogin(router, logout);
+        return;
+      }
 
       const contentType = response.headers.get('content-type');
       const rawBody = await response.text();

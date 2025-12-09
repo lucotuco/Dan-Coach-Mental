@@ -11,13 +11,14 @@ import { useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import RecordingButton from '@/components/AudioRecorderButton';
-// import { useAuth } from '@/components/AuthContext';
+import { useAuth } from '@/components/AuthContext';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function WelcomeDreamScreen() {
   const router = useRouter();
-  // const { token } = useAuth();
+  const { logout } = useAuth();
 
   const [writing, setWriting] = useState(false);
   const [dream, setDream] = useState('');
@@ -39,14 +40,26 @@ export default function WelcomeDreamScreen() {
   const sendTextMeta = async () => {
     const body = { texto: dream };
 
+    const token = getStoredToken();
+
+    if (!token) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
+
     const res = await fetch(`${API_URL}/api/users/metaTexto`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        // Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
+
+    if (isUnauthorizedStatus(res.status)) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
 
     if (!res.ok) {
       throw new Error('Error al guardar meta de texto');
@@ -63,14 +76,26 @@ export default function WelcomeDreamScreen() {
       type: 'audio/m4a',
     } as any);
 
+    const token = getStoredToken();
+
+    if (!token) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
+
     const res = await fetch(`${API_URL}/api/users/metaAudio`, {
       method: 'POST',
       headers: {
         // NO pongas 'Content-Type', RN lo arma solo
-        // Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: formData,
     });
+
+    if (isUnauthorizedStatus(res.status)) {
+      redirectToLogin(router, logout);
+      throw new Error('Sesión expirada');
+    }
 
     if (!res.ok) {
       throw new Error('Error al guardar meta de audio');

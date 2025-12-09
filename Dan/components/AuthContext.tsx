@@ -1,5 +1,25 @@
 import React, { createContext, useContext, useState } from 'react';
 
+export const getStoredToken = () =>
+  typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+
+const clearStoredToken = () => {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('token');
+  }
+};
+
+export const isUnauthorizedStatus = (status: number) => status === 401 || status === 403;
+
+export const redirectToLogin = (
+  router: { replace: (href: string) => void },
+  logout?: () => void,
+) => {
+  clearStoredToken();
+  logout?.();
+  router.replace('/');
+};
+
 type User = {
   _id: string;
   name: string;

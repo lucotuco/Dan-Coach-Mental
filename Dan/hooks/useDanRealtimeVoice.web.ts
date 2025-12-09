@@ -67,9 +67,13 @@ export function useDanRealtimeVoice(
       setStatus('requesting_token');
 
       // 1) Pedir sesión Realtime (ephemeral key) a tu backend
+      const token = typeof localStorage !== 'undefined'
+        ? localStorage.getItem('token')
+        : null;
+
       const resp = await fetch(`${apiBaseUrl}/api/realtime/session`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ owner: ownerId }),
       });
 

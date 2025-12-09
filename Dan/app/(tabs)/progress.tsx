@@ -1,9 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'expo-router';
 
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import { useAuth } from '@/components/AuthContext';
+import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 type ChartItem = {
   label: string;
@@ -22,7 +24,8 @@ const BASE_CHART: ChartItem[] = [
 const MAX_VALUE = 10;
 
 export default function ProgressScreen() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
   const [chartData, setChartData] = useState<ChartItem[]>(BASE_CHART);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,11 +42,29 @@ export default function ProgressScreen() {
 
       setIsLoading(true);
       try {
+        const token = getStoredToken();
+
+        if (!token) {
+          redirectToLogin(router, logout);
+          return;
+        }
+
         const response = await fetch(
           `${API_URL}/api/chequeos?owner=${encodeURIComponent(userId)}&tipo=${encodeURIComponent(
             'chequeo diario',
           )}`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          },
         );
+        if (isUnauthorizedStatus(response.status)) {
+          redirectToLogin(router, logout);
+          return;
+        }
         if (!response.ok) {
           throw new Error('No se pudo obtener el progreso desde los chequeos diarios');
         }
@@ -84,7 +105,7 @@ export default function ProgressScreen() {
     };
 
     fetchDailyAverages();
-  }, [API_URL, userId]);
+  }, [API_URL, logout, router, userId]);
 
   return (
     <View style={[styles.screen, { backgroundColor }]}>
