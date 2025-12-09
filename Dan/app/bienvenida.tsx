@@ -5,20 +5,21 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import RecordingButton from '@/components/AudioRecorderButton';
-// import { useAuth } from '@/components/AuthContext';
+import { useAuth } from '@/components/AuthContext';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function WelcomeDreamScreen() {
   const router = useRouter();
   // const { token } = useAuth();
-
+ const { user } = useAuth();
   const [writing, setWriting] = useState(false);
   const [dream, setDream] = useState('');
   const [audioUri, setAudioUri] = useState<string | null>(null);
@@ -37,7 +38,11 @@ export default function WelcomeDreamScreen() {
   // --- API CALLS ---
 
   const sendTextMeta = async () => {
-    const body = { texto: dream };
+    if (!user?._id) {
+    throw new Error('Usuario no logueado');
+  }
+    const body = {id: user._id,  
+      meta: dream };
 
     const res = await fetch(`${API_URL}/api/users/metaTexto`, {
       method: 'POST',
@@ -53,30 +58,47 @@ export default function WelcomeDreamScreen() {
     }
   };
 
-  const sendAudioMeta = async () => {
-    if (!audioUri) return;
+ const sendAudioMeta = async () => {
+  if (!audioUri) {
+    console.log('No hay audioUri en estado');
+    return;
+  }
+  if (!user?._id) throw new Error('Usuario no logueado');
 
-    const formData = new FormData();
+  console.log('Voy a enviar audio, uri =', audioUri);
+
+  const formData = new FormData();
+  formData.append('id', String(user._id));  // siempre string
+
+  if (Platform.OS === 'web') {
+    // 🖥️ WEB: necesitamos un Blob
+    const resp = await fetch(audioUri);
+    const blob = await resp.blob();
+    formData.append('audio', blob, 'meta.webm'); // el nombre es simbólico
+  } else {
+    // 📱 NATIVE (iOS / Android): el hack de { uri, type, name } sí funciona
     formData.append('audio', {
       uri: audioUri,
       name: 'meta.m4a',
       type: 'audio/m4a',
     } as any);
+  }
 
-    const res = await fetch(`${API_URL}/api/users/metaAudio`, {
-      method: 'POST',
-      headers: {
-        // NO pongas 'Content-Type', RN lo arma solo
-        // Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
+  const res = await fetch(`${API_URL}/api/users/metaAudio`, {
+    method: 'POST',
+    body: formData,
+    // NO pongas Content-Type, RN lo arma solo
+  });
 
-    if (!res.ok) {
-      throw new Error('Error al guardar meta de audio');
-    }
-  };
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => null);
+    console.log('Error metaAudio', res.status, errorBody);
+    throw new Error(errorBody?.message || 'Error al guardar meta de audio');
+  }
 
+  const json = await res.json().catch(() => null);
+  console.log('Respuesta OK metaAudio', json);
+};
   // --- HANDLERS ---
 
   const handleContinue = async () => {
@@ -102,6 +124,7 @@ export default function WelcomeDreamScreen() {
       }
 
       if (inputMode === 'audio') {
+        console.log('inputMode=audio, audioUri=', audioUri);
         if (!audioUri) {
           setErrorMsg('Grabá tu mensaje antes de continuar.');
           return;
@@ -125,12 +148,13 @@ export default function WelcomeDreamScreen() {
     setWriting(true);
   };
 
-  const handleRecordingFinished = (uri: string) => {
-    // El usuario eligió audio → anulamos el texto escrito
-    setInputMode('audio');
-    setAudioUri(uri);
-    setDream('');
-  };
+  const handleRecordingFinished = (uri: string | null) => {
+  console.log('[handleRecordingFinished] uri recibida:', uri);
+  if (!uri) return; // por si algo falló
+  setInputMode('audio');
+  setAudioUri(uri);
+  setDream('');
+};
 
   const handleSendTextAndClose = () => {
     // Sólo cerramos el modal; el envío real se hace en "Continuar"
@@ -163,7 +187,7 @@ export default function WelcomeDreamScreen() {
 
           <View style={[styles.recordingCard, { backgroundColor: accent }]}>
             <RecordingButton
-              onRecordingComplete={()=>{handleRecordingFinished}}
+              onRecordingComplete={handleRecordingFinished}
             />
             <View style={styles.recordingTextContainer}>
               <Text style={[styles.recordLabel, { color: primaryText }]}>Grabar mensaje</Text>

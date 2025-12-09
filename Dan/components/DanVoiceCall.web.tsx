@@ -6,14 +6,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from 'react-native';
 import {
   RealtimeAgent,
   RealtimeSession,
   type RealtimeMessageItem,
 } from '@openai/agents/realtime';
+import { useAuth } from '@/components/AuthContext'
 
 const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
+const logoSource = require('../assets/images/WhatsApp Image 2025-12-03 at 12.49.08_88d6917d.jpg');
 
 type ChatMessage = {
   id: string;
@@ -28,6 +31,7 @@ type DanVoiceCallProps = {
 export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeSpeaker, setActiveSpeaker] = useState<'user' | 'assistant' | null>(
@@ -40,16 +44,8 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
   const sessionRef = useRef<RealtimeSession | null>(null);
 
-  const agent = useMemo(
-    () =>
-      new RealtimeAgent({
-        name: 'DAN',
-        instructions:
-          instructions ??
-          'Sos DAN, un coach mental deportivo. Hablá en tono cercano, con preguntas cortas y concretas. Ayudá a la persona a enfocarse, regular emociones y pasar a la acción.',
-      }),
-    [instructions]
-  );
+
+
 
   // Cerrar la sesión si el componente se desmonta
   useEffect(() => {
@@ -106,7 +102,8 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
 
     try {
       const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
-      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}`);
+      const userIdParam = encodeURIComponent(user._id);
+      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}?userId=${userIdParam}`);
       if (!res.ok) {
         throw new Error('No se pudo obtener el token efímero para Realtime.');
       }
@@ -124,11 +121,23 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
         throw new Error('El backend no devolvió un client_secret válido.');
       }
 
+      const backendInstructions =
+        data.session.instructions;
+
+      console.log('Instrucciones desde backend:', backendInstructions);
+
+      // 👇 Creamos el agente usando ESA string
+      const agent = new RealtimeAgent({
+        name: 'DAN',
+        instructions: backendInstructions,
+      });
+
       const session = new RealtimeSession(agent, {
         model: 'gpt-realtime',
 
         // Podés tunear acá config de audio / turn detection si querés
       });
+      console.log('log instrucciones', instructions);
 
       sessionRef.current = session;
 
@@ -248,9 +257,7 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Hablar con DAN (voz en tiempo real)</Text>
-
+    <View style={styles.container}> 
       <View style={styles.statusRow}>
         <View
           style={[
@@ -262,17 +269,12 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
           {connected
             ? 'Conectado (DAN te escucha)'
             : connecting
-            ? 'Conectando con DAN...'
-            : 'Desconectado'}
+              ? 'Conectando con DAN...'
+              : 'Desconectado'}
         </Text>
       </View>
 
       <View style={styles.voiceVisualizer}>
-        <Text style={styles.visualizerTitle}>Actividad de la llamada</Text>
-        <Text style={styles.visualizerSubtitle}>
-          La animación refleja quién está hablando en este momento.
-        </Text>
-
         <View style={styles.circleWrapper}>
           <View
             style={[
@@ -296,13 +298,12 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
               activeSpeaker === 'user' && styles.userCircle,
             ]}
           >
-            <Text style={styles.circleText}>
-              {activeSpeaker === 'assistant'
-                ? 'Habla DAN'
-                : activeSpeaker === 'user'
-                ? 'Estás hablando'
-                : 'En espera'}
-            </Text>
+            <Image
+            accessibilityRole="image"
+            source={logoSource}
+            resizeMode="cover"
+            style={[styles.circle]}
+            />
           </View>
         </View>
       </View>
@@ -453,8 +454,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   circle: {
-    width: 110,
-    height: 110,
+    width: 200,
+    height: 200,
     borderRadius: 999,
     backgroundColor: '#1d1d27',
     alignItems: 'center',

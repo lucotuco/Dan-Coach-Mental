@@ -40,13 +40,13 @@ const sports = [
 ];
 
 const levels = [
-  'Recreativo',
-  'Amateur',
+  'principiante',
+  'Intemedio',
   'Profesional'
-];
+];  
 
 const competitionStyles = [
-  'Individial',
+  'Individual',
   'En pareja',
   'En equipo'
 ];

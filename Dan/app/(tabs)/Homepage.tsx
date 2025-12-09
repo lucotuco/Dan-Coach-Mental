@@ -45,7 +45,7 @@ const quickActions: QuickAction[] = [
     wrapped: false,
   },
   {
-    key: '/(tabs)/motivacion',
+    key: '/(tabs)/EntrenamientosPersonales',
     title: 'Entrenamientos personales',
     subtitle: 'Rutinas a tu medida',
     icon: 'dumbbell',
@@ -53,7 +53,7 @@ const quickActions: QuickAction[] = [
     wrapped: false,
   },
   {
-    key: '/(tabs)/herramientas',
+    key: '/(tabs)/EjerciciosGuiados',
     title: 'Ejercicios guiados',
     subtitle: 'Respiración y relajación',
     icon: 'headphones',
@@ -79,12 +79,12 @@ export default function HomeScreen() {
   const { user, isAuthenticated, logout } = useAuth();
   const username = {name: user?.name,};
   
-  useEffect(() => {
+  /*useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/');
     }
   }, [isAuthenticated, router]);
-
+*/
   
   const tileRows: QuickAction[][] = [];
   for (let i = 0; i < quickActions.length; i += 2) {

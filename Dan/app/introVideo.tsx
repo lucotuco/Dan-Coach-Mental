@@ -5,8 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
 
-const INTRO_VIDEO_URL = '../assets/videos/Dan Coach depor FINAL EXPORT.mp4';
-
+const INTRO_VIDEO_URL = require('../assets/videos/DanCoachDeporFINALEXPORT.mp4');
 export default function IntroVideoScreen() {
   const router = useRouter();
   const skipBackground = useThemeColor({ light: '#0b164c', dark: '#e5e9ff' }, 'text');

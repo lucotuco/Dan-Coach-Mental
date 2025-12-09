@@ -68,8 +68,7 @@ export default function LibraryScreenVitalidad() {
       title="Movilidad suave para recargar energía"
       scriptTitle="Respirá hondo..."
       scriptParagraphs={renovarEnergiaScript}
-      audioModule={require('@/assets/audios/openai-fm-ash-professional.wav')}
-      
+      audioModule={require('@/assets/audios/verse_gpt-4o-mini-tts_1x_2025-12-09T03_09_34-080Z.mp3')}
       onBack={() => router.push('/(tabs)/library')}
     />
   );

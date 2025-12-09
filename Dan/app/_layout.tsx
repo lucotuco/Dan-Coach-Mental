@@ -59,7 +59,7 @@ function RootLayoutNav() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
         <NavigationHistoryProvider>
-          <Stack screenOptions={sharedHeaderOptions}>
+          <Stack initialRouteName="introVideo" screenOptions={sharedHeaderOptions}>
             <Stack.Screen
               name="index"
               options={{ gestureEnabled: false, ...withoutBackButton }}
