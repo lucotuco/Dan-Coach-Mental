@@ -16,7 +16,7 @@ import {
 import { useAuth } from '@/components/AuthContext'
 
 const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
-const logoSource = require('../assets/images/WhatsApp Image 2025-12-03 at 12.49.08_88d6917d.jpg');
+const logoSource = require('@/assets/images/Dan-Image2.jpg');
 
 type ChatMessage = {
   id: string;
@@ -312,6 +312,8 @@ export default function DanVoiceCall({ instructions }: DanVoiceCallProps) {
             source={logoSource}
             resizeMode="cover"
             style={[styles.circle]}
+            onError={(e) => {
+            console.log('Error cargando imagen DAN:', e.nativeEvent);}}
             />
           </View>
         </View>

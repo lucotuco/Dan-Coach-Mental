@@ -1,13 +1,12 @@
-import { useState, useEffect } from 'react';
+import type { ComponentProps } from 'react';
 import { Link, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet,Image } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useAuth } from '@/components/AuthContext';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Avatar from '@/components/Avatar';
 import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
-
 
 type QuickAction = {
   key: string;
@@ -17,7 +16,6 @@ type QuickAction = {
   accent: string;
   wrapped?: boolean;
 };
-
 
 const quickActions: QuickAction[] = [
   {
@@ -60,7 +58,6 @@ const quickActions: QuickAction[] = [
     accent: '#e8d4ffff',
     wrapped: false,
   },
-  
   {
     key: '/(tabs)/library',
     title: 'Biblioteca',
@@ -75,41 +72,42 @@ export default function HomeScreen() {
   const router = useRouter();
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
-  const primaryColor = useThemeColor({ light: '#031355ff', dark: '#748ffc' }, 'tint');
   const { user, isAuthenticated, logout } = useAuth();
-  const username = {name: user?.name,};
-  
-  /*useEffect(() => {
-    if (!isAuthenticated) {
-      router.replace('/');
-    }
-  }, [isAuthenticated, router]);
-*/
-  
+
+  // 🔹 Si no hay user, podés redirigir a bienvenida o mostrar algo básico
+  // (opcional)
+  // if (!user) {
+  //   router.replace('/bienvenida');
+  //   return null;
+  // }
+
+  const displayName = user?.name ?? 'Deportista';
+
   const tileRows: QuickAction[][] = [];
   for (let i = 0; i < quickActions.length; i += 2) {
     tileRows.push(quickActions.slice(i, i + 2));
   }
 
   return (
-    
-  <ScrollView
+    <ScrollView
       style={[styles.container, { backgroundColor }]}
       contentContainerStyle={styles.content}
       scrollEnabled={true}
       showsVerticalScrollIndicator={false}
     >
-      <MedioLogo/>
-      
+      <MedioLogo />
+
       <Link href="/profile">
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.greeting}>Buenos días,</Text>
-          <Text style={styles.userName}>{username.name}</Text>
-          <Text style={[styles.subtitle, { color: mutedColor }]}>¿Listo para continuar con tu plan?</Text>
-        </View>        
-        <Avatar name={username.name} size={56} />
-      </View>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Buenos días,</Text>
+            <Text style={styles.userName}>{displayName}</Text>
+            <Text style={[styles.subtitle, { color: mutedColor }]}>
+              ¿Listo para continuar con tu plan?
+            </Text>
+          </View>
+          <Avatar name={displayName} size={56} />
+        </View>
       </Link>
 
       <View style={styles.tilesWrapper}>
@@ -129,9 +127,10 @@ export default function HomeScreen() {
                   />
                 </View>
               ))}
-              {row.length === 1 ? <View style={[styles.tileCell, styles.placeholderCell]} /> : null}
+              {row.length === 1 ? (
+                <View style={[styles.tileCell, styles.placeholderCell]} />
+              ) : null}
             </View>
-            
           ))}
         </View>
       </View>

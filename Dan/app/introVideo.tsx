@@ -1,33 +1,54 @@
 import { useEffect } from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
+import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
 
 const INTRO_VIDEO_URL = require('../assets/videos/DanCoachDeporFINALEXPORT.mp4');
+
 export default function IntroVideoScreen() {
   const router = useRouter();
-  const skipBackground = useThemeColor({ light: '#0b164c', dark: '#e5e9ff' }, 'text');
-  const skipTextColor = useThemeColor({ light: '#ffffff', dark: '#0b164c' }, 'background');
 
-  const player = useVideoPlayer(INTRO_VIDEO_URL, (videoPlayer) => {
-    videoPlayer.loop = false;
-    videoPlayer.play();
+  const skipBackground = useThemeColor(
+    { light: '#0b164c', dark: '#e5e9ff' },
+    'text'
+  );
+  const skipTextColor = useThemeColor(
+    { light: '#ffffff', dark: '#0b164c' },
+    'background'
+  );
+
+  const isWeb = Platform.OS === 'web';
+
+  const player = useVideoPlayer(INTRO_VIDEO_URL, (p) => {
+    p.loop = false;
+
+    // 🔊 En web lo arrancamos muteado para que el autoplay no lo bloquee
+    if (isWeb) {
+      p.muted = true;
+    }
+
+    p.play();
   });
 
   const handleSkip = () => {
+    // Por las dudas pausamos antes de navegar
+    player?.pause();
     router.replace('/');
   };
 
   useEffect(() => {
-    const subscription = player?.addListener('statusChange', (status) => {
-      if ('isLoaded' in status && status.isLoaded ) {
-        handleSkip();
-      }
+    if (!player) return;
+
+    // 👇 Evento oficial de expo-video para cuando el video llega al final
+    const sub = player.addListener('playToEnd', () => {
+      handleSkip();
     });
 
-    return () => subscription?.remove();
+    return () => {
+      sub.remove();
+    };
   }, [player]);
 
   return (
@@ -42,8 +63,14 @@ export default function IntroVideoScreen() {
           nativeControls={false}
         />
 
-        <TouchableOpacity style={[styles.skipButton, { backgroundColor: skipBackground }]} onPress={handleSkip}>
-          <Text style={[styles.skipText, { color: skipTextColor }]}>Saltar video</Text>
+        {/* Botón de saltar (sirve en nativo y en web) */}
+        <TouchableOpacity
+          style={[styles.skipButton, { backgroundColor: skipBackground }]}
+          onPress={handleSkip}
+        >
+          <Text style={[styles.skipText, { color: skipTextColor }]}>
+            Saltar video
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

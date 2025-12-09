@@ -1,16 +1,18 @@
 import { Image, StyleSheet } from 'react-native';
-
 import { Text, View, useThemeColor } from './Themed';
 
 type AvatarProps = {
-  name: string;
+  name?: string;
   size?: number;
   imageUrl?: string;
 };
 
-export function Avatar({ name, size = 48, imageUrl }: AvatarProps) {
+export function Avatar({ name = '?', size = 48, imageUrl }: AvatarProps) {
   const backgroundColor = useThemeColor({ light: '#e4e7ff', dark: '#2f3361' }, 'background');
-  const initials = name
+
+  const safeName = name || '?';
+
+  const initials = safeName
     .split(' ')
     .filter(Boolean)
     .map((part) => part[0] ?? '')
@@ -29,7 +31,7 @@ export function Avatar({ name, size = 48, imageUrl }: AvatarProps) {
   }
 
   return (
-    <View style={[styles.fallback, { width: size, height: size, backgroundColor }]}> 
+    <View style={[styles.fallback, { width: size, height: size, backgroundColor }]}>
       <Text style={styles.initials}>{initials}</Text>
     </View>
   );
