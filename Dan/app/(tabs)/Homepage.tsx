@@ -1,88 +1,70 @@
-import type { ComponentProps, ImageSourcePropType } from 'react';
+import type { ComponentProps } from 'react';
 import { Link, useRouter } from 'expo-router';
-import { Image, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { useAuth } from '@/components/AuthContext';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Avatar from '@/components/Avatar';
+import DashboardTile from '@/components/DashboardTile';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
-type HomeTile = {
+type QuickAction = {
   key: string;
   title: string;
-  subtitle?: string;
-  icon?: ComponentProps<typeof FontAwesome5>['name'];
+  subtitle: string;
+  icon: ComponentProps<typeof FontAwesome5>['name'];
   accent: string;
-  route: string;
-  doubleHeight?: boolean;
-  image?: ImageSourcePropType;
+  wrapped?: boolean;
 };
 
-const tiles: HomeTile[] = [
+const quickActions: QuickAction[] = [
   {
-    key: 'checkups',
-    title: 'Chequeos',
-    subtitle: 'Chequeos mentales',
+    key: '/(tabs)/checkups',
+    title: 'Chequeos mentales',
+    subtitle: 'Tu estado en minutos',
     icon: 'check-circle',
-    accent: '#e7efff',
-    route: '/(tabs)/checkups',
+    accent: '#a5c5ff',
+    wrapped: false,
   },
   {
-    key: 'progress',
-    title: 'Progreso',
-    subtitle: 'Seguimiento y métricas',
-    icon: 'chart-line',
-    accent: '#ffe9bd',
-    route: '/(tabs)/progress',
-  },
-  {
-    key: 'sessions',
+    key: '/(tabs)/sesions',
     title: 'Sesiones',
     subtitle: 'Agenda y seguimiento',
     icon: 'comment-alt',
-    accent: '#e7e6ef',
-    route: '/(tabs)/sesions',
+    accent: '#ffceceff',
+    wrapped: false,
   },
   {
-    key: 'guided',
+    key: '/(tabs)/progress',
+    title: 'Progresos',
+    subtitle: 'Mide tus avances',
+    icon: 'chart-line',
+    accent: '#d6f3d2',
+    wrapped: false,
+  },
+  {
+    key: '/(tabs)/EntrenamientosPersonales',
+    title: 'Entrenamientos personales',
+    subtitle: 'Rutinas a tu medida',
+    icon: 'dumbbell',
+    accent: '#ffeab6',
+    wrapped: false,
+  },
+  {
+    key: '/(tabs)/EjerciciosGuiados',
     title: 'Ejercicios guiados',
     subtitle: 'Respiración y relajación',
     icon: 'headphones',
-    accent: '#d9f4d7',
-    route: '/(tabs)/ejerciciosGuiados',
+    accent: '#e8d4ffff',
+    wrapped: false,
   },
   {
-    key: 'library',
+    key: '/(tabs)/library',
     title: 'Biblioteca',
     subtitle: 'Recursos y lecturas',
     icon: 'book-open',
-    accent: '#e5f3ff',
-    route: '/(tabs)/library',
-  },
-  {
-    key: 'teens',
-    title: 'Dan Teens',
-    subtitle: 'Entrena como un pro',
-    icon: 'user-friends',
-    accent: '#dfe6ff',
-    route: '/(tabs)/danTeens',
-  },
-  {
-    key: 'kids',
-    title: 'Dan Kids',
-    subtitle: 'Diversión asegurada',
-    icon: 'child',
-    accent: '#d7f8ff',
-    route: '/(tabs)/danKids',
-  },
-  {
-    key: 'coach',
-    title: 'Hablar con tu coach',
-    subtitle: 'Chateá al instante',
-    accent: '#fbd9c8',
-    route: '/(tabs)/coachVirtual',
-    doubleHeight: true,
-    image: require('@/assets/images/Dan-Image2.jpg'),
+    accent: '#fddac2ff',
+    wrapped: false,
   },
 ];
 
@@ -90,7 +72,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#000' }, 'background');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
-  const { user } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // 🔹 Si no hay user, podés redirigir a bienvenida o mostrar algo básico
   // (opcional)
@@ -100,6 +82,12 @@ export default function HomeScreen() {
   // }
 
   const displayName = user?.name ?? 'Deportista';
+
+  const tileRows: QuickAction[][] = [];
+  for (let i = 0; i < quickActions.length; i += 2) {
+    tileRows.push(quickActions.slice(i, i + 2));
+  }
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor }]}
@@ -125,28 +113,24 @@ export default function HomeScreen() {
       <View style={styles.tilesWrapper}>
         <Text style={styles.sectionTitle}>Entrena tu mente, potenciá tu rendimiento</Text>
         <View style={styles.tilesGrid}>
-          {tiles.map((tile) => (
-            <TouchableOpacity
-              key={tile.key}
-              style={[
-                styles.tile,
-                { backgroundColor: tile.accent },
-                tile.doubleHeight && styles.doubleHeightTile,
-              ]}
-              onPress={() => router.navigate(tile.route)}
-            >
-              {tile.image ? (
-                <Image source={tile.image} style={styles.coachImage} resizeMode="cover" />
-              ) : (
-                <View style={styles.iconWrap}>
-                  {tile.icon ? <FontAwesome5 name={tile.icon} size={26} color="#0b1a3a" /> : null}
+          {tileRows.map((row, rowIndex) => (
+            <View key={rowIndex} style={styles.tilesRow}>
+              {row.map((action) => (
+                <View key={action.key} style={styles.tileCell}>
+                  <DashboardTile
+                    icon={action.icon}
+                    title={action.title}
+                    subtitle={action.subtitle}
+                    accentColor={action.accent}
+                    wrapped={action.wrapped}
+                    onPress={() => router.navigate(action.key)}
+                  />
                 </View>
-              )}
-              <Text style={styles.tileTitle}>{tile.title}</Text>
-              {tile.subtitle ? (
-                <Text style={[styles.tileSubtitle, { color: mutedColor }]}>{tile.subtitle}</Text>
+              ))}
+              {row.length === 1 ? (
+                <View style={[styles.tileCell, styles.placeholderCell]} />
               ) : null}
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
       </View>
@@ -260,55 +244,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   tilesGrid: {
+    gap: 16,
+  },
+  tilesRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 14,
-    justifyContent: 'space-between',
+    columnGap: 16,
+    rowGap: 16,
   },
-  tile: {
-    borderRadius: 18,
-    padding: 14,
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '32%',
-    aspectRatio: 1,
-    shadowColor: '#00000015',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 3,
+  tileCell: {
+    flex: 1,
   },
-  doubleHeightTile: {
-    aspectRatio: 0.55,
-  },
-  iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#00000010',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  coachImage: {
-    width: '100%',
-    height: undefined,
-    aspectRatio: 0.9,
-    borderRadius: 16,
-  },
-  tileTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  tileSubtitle: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
+  placeholderCell: {
+    opacity: 0,
   },
 });
