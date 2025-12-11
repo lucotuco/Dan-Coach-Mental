@@ -75,10 +75,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: 100,
     justifyContent: 'space-between',
-    shadowColor: '#00000015',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 8,
+        blurRadius: 12,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.0165)',
+      },
+    },
     elevation: 3,
   },
   // 👉 para tiles solo imagen (Sesiones)
@@ -99,10 +104,15 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#00000010',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 4,
+        blurRadius: 8,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.0094)',
+      },
+    },
     elevation: 2,
   },
   title: {
