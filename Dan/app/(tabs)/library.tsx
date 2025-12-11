@@ -142,10 +142,15 @@ const styles = StyleSheet.create({
     padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 4,
+        blurRadius: 8,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.08)',
+      },
+    },
     elevation: 2,
   },
   iconContainer: {

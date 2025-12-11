@@ -35,7 +35,7 @@ const checkupCards: CheckupCard[] = [
     colors: {
       background: '#b4c2ffff',
       border: '#dce3ff',
-      shadow: '#c0ccff',
+      shadow: 'rgba(192, 204, 255, 0.06)',
       iconBackground: '#e1e7ff',
       iconColor: '#2e368f',
       tagBackground: '#e8ecff',
@@ -52,7 +52,7 @@ const checkupCards: CheckupCard[] = [
     colors: {
       background: '#ffb0baff',
       border: '#ffdce3',
-      shadow: '#ffc2cf',
+      shadow: 'rgba(255, 194, 207, 0.06)',
       iconBackground: '#ffe5eb',
       iconColor: '#b9355b',
       tagBackground: '#ffe9ef',
@@ -69,7 +69,7 @@ const checkupCards: CheckupCard[] = [
     colors: {
       background: '#cdb0fcff',
       border: '#e3d9ff',
-      shadow: '#cfc0ff',
+      shadow: 'rgba(207, 192, 255, 0.06)',
       iconBackground: '#efe7ff',
       iconColor: '#6241c7',
       tagBackground: '#efe7ff',
@@ -91,7 +91,17 @@ export default function Checkups() {
             {
               backgroundColor: card.colors.background,
               borderColor: card.colors.border,
-              shadowColor: card.colors.shadow,
+            },
+            {
+              boxShadowProp: {
+                boxShadow: {
+                  offsetX: 0,
+                  offsetY: 6,
+                  blurRadius: 10,
+                  spreadDistance: 0,
+                  color: card.colors.shadow,
+                },
+              },
             },
           ]}
         >

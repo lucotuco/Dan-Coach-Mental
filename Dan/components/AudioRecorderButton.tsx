@@ -99,7 +99,6 @@ export default function RecordingButton({ onRecordingComplete }: RecordingButton
                   styles.recordButton,
                   {
                     backgroundColor: recorderState.isRecording ? '#a30f0fff' : '#1a5ed1',
-                    shadowColor: '#0f4aa3',
                   },
                 ]}
                 android_ripple={{ color: '#ffffff33', borderless: false }}
@@ -155,13 +154,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     overflow: 'visible',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 8,
+        blurRadius: 12,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.3)',
+      },
     },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
     elevation: 6,
   },
   dismissButton: {
@@ -191,9 +192,15 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 6,
+        blurRadius: 8,
+        spreadDistance: 0,
+        color: 'rgba(15, 74, 163, 0.35)',
+      },
+    },
     elevation: 4,
     marginTop: 6,
   },
