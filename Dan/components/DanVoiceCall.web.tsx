@@ -448,39 +448,21 @@ const styles = StyleSheet.create({
   },
   assistantWave: {
     borderColor: '#6c5ce7',
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 0,
-        blurRadius: 16,
-        spreadDistance: 0,
-        color: 'rgba(108, 92, 231, 0.3)',
-      },
-    },
+    shadowColor: '#6c5ce7',
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
   },
   userWave: {
     borderColor: '#2ecc71',
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 0,
-        blurRadius: 16,
-        spreadDistance: 0,
-        color: 'rgba(46, 204, 113, 0.3)',
-      },
-    },
+    shadowColor: '#2ecc71',
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 0 },
   },
   inactiveWave: {
     borderColor: '#2e2e3a',
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 0,
-        blurRadius: 16,
-        spreadDistance: 0,
-        color: 'rgba(46, 46, 58, 0)',
-      },
-    },
+    shadowOpacity: 0,
   },
   circle: {
     width: 200,
