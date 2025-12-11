@@ -353,10 +353,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
+    boxShadowProp: {
+      boxShadow: {
+        offsetX: 0,
+        offsetY: 8,
+        blurRadius: 12,
+        spreadDistance: 0,
+        color: 'rgba(0, 0, 0, 0.08)',
+      },
+    },
     elevation: 3,
   },
   title: {
