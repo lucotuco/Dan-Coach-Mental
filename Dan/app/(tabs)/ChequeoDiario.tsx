@@ -258,7 +258,7 @@ export default function CheckupsScreen() {
         ? error.message
         : 'No pudimos guardar tu chequeo. Inténtalo de nuevo en unos minutos.',
     );
-    setModalLink('index');
+    setModalLink('/');
     setModalBackgroundColor('#fff3e7');
     setModalTitle('No pudimos guardar');
     setModalIconName('alert-circle');

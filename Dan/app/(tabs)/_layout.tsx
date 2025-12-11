@@ -137,6 +137,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="danTeens"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="danKids"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="dolor"
         options={{
           href: null,

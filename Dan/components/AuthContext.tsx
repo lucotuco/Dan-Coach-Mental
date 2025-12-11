@@ -16,7 +16,7 @@ type RouterLike = Pick<Router, 'replace'>;
 
 export function redirectToLogin(router: RouterLike, logout: () => void) {
   logout();
-  router.replace('/bienvenida'); // o '/(auth)/login'
+  router.replace('/'); // o '/(auth)/login'
 }
 
 type User = {

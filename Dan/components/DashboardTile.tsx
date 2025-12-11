@@ -1,26 +1,40 @@
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  View,
+  Image,
+  type ImageSourcePropType,
+} from 'react-native';
 
-import { Text,  useThemeColor } from './Themed';
+import { Text, useThemeColor } from './Themed';
 
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
-type FontAwesome5 = ComponentProps<typeof FontAwesome5>['name'];
+type FontAwesome5Name = ComponentProps<typeof FontAwesome5>['name'];
 
 type DashboardTileProps = {
-  icon: FontAwesome5;
+  icon: FontAwesome5Name;
   title: string;
   onPress?: () => void;
   accentColor?: string;
-  wrapped?: boolean;
+  imageSource?: ImageSourcePropType; // 👉 solo para tiles con imagen
+  hideText?: boolean;                // 👉 si true (y hay imagen), no se muestra texto ni icono
 };
 
-
-export function DashboardTile({ icon, title, onPress, accentColor, wrapped }: DashboardTileProps) {
+export function DashboardTile({
+  icon,
+  title,
+  onPress,
+  accentColor,
+  imageSource,
+  hideText,
+}: DashboardTileProps) {
   const backgroundColor = accentColor ? hexToRgba(accentColor, 0.8) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
-  const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const iconColor = accentColor ?? '#4c6ef5';
-  
+
+  const isImageTile = !!imageSource && hideText;
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -30,24 +44,31 @@ export function DashboardTile({ icon, title, onPress, accentColor, wrapped }: Da
         styles.tile,
         { backgroundColor },
         pressed && styles.pressed,
-        
-        wrapped ? styles.fullWidthTile : styles.halfWidthTile,
+        isImageTile && styles.imageTile,
       ]}
     >
-      
-      <View style={[styles.iconWrap, { backgroundColor: '#fff' }]}>
-        <FontAwesome5 name={icon} size={30} color={iconColor} />
-      </View>
-      <View style={styles.textContent}>
-        <Text style={[styles.title, { color: textColor }]}>{title}</Text>
-        
-      </View>
+      {isImageTile ? (
+        <Image source={imageSource} style={styles.image} resizeMode="cover" />
+      ) : (
+        <>
+          <View style={[styles.iconWrap, { backgroundColor: '#fff' }]}>
+            <FontAwesome5 name={icon} size={30} color={iconColor} />
+          </View>
+          <View style={styles.textContent}>
+            <Text style={[styles.title, { color: textColor }]} numberOfLines={2}>
+              {title}
+            </Text>
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   tile: {
+    flex: 1,
+    width: '100%',
     borderRadius: 18,
     padding: 16,
     gap: 10,
@@ -60,16 +81,17 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
   },
-  fullWidthTile: {
-    width: '100%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-
+  // 👉 para tiles solo imagen (Sesiones)
+  imageTile: {
+    padding: 0,
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+    overflow: 'hidden',
   },
-  halfWidthTile: {
+  image: {
     width: '100%',
-    flexGrow: 1,
+    height: '100%',
+    flex: 1,
   },
   iconWrap: {
     width: 50,
@@ -86,11 +108,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '800',
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 13,
-    lineHeight: 18,
     textAlign: 'center',
   },
   pressed: {

@@ -22,7 +22,7 @@ export const unstable_settings = {
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-const PUBLIC_ROUTES = ['/', '/signup'];
+const PUBLIC_ROUTES = ['/', '/signup','/introVideo'];
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
