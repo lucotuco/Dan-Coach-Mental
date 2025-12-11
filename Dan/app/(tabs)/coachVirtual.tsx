@@ -297,15 +297,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 14,
     gap: 12,
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 6,
-        blurRadius: 10,
-        spreadDistance: 0,
-        color: 'rgba(15, 27, 76, 0.0051)',
-      },
-    },
+    shadowColor: '#0f1b4c0d',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
   emptyText: {
@@ -431,15 +426,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 16,
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 4,
-        blurRadius: 10,
-        spreadDistance: 0,
-        color: 'rgba(0, 0, 0, 0.2)',
-      },
-    },
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
   modalHeader: {

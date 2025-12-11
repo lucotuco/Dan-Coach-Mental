@@ -25,15 +25,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 6,
-        blurRadius: 10,
-        spreadDistance: 0,
-        color: 'rgba(0, 0, 0, 0.06)',
-      },
-    },
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
 });

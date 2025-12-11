@@ -13,15 +13,7 @@ export const createSharedHeaderOptions = (theme: HeaderTheme) => ({
   headerTitleAlign: 'center' as const,
   headerStyle: {
     backgroundColor: theme.background,
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 0,
-        blurRadius: 0,
-        spreadDistance: 0,
-        color: 'transparent',
-      },
-    },
+    shadowColor: 'transparent',
     elevation: 0,
   },
   headerTintColor: theme.text,

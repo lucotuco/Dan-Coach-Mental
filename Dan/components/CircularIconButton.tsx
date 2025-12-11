@@ -25,17 +25,6 @@ export function CircularIconButton({
   const baseBackground = useThemeColor({ light: '#f0f1f7', dark: '#2b2d37' }, 'background');
   const activeBackground = accentColor ?? '#4c6ef5';
   const textColor = useThemeColor({ light: '#6c728a', dark: '#c7c9d9' }, 'text');
-  const activeShadow = {
-    boxShadowProp: {
-      boxShadow: {
-        offsetX: 0,
-        offsetY: 8,
-        blurRadius: 12,
-        spreadDistance: 0,
-        color: hexToRgba(activeBackground, 0.3),
-      },
-    },
-  } as const;
 
   return (
     <Pressable
@@ -48,7 +37,7 @@ export function CircularIconButton({
         style={[
           styles.iconBadge,
           { backgroundColor: active ? activeBackground : baseBackground },
-          active && [styles.iconBadgeActive, activeShadow],
+          active && [styles.iconBadgeActive, { shadowColor: activeBackground }],
         ]}
       >
         <FeatherIcon name={icon} size={22} color={active ? '#fff' : textColor} />
@@ -72,6 +61,9 @@ const styles = StyleSheet.create({
     height: 64,
   },
   iconBadgeActive: {
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
     elevation: 6,
   },
   label: {
@@ -83,19 +75,5 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
 });
-
-function hexToRgba(hex: string, alpha: number) {
-  const match = hex.replace('#', '');
-
-  if (match.length === 6) {
-    const r = parseInt(match.slice(0, 2), 16);
-    const g = parseInt(match.slice(2, 4), 16);
-    const b = parseInt(match.slice(4, 6), 16);
-
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-
-  return hex;
-}
 
 export default CircularIconButton;
