@@ -10,6 +10,8 @@ import MedioLogo from '@/components/MedioLogo';
 
 // 👉 imagen para el tile de Sesiones
 const danSessionsImage: ImageSourcePropType = require('@/assets/images/Dan-Image2.jpg');
+const danTeensImage: ImageSourcePropType = require('@/assets/images/Dan-Kids.jpg');
+const danTeensKids: ImageSourcePropType = require('@/assets/images/Dan-Teens.jpg');
 
 type QuickAction = {
   key: string;
@@ -67,12 +69,16 @@ const quickActions: QuickAction[] = [
     title: 'DAN TEENS',
     icon: 'user-friends',
     accent: '#f9ddff',
+    imageSource: danTeensImage,
+    hideText: true, 
   },
   {
     key: '/(tabs)/danKids',
     title: 'DAN KIDS',
     icon: 'child',
     accent: '#cde7ff',
+    imageSource: danTeensKids,
+    hideText: true, 
   },
 ];
 
