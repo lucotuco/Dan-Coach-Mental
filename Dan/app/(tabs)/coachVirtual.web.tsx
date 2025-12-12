@@ -164,7 +164,7 @@ export default function CoachVirtualScreen() {
       }
 
       const backendInstructions = data.session.instructions;
-      console.log('Instrucciones desde backend (Realtime):', backendInstructions);
+      // console.log('Instrucciones desde backend (Realtime):', backendInstructions);
 
       // Tool para guardar resumen de sesión al colgar
       const saveSessionSummaryTool = tool({
@@ -251,62 +251,168 @@ export default function CoachVirtualScreen() {
         event: string,
         handler: (...args: any[]) => void,
       ) => {
-          session.on(event, handler);
-          unsubscribers.push(() => {
-            if (typeof (session as any).off === 'function') {
-              (session as any).off(event, handler);
-            } else if (typeof (session as any).removeListener === 'function') {
-              (session as any).removeListener(event, handler);
-            }
-          });
-        };
+        session.on(event, handler);
+        unsubscribers.push(() => {
+          if (typeof (session as any).off === 'function') {
+            (session as any).off(event, handler);
+          } else if (typeof (session as any).removeListener === 'function') {
+            (session as any).removeListener(event, handler);
+          }
+        });
+      };
 
-      // Cada vez que se agrega algo al historial (usuario o asistente) en Realtime
-      addHandler('history_added', (item) => {
-        if (item.type !== 'message') return;
+      // ---- 1) Mensajes de TEXTO (input_text / text) vía history_added ----
+      addHandler('history_added', (historyItem: any) => {
+        // Sólo nos interesan mensajes
+        if (historyItem.type !== 'message') return;
+        if (historyItem.role === 'system') return;
 
-        const msg = item as RealtimeMessageItem;
-        if (msg.role === 'system') return;
-
+        const msg = historyItem as RealtimeMessageItem;
         const role: 'user' | 'assistant' =
           msg.role === 'assistant' ? 'assistant' : 'user';
 
-        const text = (msg.content as any[])
-          .map((c) => {
-            if ('text' in c && c.text) return c.text as string;
-            if ('transcript' in c && c.transcript)
-              return c.transcript as string;
-            return '';
-          })
-          .join(' ')
-          .trim();
+        const parts = (msg.content ?? []) as any[];
 
-        // Evitar mostrar el prompt interno de "estás por cortar la llamada..."
+        // Extraemos SOLO texto explícito (no transcript acá)
+        const text =
+          parts
+            .map((part) => {
+              if (part.type === 'input_text' || part.type === 'text') {
+                if (typeof part.text === 'string') return part.text;
+
+                // Algunos casos raros del SDK vienen como objetos:
+                if (
+                  part.text &&
+                  typeof part.text.message === 'string'
+                ) {
+                  return part.text.message;
+                }
+                if (
+                  part.text &&
+                  typeof part.text.response === 'string'
+                ) {
+                  return part.text.response;
+                }
+              }
+              return '';
+            })
+            .join(' ')
+            .trim() ?? '';
+
+        // console.log(
+        //   'HISTORY_ADDED >>>',
+        //   JSON.stringify(historyItem, null, 2),
+        // );
+
+        if (!text) return;
+
+        // No mostrar el mensaje interno de cierre de llamada
         if (
-          !text ||
-          text.startsWith('DAN, el usuario está por cortar la llamada ahora mismo.')
+          text.startsWith(
+            'DAN, el usuario está por cortar la llamada ahora mismo.',
+          )
         ) {
           return;
         }
 
         const id = (msg as any).itemId ?? msg.id;
 
-        const newMessage: ChatMessage = {
-          id,
-          role,
-          content: text,
-        };
-
         setMessages((prev) => {
           const exists = prev.some((m) => m.id === id);
           if (exists) return prev;
-          return [...prev, newMessage];
+
+          return [
+            ...prev,
+            {
+              id,
+              role,
+              content: text,
+            },
+          ];
         });
 
         markSpeaker(role);
         scrollToEnd();
       });
 
+      // ---- 2) Eventos crudos del Realtime API (audio + transcripción) ----
+      addHandler('transport_event', (event: any) => {
+        // console.log('TRANSPORT_EVENT >>>', event);
+
+        // a) Transcripción FINAL de lo que dijo el USUARIO
+        if (
+          event.type ===
+          'conversation.item.input_audio_transcription.completed'
+        ) {
+          const transcript: string = (event.transcript ?? '').trim();
+          if (!transcript) return;
+
+          const id = event.item_id as string;
+
+          setMessages((prev) => {
+            const existing = prev.find((m) => m.id === id);
+            if (existing) {
+              // Si ya existe, actualizamos el contenido si cambió
+              if (existing.content === transcript) return prev;
+              return prev.map((m) =>
+                m.id === id ? { ...m, content: transcript } : m,
+              );
+            }
+
+            return [
+              ...prev,
+              {
+                id,
+                role: 'user',
+                content: transcript,
+              },
+            ];
+          });
+
+          markSpeaker('user');
+          scrollToEnd();
+          return;
+        }
+
+        // b) Transcripción FINAL de lo que dijo el ASISTENTE en audio
+        if (
+          event.type === 'response.content_part.done' &&
+          event.part?.type === 'audio'
+        ) {
+          const transcript: string = (event.part?.transcript ?? '').trim();
+          if (!transcript) return;
+
+          const id = event.item_id as string;
+
+          setMessages((prev) => {
+            const existing = prev.find((m) => m.id === id);
+            if (existing) {
+              if (existing.content === transcript) return prev;
+              return prev.map((m) =>
+                m.id === id ? { ...m, content: transcript } : m,
+              );
+            }
+
+            return [
+              ...prev,
+              {
+                id,
+                role: 'assistant',
+                content: transcript,
+              },
+            ];
+          });
+
+          markSpeaker('assistant');
+          scrollToEnd();
+        }
+
+        // Si querés, acá también podés manejar:
+        // - input_audio_buffer.speech_started / speech_stopped
+        // - response.audio.delta, etc.
+      });
+
+      /*
       // Detectar actividad de voz
       addHandler('input_audio_buffer.speech_started', () => {
         markSpeaker('user');
@@ -327,6 +433,7 @@ export default function CoachVirtualScreen() {
           clearActiveSpeaker();
         }
       });
+      */
 
       detachSessionHandlers.current = () => {
         unsubscribers.forEach((fn) => fn());
@@ -443,7 +550,7 @@ Al usuario solamente dale un cierre corto, cálido y realista (no leas todo el r
               <Text style={styles.title}>Coach Virtual</Text>
               <Text style={styles.subtitle}>
                 En web, podés escribirle a DAN o hablarle por voz, todo en la
-                misma conversación y con el mismo cerebro.
+                misma conversación.
               </Text>
             </View>
 
@@ -473,77 +580,28 @@ Al usuario solamente dale un cierre corto, cálido y realista (no leas todo el r
                 ))
               )}
             </View>
-
-            {/* BLOQUE DE VOZ (mismo cerebro que el chat) */}
-            <View style={styles.voiceSection}>
-              <View style={styles.voiceHeaderRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.voiceTitle}>Hablar con DAN por voz</Text>
-                  <Text style={styles.voiceSubtitle}>
-                    Cuando la llamada está activa, todo lo que digas se
-                    transcribe en el chat, y también podés seguir escribiendo.
-                  </Text>
-                </View>
-                <View style={styles.voiceStatusRow}>
-                  <View
-                    style={[
-                      styles.statusDot,
-                      connected ? styles.statusDotOn : styles.statusDotOff,
-                    ]}
-                  />
-                  <Text style={styles.voiceStatusText}>
-                    {connected
-                      ? 'En llamada'
-                      : connecting
-                      ? 'Conectando...'
-                      : 'Sin llamada'}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.voiceControlsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.voiceButton,
-                    connected && styles.voiceButtonActive,
-                  ]}
-                  onPress={connected ? handleHangUpVoice : handleConnectVoice}
-                  disabled={connecting}
-                >
-                  {connecting ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <Feather
-                      name={connected ? 'phone-off' : 'phone-call'}
-                      size={18}
-                      color="#fff"
-                    />
-                  )}
-                  <Text style={styles.voiceButtonText}>
-                    {connected ? 'Cortar llamada' : 'Iniciar llamada de voz'}
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={styles.speakerIndicator}>
-                  {activeSpeaker === 'assistant' && (
-                    <Text style={styles.speakerText}>Hablando: DAN</Text>
-                  )}
-                  {activeSpeaker === 'user' && (
-                    <Text style={styles.speakerText}>Hablando: Vos</Text>
-                  )}
-                  {!activeSpeaker && connected && (
-                    <Text style={styles.speakerText}>En espera...</Text>
-                  )}
-                </View>
-              </View>
-
-              {voiceError && (
-                <Text style={styles.voiceErrorText}>{voiceError}</Text>
-              )}
-            </View>
           </ScrollView>
 
-          {/* INPUT TEXTO (misma sesión Realtime) */}
+          {/* Indicador compacto de estado de llamada */}
+          {connected && (
+            <View style={styles.inlineStatusRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  connected ? styles.statusDotOn : styles.statusDotOff,
+                ]}
+              />
+              <Text style={styles.inlineStatusText}>
+                {activeSpeaker === 'assistant'
+                  ? 'Hablando: DAN'
+                  : activeSpeaker === 'user'
+                  ? 'Hablando: Vos'
+                  : 'En espera...'}
+              </Text>
+            </View>
+          )}
+
+          {/* INPUT TEXTO + BOTONES (Enviar + Voz) */}
           <View style={styles.inputBar}>
             <TextInput
               style={styles.input}
@@ -559,18 +617,43 @@ Al usuario solamente dale un cierre corto, cálido y realista (no leas todo el r
               maxLength={500}
               editable={connected} // solo escribís cuando hay sesión Realtime
             />
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!trimmedQuestion || !connected) && styles.sendButtonDisabled,
-              ]}
-              onPress={sendTextMessage}
-              disabled={!trimmedQuestion || !connected}
-            >
-              <Feather name="send" size={18} color="#fff" />
-              <Text style={styles.sendButtonText}>Enviar</Text>
-            </TouchableOpacity>
+            <View style={styles.inputButtons}>
+              <TouchableOpacity
+                style={[
+                  styles.sendButton,
+                  (!trimmedQuestion || !connected) && styles.sendButtonDisabled,
+                ]}
+                onPress={sendTextMessage}
+                disabled={!trimmedQuestion || !connected}
+              >
+                <Feather name="send" size={18} color="#fff" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.voiceInlineButton,
+                  connected && styles.voiceInlineButtonActive,
+                ]}
+                onPress={connected ? handleHangUpVoice : handleConnectVoice}
+                disabled={connecting}
+              >
+                {connecting ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Feather
+                    name={connected ? 'phone-off' : 'phone-call'}
+                    size={18}
+                    color="#fff"
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
+
+          {/* Error de voz, si existe */}
+          {voiceError && (
+            <Text style={styles.voiceErrorText}>{voiceError}</Text>
+          )}
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -648,19 +731,24 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: '#0f1b4c',
   },
+
+  // ---- BARRA INFERIOR / INPUT ----
   inputBar: {
     padding: 16,
     paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: '#dde4faff',
     borderTopWidth: 1,
     borderTopColor: '#d8dcf0',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
     gap: 10,
   },
   input: {
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 14,
     padding: 12,
-    minHeight: 60,
+    minHeight: 48,
     maxHeight: 140,
     fontSize: 15,
     lineHeight: 20,
@@ -668,59 +756,59 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d8dcf0',
   },
-  sendButton: {
+  inputButtons: {
     flexDirection: 'row',
+    gap: 8,
+  },
+  sendButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     backgroundColor: '#0f1b4c',
-    paddingVertical: 12,
-    borderRadius: 14,
   },
   sendButtonDisabled: {
     backgroundColor: '#9aa4c3',
   },
   sendButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
+    display: 'none', // ya no usamos texto, sólo ícono
   },
 
-  // ---- VOZ ----
-  voiceSection: {
-    marginTop: 12,
-    padding: 16,
-    backgroundColor: '#eef2ff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#d0d7ff',
-    gap: 12,
+  // ---- BOTÓN DE VOZ INLINE ----
+  voiceInlineButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f1b4c',
   },
-  voiceHeaderRow: {
+  voiceInlineButtonActive: {
+    backgroundColor: '#b3261e',
+  },
+
+  // ---- ESTADO DE LLAMADA COMPACTO ----
+  inlineStatusRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 4,
+    backgroundColor: '#dde4faff',
+    borderTopWidth: 1,
+    borderTopColor: '#d8dcf0',
   },
-  voiceTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f1b4c',
+  inlineStatusText: {
+    marginLeft: 6,
+    fontSize: 12,
+    color: '#1f2b6c',
   },
-  voiceSubtitle: {
-    fontSize: 13,
-    color: '#2f3c6f',
-    lineHeight: 18,
-    marginTop: 4,
-  },
-  voiceStatusRow: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
+
   statusDot: {
     width: 10,
     height: 10,
     borderRadius: 999,
-    marginLeft: 'auto',
     marginBottom: 2,
   },
   statusDotOn: {
@@ -729,45 +817,12 @@ const styles = StyleSheet.create({
   statusDotOff: {
     backgroundColor: '#e74c3c',
   },
-  voiceStatusText: {
-    fontSize: 12,
-    color: '#1f2b6c',
-  },
-  voiceControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-  },
-  voiceButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: '#0f1b4c',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 12,
-  },
-  voiceButtonActive: {
-    backgroundColor: '#b3261e',
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  speakerIndicator: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  speakerText: {
-    fontSize: 12,
-    color: '#1f2b6c',
-  },
+
   voiceErrorText: {
-    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
     fontSize: 12,
     color: '#b3261e',
+    backgroundColor: '#dde4faff',
   },
 });
