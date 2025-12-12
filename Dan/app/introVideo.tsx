@@ -1,55 +1,81 @@
-import { useEffect } from 'react';
-import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, StyleSheet, TouchableOpacity, View as RNView } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
+import { setIntroSeen, getIntroSeen } from '@/components/introSeen';
 
 const INTRO_VIDEO_URL = require('../assets/videos/DanCoachDeporFINALEXPORT.mp4');
 
 export default function IntroVideoScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ next?: string }>();
+  const nextRoute = useMemo(() => {
+    return typeof params.next === 'string' && params.next.length ? params.next : '/';
+  }, [params.next]);
 
-  const skipBackground = useThemeColor(
-    { light: '#0b164c', dark: '#e5e9ff' },
-    'text'
-  );
-  const skipTextColor = useThemeColor(
-    { light: '#ffffff', dark: '#0b164c' },
-    'background'
-  );
+  const skipBackground = useThemeColor({ light: '#0b164c', dark: '#e5e9ff' }, 'text');
+  const skipTextColor = useThemeColor({ light: '#ffffff', dark: '#0b164c' }, 'background');
 
   const isWeb = Platform.OS === 'web';
+  const [needsTap, setNeedsTap] = useState(false);
 
   const player = useVideoPlayer(INTRO_VIDEO_URL, (p) => {
     p.loop = false;
-
-    // 🔊 En web lo arrancamos muteado para que el autoplay no lo bloquee
-    if (isWeb) {
-      p.muted = true;
-    }
-
-    p.play();
+    if (isWeb) p.muted = true;
   });
 
-  const handleSkip = () => {
-    // Por las dudas pausamos antes de navegar
+  // Si ya vio el intro (por ejemplo, en native si arrancás directo acá), saltealo.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const seen = await getIntroSeen();
+      if (mounted && seen) router.replace(nextRoute);
+    })();
+    return () => { mounted = false; };
+  }, [router, nextRoute]);
+
+  const handleFinish = async () => {
     player?.pause();
-    router.replace('/');
+    await setIntroSeen(true);
+    router.replace(nextRoute);
   };
 
+  // Play más confiable en Web: después del mount
   useEffect(() => {
     if (!player) return;
 
-    // 👇 Evento oficial de expo-video para cuando el video llega al final
-    const sub = player.addListener('playToEnd', () => {
-      handleSkip();
-    });
-
-    return () => {
-      sub.remove();
+    const tryPlay = async () => {
+      try {
+        const r = player.play();
+        if (r instanceof Promise) await r;
+      } catch {
+        setNeedsTap(true);
+      }
     };
+
+    const id = requestAnimationFrame(() => { void tryPlay(); });
+    return () => cancelAnimationFrame(id);
   }, [player]);
+
+  useEffect(() => {
+    if (!player) return;
+    const sub = player.addListener('playToEnd', () => { void handleFinish(); });
+    return () => sub.remove();
+  }, [player, nextRoute]);
+
+  const handleTapToPlay = async () => {
+    setNeedsTap(false);
+    // si querés audio al toque:
+    if (isWeb) player.muted = false;
+    try {
+      const r = player.play();
+      if (r instanceof Promise) await r;
+    } catch {
+      setNeedsTap(true);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -57,20 +83,25 @@ export default function IntroVideoScreen() {
         <VideoView
           player={player}
           style={styles.video}
-          contentFit="cover"
+          contentFit="contain"
           allowsFullscreen={false}
           allowsPictureInPicture={false}
           nativeControls={false}
         />
 
-        {/* Botón de saltar (sirve en nativo y en web) */}
+        {needsTap && (
+          <RNView style={styles.overlay}>
+            <TouchableOpacity style={styles.tapButton} onPress={handleTapToPlay}>
+              <Text style={styles.tapText}>Tocar para iniciar</Text>
+            </TouchableOpacity>
+          </RNView>
+        )}
+
         <TouchableOpacity
           style={[styles.skipButton, { backgroundColor: skipBackground }]}
-          onPress={handleSkip}
+          onPress={() => { void handleFinish(); }}
         >
-          <Text style={[styles.skipText, { color: skipTextColor }]}>
-            Saltar video
-          </Text>
+          <Text style={[styles.skipText, { color: skipTextColor }]}>Saltar video</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -78,31 +109,21 @@ export default function IntroVideoScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000',
-  },
-  video: {
-    flex: 1,
-    width: '100%',
-  },
+  safeArea: { flex: 1, backgroundColor: '#000' },
+  container: { flex: 1, backgroundColor: '#000' },
+  video: { flex: 1, width: '100%' },
   skipButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    opacity: 0.9,
+    position: 'absolute', top: 20, right: 20,
+    paddingVertical: 10, paddingHorizontal: 16,
+    borderRadius: 20, opacity: 0.9,
   },
-  skipText: {
-    fontWeight: '800',
-    fontSize: 14,
+  skipText: { fontWeight: '800', fontSize: 14 },
+
+  overlay: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#00000055',
   },
+  tapButton: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: '#ffffff' },
+  tapText: { fontWeight: '800', fontSize: 16, color: '#000' },
 });

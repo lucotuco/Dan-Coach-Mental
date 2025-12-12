@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import { useAuth } from '@/components/AuthContext';
+import { getIntroSeen } from '@/components/introSeen';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login,isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -16,7 +17,31 @@ export default function LoginScreen() {
   const textColor = useThemeColor({ light: '#031355', dark: '#e5e9ff' }, 'tint');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
+  const [checkingIntro, setCheckingIntro] = useState(true);
 
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      const seen = await getIntroSeen();
+      if (!mounted) return;
+
+      if (!seen) {
+        // si querés, podés mandar next a tabs si ya está logueado
+        const next = isAuthenticated ? '/(tabs)/homePage' : '/';
+        router.replace({ pathname: '/introVideo', params: { next } });
+        return;
+      }
+
+      setCheckingIntro(false);
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [router, isAuthenticated]);
+
+  if (checkingIntro) return null;
   const handleLogin = async () => {
     try {
       const token = typeof localStorage !== 'undefined'

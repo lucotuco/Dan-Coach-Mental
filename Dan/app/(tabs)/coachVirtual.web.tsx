@@ -234,10 +234,56 @@ export default function CoachVirtualScreen() {
         },
       });
 
+      const getSessionHistoryTool = tool({
+        name: 'get_session_history',
+        description:
+          'Trae historial corto (resúmenes) de sesiones previas. Usala SOLO si el usuario lo pide o si menciona una charla previa y necesitás recuperar detalles.',
+        parameters: z.object({
+          limit: z.number().min(1).max(10).default(5),
+        }),
+        execute: async ({ limit }) => {
+          try {
+            if (!userId || !token) return 'No autenticado.';
+
+            const qs = new URLSearchParams();
+            qs.set('userId', userId);
+            qs.set('limit', String(limit));
+            qs.set('format', 'tool'); // recomendado (ver backend abajo)
+
+            const resp = await fetch(`${API_URL}${REALTIME_SAVE_SESSION_ENDPOINT}?${qs.toString()}`, {
+              method: 'GET',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!resp.ok) return `Error al traer historial (HTTP ${resp.status}).`;
+
+            const data = await resp.json();
+
+            // Si el backend te devuelve "context" ya formateado:
+            if (typeof data?.context === 'string') return data.context;
+
+            // Fallback si te devuelve sessions:
+            const sessions = Array.isArray(data?.sessions) ? data.sessions : [];
+            return sessions
+              .slice(0, limit)
+              .map((s: any, i: number) => {
+                const date = s.createdAt ? new Date(s.createdAt).toISOString().slice(0, 10) : 's/f';
+                const resumen = (s.resumen ?? '').toString().slice(0, 240);
+                const paso = (s.proximoPaso ?? '').toString().slice(0, 140);
+                return `#${i + 1} (${date}) Resumen: ${resumen}${paso ? ` | Próximo paso: ${paso}` : ''}`;
+              })
+              .join('\n');
+          } catch {
+            return 'Problema de red al traer historial.';
+          }
+        },
+      });
+
+
       const agent = new RealtimeAgent({
         name: 'DAN',
         instructions: backendInstructions,
-        tools: [saveSessionSummaryTool],
+        tools: [saveSessionSummaryTool, getSessionHistoryTool],
       });
 
       const session = new RealtimeSession(agent, {
@@ -308,9 +354,8 @@ export default function CoachVirtualScreen() {
 
         // No mostrar el mensaje interno de cierre de llamada
         if (
-          text.startsWith(
-            'DAN, el usuario está por cortar la llamada ahora mismo.',
-          )
+          text.startsWith('DAN, el usuario está por cortar la llamada ahora mismo.') ||
+          text.startsWith('DAN, antes de empezar, llamá a la herramienta "get_session_history"')
         ) {
           return;
         }
@@ -412,28 +457,32 @@ export default function CoachVirtualScreen() {
         // - response.audio.delta, etc.
       });
 
-      /*
+
       // Detectar actividad de voz
       addHandler('input_audio_buffer.speech_started', () => {
+        console.log('entre al primer handler')
         markSpeaker('user');
       });
 
       addHandler('input_audio_buffer.speech_stopped', () => {
+        console.log('entre al segundo handler')
         if (activeSpeakerRef.current === 'user') {
           clearActiveSpeaker();
         }
       });
 
       addHandler('response.speech_started', () => {
+        console.log('entre al tercer handler')
         markSpeaker('assistant');
       });
 
       addHandler('response.speech_stopped', () => {
+        console.log('entre al cuarto handler')
         if (activeSpeakerRef.current === 'assistant') {
           clearActiveSpeaker();
         }
       });
-      */
+
 
       detachSessionHandlers.current = () => {
         unsubscribers.forEach((fn) => fn());
@@ -595,8 +644,8 @@ Al usuario solamente dale un cierre corto, cálido y realista (no leas todo el r
                 {activeSpeaker === 'assistant'
                   ? 'Hablando: DAN'
                   : activeSpeaker === 'user'
-                  ? 'Hablando: Vos'
-                  : 'En espera...'}
+                    ? 'Hablando: Vos'
+                    : 'En espera...'}
               </Text>
             </View>
           )}

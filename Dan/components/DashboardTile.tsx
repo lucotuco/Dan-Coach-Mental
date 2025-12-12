@@ -6,7 +6,7 @@ import {
   Image,
   type ImageSourcePropType,
 } from 'react-native';
-
+import Color from 'color';
 import { Text, useThemeColor } from './Themed';
 
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
@@ -31,7 +31,7 @@ export function DashboardTile({
 }: DashboardTileProps) {
   const backgroundColor = accentColor ? hexToRgba(accentColor, 0.8) : '#e4e7ff';
   const textColor = useThemeColor({ light: '#1d2136', dark: '#f5f6fb' }, 'text');
-  const iconColor = accentColor ?? '#4c6ef5';
+  const iconColor = accentColor ? Color(accentColor).darken(0.4).hex(): '#4c6ef5';
 
   const isImageTile = !!imageSource && hideText;
 
