@@ -11,18 +11,12 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { createSharedHeaderOptions, withoutBackButton } from '@/constants/navigation';
 
-export {
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  initialRouteName: 'introVideo',
-};
+export { ErrorBoundary } from 'expo-router';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-const PUBLIC_ROUTES = ['/', '/signup','/introVideo'];
+const PUBLIC_ROUTES = ['/', '/signup', '/introVideo'];
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -40,9 +34,7 @@ export default function RootLayout() {
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!loaded) return null;
 
   return (
     <AuthProvider>
@@ -70,33 +62,15 @@ function RootLayoutNav() {
   }, [isAuthenticated, pathname, router]);
 
   return (
-
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <NavigationHistoryProvider>
-        <Stack initialRouteName="introVideo" screenOptions={sharedHeaderOptions}>
-          <Stack.Screen
-            name="index"
-            options={{ gestureEnabled: false, ...withoutBackButton }}
-          />
-          <Stack.Screen
-            name="introVideo"
-            options={{ headerShown: false, gestureEnabled: false }}
-          />
-          <Stack.Screen
-            name="signup"
-            options={{ gestureEnabled: false, ...withoutBackButton }}
-          />
-          <Stack.Screen
-            name="bienvenida"
-            options={{ gestureEnabled: false, ...withoutBackButton }}
-          />
-          <Stack.Screen
-            name="cargarInfo"
-            options={{ gestureEnabled: false }} />
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: false, gestureEnabled: false }}
-          />
+        <Stack screenOptions={sharedHeaderOptions}>
+          <Stack.Screen name="index" options={{ gestureEnabled: false, ...withoutBackButton }} />
+          <Stack.Screen name="introVideo" options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="signup" options={{ gestureEnabled: false, ...withoutBackButton }} />
+          <Stack.Screen name="bienvenida" options={{ gestureEnabled: false, ...withoutBackButton }} />
+          <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
         </Stack>
       </NavigationHistoryProvider>

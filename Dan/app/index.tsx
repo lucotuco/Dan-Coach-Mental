@@ -1,52 +1,48 @@
-import { useState, useEffect } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
 import MedioLogo from '@/components/MedioLogo';
 import { Text, View, useThemeColor } from '@/components/Themed';
 import { useAuth } from '@/components/AuthContext';
-import { getIntroSeen } from '@/components/introSeen';
+
+const INTRO_KEY = 'dan_intro_seen_session_v1';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login,isAuthenticated } = useAuth();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
   const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
   const backgroundColor = useThemeColor({ light: '#fff', dark: '#0b1026' }, 'background');
   const cardColor = useThemeColor({ light: '#ffffff', dark: '#141b33' }, 'background');
   const textColor = useThemeColor({ light: '#031355', dark: '#e5e9ff' }, 'tint');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
-  const [checkingIntro, setCheckingIntro] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
+  // ✅ En WEB: si todavía no vio el intro en ESTA sesión de navegación, lo mandamos al video.
+  // Usamos <Redirect /> para evitar el error "Attempted to navigate before mounting..."
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const seen = window.sessionStorage.getItem(INTRO_KEY) === '1';
+    if (!seen) {
+      return <Redirect href={{ pathname: '/introVideo', params: { next: '/' } }} />;
+    }
+  }
 
-    (async () => {
-      const seen = await getIntroSeen();
-      if (!mounted) return;
-
-      if (!seen) {
-        // si querés, podés mandar next a tabs si ya está logueado
-        const next = isAuthenticated ? '/(tabs)/homePage' : '/';
-        router.replace({ pathname: '/introVideo', params: { next } });
-        return;
-      }
-
-      setCheckingIntro(false);
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, [router, isAuthenticated]);
-
-  if (checkingIntro) return null;
   const handleLogin = async () => {
     try {
-      const token = typeof localStorage !== 'undefined'
-        ? localStorage.getItem('token')
-        : null;
+      const token =
+        typeof localStorage !== 'undefined'
+          ? localStorage.getItem('token')
+          : null;
 
       const response = await fetch(API_URL + '/api/users/login', {
         method: 'POST',
@@ -65,13 +61,13 @@ export default function LoginScreen() {
         return;
       }
 
-      // 👇 Acá guardamos el user en el contexto
       if (typeof localStorage !== 'undefined' && data?.token) {
         localStorage.setItem('token', data.token);
       }
+
+      // ✅ Guardamos user en contexto
       login(data.user);
 
-      // y te mando a la home (ajustá la ruta a la tuya)
       router.replace('/(tabs)/homePage');
     } catch (error) {
       console.error('Error en login:', error);
@@ -83,76 +79,89 @@ export default function LoginScreen() {
     router.push('/signup');
   };
 
-
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-    <ScrollView
-      keyboardShouldPersistTaps="handled"
-       scrollEnabled={false}
-      showsVerticalScrollIndicator={false}
-      style={{ backgroundColor }}
-    >
-      <View style={styles.container}>
-        <View style={styles.logoWrapper}>
-          <MedioLogo />
-        </View>
-
-        <View style={[styles.card, { backgroundColor: cardColor }]}>
-          <Text style={[styles.title, { color: textColor }]}>Bienvenido de vuelta</Text>
-          <Text style={[styles.subtitle, { color: mutedColor }]}>Inicia sesión para continuar con tu acompañamiento.</Text>
-
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: mutedColor }]}>Correo electrónico</Text>
-            <TextInput
-              style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
-              placeholder="nombre@correo.com"
-              placeholderTextColor={mutedColor}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              textContentType="emailAddress"
-            />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor }}
+      >
+        <View style={styles.container}>
+          <View style={styles.logoWrapper}>
+            <MedioLogo />
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: mutedColor }]}>Contraseña</Text>
-            <TextInput
-              style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
-              placeholder="Tu contraseña"
-              placeholderTextColor={mutedColor}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              textContentType="password"
-            />
+          <View style={[styles.card, { backgroundColor: cardColor }]}>
+            <Text style={[styles.title, { color: textColor }]}>Bienvenido de vuelta</Text>
+            <Text style={[styles.subtitle, { color: mutedColor }]}>
+              Inicia sesión para continuar con tu acompañamiento.
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: mutedColor }]}>Correo electrónico</Text>
+              <TextInput
+                style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
+                placeholder="nombre@correo.com"
+                placeholderTextColor={mutedColor}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                textContentType="emailAddress"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: mutedColor }]}>Contraseña</Text>
+              <TextInput
+                style={[styles.input, { borderColor: mutedColor, color: inputTextColor }]}
+                placeholder="Tu contraseña"
+                placeholderTextColor={mutedColor}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                textContentType="password"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: textColor }]}
+              onPress={handleLogin}
+            >
+              <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                { backgroundColor: '#fff', borderColor: textColor, borderWidth: 2 },
+              ]}
+              onPress={handleCreateAccount}
+            >
+              <Text style={[styles.secondaryButtonText, { fontSize: 16, color: textColor }]}>
+                Crear cuenta
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.secondaryButton}>
+              <Text style={[styles.secondaryButtonText, { color: textColor }]}>
+                ¿Olvidaste tu contraseña?
+              </Text>
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: textColor }]} onPress={handleLogin}>
-            <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: '#fff', borderColor: textColor, borderWidth: 2 }]} onPress={handleCreateAccount}>
-            <Text style={[styles.secondaryButtonText, { fontSize: 16, color: textColor }]}>Crear cuenta</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.secondaryButton}>
-            <Text style={[styles.secondaryButtonText, { color: textColor }]}>¿Olvidaste tu contraseña?</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </ScrollView>
-</KeyboardAvoidingView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
+  flex: { flex: 1 },
   container: {
     flexGrow: 1,
     padding: 24,
@@ -175,22 +184,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 20,
     elevation: 6,
+    alignItems: 'stretch',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  title: { fontSize: 24, fontWeight: '800' },
+  subtitle: { fontSize: 14, lineHeight: 20 },
+  inputGroup: { gap: 8 },
+  label: { fontSize: 14, fontWeight: '600' },
   input: {
     borderWidth: 1,
     borderRadius: 16,
@@ -205,16 +204,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
   },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  secondaryButton: { alignItems: 'center' },
+  secondaryButtonText: { fontSize: 14, fontWeight: '600' },
 });

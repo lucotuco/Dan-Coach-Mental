@@ -190,7 +190,7 @@ export default function ProfileScreen() {
     console.log('Usuario actualizado OK:', data);
     // el backend (ver abajo) va a devolver { message, user }
     login(data.user ?? data);
-    router.replace('/bienvenida');
+    router.replace('/(tabs)/homePage');
   } catch (error) {
     console.error('Error al actualizar el usuario (fetch):', error);
     alert('Error de conexión con el servidor');

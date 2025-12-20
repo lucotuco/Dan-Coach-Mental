@@ -4,13 +4,14 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Text, View, useThemeColor } from '@/components/Themed';
-import { setIntroSeen, getIntroSeen } from '@/components/introSeen';
 
 const INTRO_VIDEO_URL = require('../assets/videos/DanCoachDeporFINALEXPORT.mp4');
+const INTRO_KEY = 'dan_intro_seen_session_v1';
 
 export default function IntroVideoScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ next?: string }>();
+
   const nextRoute = useMemo(() => {
     return typeof params.next === 'string' && params.next.length ? params.next : '/';
   }, [params.next]);
@@ -19,61 +20,48 @@ export default function IntroVideoScreen() {
   const skipTextColor = useThemeColor({ light: '#ffffff', dark: '#0b164c' }, 'background');
 
   const isWeb = Platform.OS === 'web';
-  const [needsTap, setNeedsTap] = useState(false);
+  const [started, setStarted] = useState(false);
+  const [playError, setPlayError] = useState<string | null>(null);
 
   const player = useVideoPlayer(INTRO_VIDEO_URL, (p) => {
     p.loop = false;
-    if (isWeb) p.muted = true;
+    if (isWeb) p.muted = true; // el usuario habilita sonido al tocar play
   });
 
-  // Si ya vio el intro (por ejemplo, en native si arrancás directo acá), saltealo.
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      const seen = await getIntroSeen();
-      if (mounted && seen) router.replace(nextRoute);
-    })();
-    return () => { mounted = false; };
-  }, [router, nextRoute]);
+  const markSeen = () => {
+    if (isWeb && typeof window !== 'undefined') {
+      window.sessionStorage.setItem(INTRO_KEY, '1');
+    }
+  };
 
-  const handleFinish = async () => {
-    player?.pause();
-    await setIntroSeen(true);
+  const handleFinish = () => {
+    markSeen();
     router.replace(nextRoute);
   };
 
-  // Play más confiable en Web: después del mount
-  useEffect(() => {
-    if (!player) return;
-
-    const tryPlay = async () => {
-      try {
-        const r = player.play();
-        if (r instanceof Promise) await r;
-      } catch {
-        setNeedsTap(true);
-      }
-    };
-
-    const id = requestAnimationFrame(() => { void tryPlay(); });
-    return () => cancelAnimationFrame(id);
-  }, [player]);
+  const handleSkip = () => {
+    try {
+      player?.pause();
+    } catch {}
+    handleFinish();
+  };
 
   useEffect(() => {
     if (!player) return;
-    const sub = player.addListener('playToEnd', () => { void handleFinish(); });
+    const sub = player.addListener('playToEnd', () => handleFinish());
     return () => sub.remove();
   }, [player, nextRoute]);
 
-  const handleTapToPlay = async () => {
-    setNeedsTap(false);
-    // si querés audio al toque:
-    if (isWeb) player.muted = false;
+  const handlePlay = async () => {
+    setPlayError(null);
     try {
+      if (isWeb) player.muted = false; // gesto del usuario => habilita audio
       const r = player.play();
       if (r instanceof Promise) await r;
-    } catch {
-      setNeedsTap(true);
+      setStarted(true);
+    } catch (e: any) {
+      setPlayError(e?.message ?? 'No se pudo reproducir el video.');
+      setStarted(false);
     }
   };
 
@@ -89,17 +77,27 @@ export default function IntroVideoScreen() {
           nativeControls={false}
         />
 
-        {needsTap && (
+        {!started && (
           <RNView style={styles.overlay}>
-            <TouchableOpacity style={styles.tapButton} onPress={handleTapToPlay}>
-              <Text style={styles.tapText}>Tocar para iniciar</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Reproducir video"
+              activeOpacity={0.9}
+              style={styles.playButton}
+              onPress={handlePlay}
+            >
+              <RNView style={styles.playTriangle} />
             </TouchableOpacity>
+
+            {!!playError && (
+              <Text style={styles.errorText}>{String(playError)}</Text>
+            )}
           </RNView>
         )}
 
         <TouchableOpacity
           style={[styles.skipButton, { backgroundColor: skipBackground }]}
-          onPress={() => { void handleFinish(); }}
+          onPress={handleSkip}
         >
           <Text style={[styles.skipText, { color: skipTextColor }]}>Saltar video</Text>
         </TouchableOpacity>
@@ -111,19 +109,58 @@ export default function IntroVideoScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#000' },
   container: { flex: 1, backgroundColor: '#000' },
-  video: { flex: 1, width: '100%' },
+  video: { width: '100%', height: '100%' },
+
   skipButton: {
-    position: 'absolute', top: 20, right: 20,
-    paddingVertical: 10, paddingHorizontal: 16,
-    borderRadius: 20, opacity: 0.9,
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    opacity: 0.9,
   },
   skipText: { fontWeight: '800', fontSize: 14 },
 
   overlay: {
-    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#00000055',
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00000066',
+    paddingHorizontal: 24,
   },
-  tapButton: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: 18, backgroundColor: '#ffffff' },
-  tapText: { fontWeight: '800', fontSize: 16, color: '#000' },
+
+  // Botón circular de play
+  playButton: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Triángulo "play" (CSS-like con borders)
+  playTriangle: {
+    marginLeft: 6, // centra visualmente el triángulo
+    width: 0,
+    height: 0,
+    borderTopWidth: 14,
+    borderBottomWidth: 14,
+    borderLeftWidth: 22,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderLeftColor: '#000',
+  },
+
+  errorText: {
+    marginTop: 12,
+    textAlign: 'center',
+    color: '#fff',
+    opacity: 0.85,
+    fontSize: 12,
+  },
 });

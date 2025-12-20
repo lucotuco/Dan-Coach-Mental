@@ -23,7 +23,7 @@ function Field({
   keyboardType = 'default',
   autoCapitalize = 'none',
   returnKeyType = 'done',
-  
+
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   placeholder: string;
@@ -33,12 +33,12 @@ function Field({
   keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   returnKeyType?: 'done' | 'next' | 'go';
-  
+
 }) {
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-   return (
+  return (
     <View style={[styles.inputWrapper, { borderColor: mutedColor }]}>
       <Ionicons name={icon} size={20} color={mutedColor} style={styles.inputIcon} />
       <TextInput
@@ -62,129 +62,128 @@ export default function SignupScreen() {
   const { login } = useAuth();
   const [name, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const handleSignup = async () => {
-  if (!name || !email || !phone || !password || !confirmPassword) {
-    alert('Por favor completá todos los campos');
-    return;
-  }
-
-  if (password !== confirmPassword) {
-    alert('Las contraseñas no coinciden');
-    return;
-  }
-
-  try {
-    const token = getStoredToken();
-
-    const response = await fetch(API_URL + '/api/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ name, email, phone, password }),
-    });
-
-    const data = await response.json();
-
-    if (isUnauthorizedStatus(response.status)) {
-      redirectToLogin(router);
+    if (!name || !email || !password || !confirmPassword) {
+      alert('Por favor completá todos los campos');
       return;
     }
 
-    if (!response.ok) {
-      if (response.status === 409) {
-        alert('Error: ' + data.message);
-      } else if (response.status === 400) {
-        alert('Error: ' + data.message);
-        console.log('Campos que faltan:', data.missingFields);
-      } else {
-        console.log('Error desde el backend:', data);
-        alert('Ocurrió un error creando el usuario');
+    if (password !== confirmPassword) {
+      alert('Las contraseñas no coinciden');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // IMPORTANTE: sin Authorization en signup
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          alert(data?.message ?? 'Ya existe un usuario con ese email');
+        } else if (response.status === 400) {
+          alert(data?.message ?? 'Faltan campos obligatorios');
+          if (data?.missingFields) console.log('Campos que faltan:', data.missingFields);
+        } else {
+          console.log('Error desde el backend:', data);
+          alert(`Ocurrió un error creando el usuario (${response.status})`);
+        }
+        return;
       }
-      return;
-    }
 
-    console.log('Usuario creado OK:', data);
-    login(data.user);
-     router.replace('/cargarInfo');
-  } catch (error) {
-    console.error('Error al crear el usuario (fetch):', error);
-    alert('Error de conexión con el servidor');
-  }
-};
+      console.log('Usuario creado OK:', data);
+
+      // OJO: tu back hoy NO devuelve token en createUser
+      // Si querés “auto-login” real, ver punto 3.
+      login(data.user);
+
+      router.replace('/(tabs)/homePage');
+    } catch (error) {
+      console.error('Error al crear el usuario (fetch):', error);
+      alert('Error de conexión con el servidor');
+    }
+  };
 
   return (
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    > 
-      <ScrollView  keyboardShouldPersistTaps="handled"style={{backgroundColor:'#fff'}}>
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
+        style={{ backgroundColor: '#fff' }}>
         <View style={styles.container}>
-        <MedioLogo/>
-        <View style={styles.card}>
-          <View style={styles.formFields}>
-            <Field
-              icon="person"
-              placeholder="Nombre y apellido"
-              value={name}
-              onChangeText={setFullName}
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-            <Field
-              icon="mail"
-              placeholder="Correo electrónico"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={setEmail}
-            />
-            <Field
-              icon="call"
-              placeholder="Teléfono"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-            />
-            <Field
-              icon="lock-closed"
-              placeholder="Contraseña"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
-            <Field
-              icon="lock-closed"
-              placeholder="Repetir contraseña"
-              secureTextEntry
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-            />
+          <View style={styles.logoWrapper}>
+            <MedioLogo />
           </View>
+          <Text style={[styles.title, { color: '#031355', }]}>Bienvenido</Text>
+                      <Text style={[styles.subtitle, { color: mutedColor }]}>
+                        Crea una cuenta para empezar a entrenarte.
+                      </Text>
+          <View style={styles.card}>
+            <View style={styles.formFields}>
+              <Field
+                icon="person"
+                placeholder="Nombre y apellido"
+                value={name}
+                onChangeText={setFullName}
+                autoCapitalize="words"
+                returnKeyType="next"
+              />
+              <Field
+                icon="mail"
+                placeholder="Correo electrónico"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={setEmail}
+              />
+              <Field
+                icon="lock-closed"
+                placeholder="Contraseña"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+              <Field
+                icon="lock-closed"
+                placeholder="Repetir contraseña"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+            </View>
 
-          <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={handleSignup}
-          >
-            <Text style={styles.primaryButtonText}>CREAR CUENTA</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.primaryButton]}
+              onPress={handleSignup}
+            >
+              <Text style={styles.primaryButtonText}>CREAR CUENTA</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={() => router.replace('/')}
-          >
-            <Text style={styles.secondaryButtonText}>INICIAR SESIÓN</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={() => router.replace('/')}
+            >
+              <Text style={styles.secondaryButtonText}>INICIAR SESIÓN</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity>
-            <Text style={styles.forgotText}>¿OLVIDASTE TU CONTRASEÑA?</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity>
+              <Text style={styles.forgotText}>¿OLVIDASTE TU CONTRASEÑA?</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -202,19 +201,27 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 32,
+  },
+  logoWrapper: {
+    alignItems: 'center',
+    width: '100%',
   },
   card: {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 480,
     borderRadius: 24,
     padding: 24,
+    gap: 20,
     shadowColor: '#00000015',
     shadowOpacity: 0.3,
     shadowOffset: { width: 0, height: 8 },
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 6,
     alignItems: 'stretch',
   },
+  title: { fontSize: 24, fontWeight: '800' ,textAlign:'left'},
+  subtitle: { fontSize: 14, lineHeight: 20 , marginTop: -28},
   logoContainer: {
     alignItems: 'center',
     marginBottom: 32,
@@ -265,8 +272,7 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontWeight: '700',
   },
   secondaryButton: {
     backgroundColor: '#ffffff',
@@ -275,9 +281,8 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     color: '#102d64',
-    fontSize: 16,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 14,
+    fontWeight: '600',
   },
   forgotText: {
     marginTop: 24,
