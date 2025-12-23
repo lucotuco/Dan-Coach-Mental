@@ -25,7 +25,7 @@ const CheckSlider: React.FC<CheckSliderProps> = ({
   onValueChange,
   color,
   minimumValue = 0,
-  maximumValue = 10,
+  maximumValue = 100,
   step = 1,
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);

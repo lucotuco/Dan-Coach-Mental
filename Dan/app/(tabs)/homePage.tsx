@@ -9,9 +9,9 @@ import { Text, View, useThemeColor } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 
 // 👉 imagen para el tile de Sesiones
-const danSessionsImage: ImageSourcePropType = require('@/assets/images/Dan-Image2.jpg');
+const danSessionsImage: ImageSourcePropType = require('@/assets/images/Dan-Image2Edit.jpg');
 const danTeensImage: ImageSourcePropType = require('@/assets/images/Dan-Kids.jpg');
-const danTeensKids: ImageSourcePropType = require('@/assets/images/Dan-Teens.jpg');
+const danKidsImage: ImageSourcePropType = require('@/assets/images/Dan-Teens.jpg');
 
 type QuickAction = {
   key: string;
@@ -60,7 +60,7 @@ const quickActions: QuickAction[] = [
     key: '/(tabs)/library',
     title: 'Biblioteca',
     icon: 'book-open',
-    accent: '#e4e4e4',
+    accent: '#e4c6aaff',
   },
 
   // FILA: DAN TEENS / DAN KIDS
@@ -77,7 +77,7 @@ const quickActions: QuickAction[] = [
     title: 'DAN KIDS',
     icon: 'child',
     accent: '#cde7ff',
-    imageSource: danTeensKids,
+    imageSource: danKidsImage,
     hideText: true, 
   },
 ];
@@ -280,7 +280,8 @@ export default function HomeScreen() {
                       accentColor={row.left.accent}
                       imageSource={row.left.imageSource}
                       hideText={row.left.hideText}
-                      onPress={() => router.navigate(row.left.key)}
+                      //SUPER HARDCODEADO
+                      onPress={() => router.navigate(row.right.key)}
                     />
                   </View>
 
@@ -292,7 +293,8 @@ export default function HomeScreen() {
                         accentColor={row.right.accent}
                         imageSource={row.right.imageSource}
                         hideText={row.right.hideText}
-                        onPress={() => router.navigate(row.right.key)}
+                        //SUPER HARDCODEADO
+                        onPress={() => router.navigate(row.left.key)}
                       />
                     </View>
                   ) : (

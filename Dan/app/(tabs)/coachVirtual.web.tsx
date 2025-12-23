@@ -1,18 +1,17 @@
 // app/(tabs)/coachVirtual.web.tsx
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import {
@@ -34,6 +33,11 @@ const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
 const REALTIME_SAVE_SESSION_ENDPOINT = '/api/realtime/sessions';
 const DID_CONFIG_ENDPOINT = '/api/did/config';
 const TTS_ENDPOINT = '/api/tts';
+
+const HEADER_H = 140; // logo + titulo + subtitulo
+const VIDEO_H = 320; // alto del video fijo
+const INPUT_H = 92; // alto del input fijo
+const GAP = 16;
 
 const API_URL_RAW = process.env.EXPO_PUBLIC_API_URL ?? '';
 const API_URL = API_URL_RAW.replace(/\/+$/, '');
@@ -78,19 +82,20 @@ export default function CoachVirtualScreen() {
   const [connected, setConnected] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
 
-  const [activeSpeaker, setActiveSpeaker] = useState<'user' | 'assistant' | null>(null);
-  const activeSpeakerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // D-ID
   const [showAvatar, setShowAvatar] = useState(false);
   const [didError, setDidError] = useState<string | null>(null);
 
-  // --- Thinking indicator (anim dots)
+  // Thinking indicator (anim dots)
   const [assistantThinking, setAssistantThinking] = useState(false);
   const [thinkingDots, setThinkingDots] = useState('');
 
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
   const scrollRef = useRef<ScrollView>(null);
+
+  // Speaker indicator (solo para UX de barge-in)
+  const [activeSpeaker, setActiveSpeaker] = useState<'user' | 'assistant' | null>(null);
+  const activeSpeakerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Realtime session
   const sessionRef = useRef<RealtimeSession | null>(null);
@@ -114,7 +119,7 @@ export default function CoachVirtualScreen() {
   const speakGenerationRef = useRef<number>(0);
   const activeTtsAbortRef = useRef<AbortController | null>(null);
 
-  // --- UX ordering: user first + show assistant only when avatar starts
+  // UX ordering: user first + show assistant only when avatar starts
   const pendingUserQueueRef = useRef<string[]>([]);
   const pendingAssistantTextRef = useRef<Map<string, string>>(new Map());
   const displayedAssistantIdsRef = useRef<Set<string>>(new Set());
@@ -123,20 +128,16 @@ export default function CoachVirtualScreen() {
   // fallback timers (if START never comes)
   const assistantFallbackTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  const handleDismissKeyboard = Platform.OS === 'web' ? undefined : () => {};
-
-  const scrollToEnd = () => {
+  const scrollToEnd = useCallback(() => {
     if (!isBrowser()) return;
     requestAnimationFrame(() => {
       scrollRef.current?.scrollToEnd({ animated: true });
     });
-  };
+  }, []);
 
   useEffect(() => {
-    // Mantener scroll abajo cuando aparece/desaparece thinking
     scrollToEnd();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assistantThinking, thinkingDots]);
+  }, [assistantThinking, thinkingDots, scrollToEnd]);
 
   useEffect(() => {
     if (!assistantThinking) {
@@ -152,21 +153,21 @@ export default function CoachVirtualScreen() {
     return () => clearInterval(id);
   }, [assistantThinking]);
 
-  const markSpeaker = (role: 'user' | 'assistant') => {
+  const markSpeaker = useCallback((role: 'user' | 'assistant') => {
     if (activeSpeakerTimeout.current) clearTimeout(activeSpeakerTimeout.current);
     setActiveSpeaker(role);
     activeSpeakerTimeout.current = setTimeout(() => setActiveSpeaker(null), 1800);
-  };
+  }, []);
 
-  const stopOpenAiMic = () => {
+  const stopOpenAiMic = useCallback(() => {
     try {
       const ms = openAiMicStreamRef.current;
       ms?.getTracks()?.forEach((t) => t.stop());
     } catch {}
     openAiMicStreamRef.current = null;
-  };
+  }, []);
 
-  const cleanupRealtime = () => {
+  const cleanupRealtime = useCallback(() => {
     try {
       if (detachSessionHandlers.current) {
         detachSessionHandlers.current();
@@ -185,9 +186,9 @@ export default function CoachVirtualScreen() {
       activeSpeakerTimeout.current = null;
       setActiveSpeaker(null);
     }
-  };
+  }, [stopOpenAiMic]);
 
-  const disconnectDid = async () => {
+  const disconnectDid = useCallback(async () => {
     try {
       const mgr = didManagerRef.current;
       if (mgr) {
@@ -203,8 +204,9 @@ export default function CoachVirtualScreen() {
       setShowAvatar(false);
       setAssistantThinking(false);
     }
-  };
+  }, []);
 
+  // Limpieza total al desmontar
   useEffect(() => {
     return () => {
       cleanupRealtime();
@@ -215,16 +217,14 @@ export default function CoachVirtualScreen() {
         if (el && el.parentNode) el.parentNode.removeChild(el);
       } catch {}
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [cleanupRealtime, disconnectDid]);
 
   function getOrCreateMutedOpenAiAudioEl() {
     if (!isBrowser()) return null;
-
     if (openAiAudioElRef.current) return openAiAudioElRef.current;
 
     const el = document.createElement('audio');
-    // IMPORTANTÍSIMO: evita la “voz” de Realtime (audio nativo del modelo)
+    // Evita la “voz” de Realtime (audio nativo del modelo)
     el.autoplay = true;
     el.muted = true;
     el.volume = 0;
@@ -232,13 +232,11 @@ export default function CoachVirtualScreen() {
     el.style.display = 'none';
 
     document.body.appendChild(el);
-
     openAiAudioElRef.current = el;
     return el;
   }
 
-  // --- Hard stop avatar playback (local), + cancel queued speak pipeline
-  const interruptAssistantAndAvatar = async (reason: string) => {
+  const interruptAssistantAndAvatar = useCallback(async (reason: string) => {
     // Cancela pipeline TTS->DID
     speakGenerationRef.current += 1;
 
@@ -250,13 +248,12 @@ export default function CoachVirtualScreen() {
     // vaciamos cola
     speakQueueRef.current = Promise.resolve();
 
-    // y “reset” del estado de speak actual
+    // reset speak actual
     didCurrentSpeakItemIdRef.current = null;
 
-    // mientras el usuario habla, no estamos pensando
     setAssistantThinking(false);
 
-    // Stop avatar local: volvemos a idle y cortamos srcObject (silencio inmediato)
+    // Stop avatar local: volvemos a idle
     try {
       const video = didVideoRef.current;
       if (video) {
@@ -275,7 +272,7 @@ export default function CoachVirtualScreen() {
       }
     } catch {}
 
-    // Best-effort: si el SDK expone stop/interrupt, lo intentamos
+    // Best-effort: si el SDK expone stop/interrupt
     try {
       const mgr = didManagerRef.current;
       if (mgr?.stop && typeof mgr.stop === 'function') await mgr.stop();
@@ -283,135 +280,152 @@ export default function CoachVirtualScreen() {
     } catch {}
 
     console.log('[INTERRUPT]', reason);
-  };
+  }, []);
 
-  // --- Insert user placeholder on speech start so user appears before assistant
-  const pushPendingUserPlaceholder = () => {
+  // ✅ AUTO-DISCONNECT cuando cambia de tab / pierde foco esta pantalla
+  useFocusEffect(
+    useCallback(() => {
+      // onFocus: no hacemos nada
+      return () => {
+        // onBlur
+        console.log('[NAV] blur -> disconnect call');
+
+        void interruptAssistantAndAvatar('nav blur');
+        cleanupRealtime();
+        void disconnectDid();
+      };
+    }, [cleanupRealtime, disconnectDid, interruptAssistantAndAvatar]),
+  );
+
+  // Insert user placeholder on speech start so user appears before assistant
+  const pushPendingUserPlaceholder = useCallback(() => {
     const id = `user-${Date.now()}`;
     pendingUserQueueRef.current.push(id);
     setMessages((prev) => [...prev, { id, role: 'user', content: '…' }]);
     scrollToEnd();
-  };
+  }, [scrollToEnd]);
 
-  const ensureDidManager = async (token: string) => {
-    if (!isBrowser()) return;
-    if (didManagerRef.current) return;
+  const ensureDidManager = useCallback(
+    async (token: string) => {
+      if (!isBrowser()) return;
+      if (didManagerRef.current) return;
 
-    setDidError(null);
+      setDidError(null);
 
-    console.log('[DID] fetching /api/did/config…');
-    const resp = await fetch(`${API_URL}${DID_CONFIG_ENDPOINT}`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+      console.log('[DID] fetching /api/did/config…');
+      const resp = await fetch(`${API_URL}${DID_CONFIG_ENDPOINT}`, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-    if (!resp.ok) {
-      throw new Error(`D-ID config HTTP ${resp.status}: ${await resp.text()}`);
-    }
+      if (!resp.ok) {
+        throw new Error(`D-ID config HTTP ${resp.status}: ${await resp.text()}`);
+      }
 
-    const cfg = (await resp.json()) as any;
-    const config: DidConfig = cfg?.config ?? cfg;
+      const cfg = (await resp.json()) as any;
+      const config: DidConfig = cfg?.config ?? cfg;
 
-    if (!config?.clientKey || !config?.agentId) {
-      throw new Error('D-ID config inválida (falta clientKey o agentId).');
-    }
+      if (!config?.clientKey || !config?.agentId) {
+        throw new Error('D-ID config inválida (falta clientKey o agentId).');
+      }
 
-    console.log('[DID] config OK');
-    console.log('[DID] dynamic import SDK…');
-    const sdk = await import('@d-id/client-sdk');
-    console.log('[DID] SDK loaded');
+      console.log('[DID] config OK');
+      console.log('[DID] dynamic import SDK…');
+      const sdk = await import('@d-id/client-sdk');
+      console.log('[DID] SDK loaded');
 
-    const callbacks = {
-      onSrcObjectReady: (value: any) => {
-        didSrcObjectRef.current = value;
-        const video = didVideoRef.current;
-        if (video) {
-          video.src = '';
-          (video as any).srcObject = value;
-          video.play?.().catch(() => {});
-        }
-        return value;
-      },
-
-      onVideoStateChange: (state: string) => {
-        console.log('[DID] onVideoStateChange:', state);
-
-        const video = didVideoRef.current;
-        if (!video) return;
-
-        // Cuando el avatar arranca a hablar: mostrar texto del asistente y apagar "pensando"
-        if (state === 'START') {
-          setAssistantThinking(false);
-
-          const itemId = didCurrentSpeakItemIdRef.current;
-          if (itemId) {
-            const text = pendingAssistantTextRef.current.get(itemId);
-            if (text && !displayedAssistantIdsRef.current.has(itemId)) {
-              displayedAssistantIdsRef.current.add(itemId);
-              pendingAssistantTextRef.current.delete(itemId);
-
-              const t = assistantFallbackTimersRef.current.get(itemId);
-              if (t) {
-                clearTimeout(t);
-                assistantFallbackTimersRef.current.delete(itemId);
-              }
-
-              setMessages((prev) => [...prev, { id: itemId, role: 'assistant', content: text }]);
-              markSpeaker('assistant');
-              scrollToEnd();
-            }
-          }
-        }
-
-        if (state === 'STOP') {
-          didCurrentSpeakItemIdRef.current = null;
-
-          const idleUrl =
-            didIdleUrlRef.current || didManagerRef.current?.agent?.presenter?.idle_video || '';
-          if (idleUrl) {
-            try {
-              (video as any).srcObject = null;
-            } catch {}
-            video.src = idleUrl;
+      const callbacks = {
+        onSrcObjectReady: (value: any) => {
+          didSrcObjectRef.current = value;
+          const video = didVideoRef.current;
+          if (video) {
+            video.src = '';
+            (video as any).srcObject = value;
             video.play?.().catch(() => {});
           }
-        } else {
-          video.src = '';
-          (video as any).srcObject = didSrcObjectRef.current ?? null;
-          video.play?.().catch(() => {});
-        }
-      },
+          return value;
+        },
 
-      onConnectionStateChange: (state: string) => {
-        console.log('[DID] connection state:', state);
-      },
+        onVideoStateChange: (state: string) => {
+          console.log('[DID] onVideoStateChange:', state);
 
-      onError: (error: any) => {
-        console.error('[DID] error:', error);
-        setDidError(typeof error?.message === 'string' ? error.message : JSON.stringify(error));
-        // si hay error, no nos quedamos "pensando" colgados
-        setAssistantThinking(false);
-      },
-    };
+          const video = didVideoRef.current;
+          if (!video) return;
 
-    const streamOptions = {
-      compatibilityMode: 'on',
-      streamWarmup: false,
-    };
+          // Cuando el avatar arranca a hablar: mostrar texto del asistente y apagar "pensando"
+          if (state === 'START') {
+            setAssistantThinking(false);
 
-    console.log('[DID] createAgentManager…');
-    const mgr = await sdk.createAgentManager(config.agentId, {
-      auth: { type: 'key', clientKey: config.clientKey },
-      callbacks,
-      streamOptions,
-    });
+            const itemId = didCurrentSpeakItemIdRef.current;
+            if (itemId) {
+              const text = pendingAssistantTextRef.current.get(itemId);
+              if (text && !displayedAssistantIdsRef.current.has(itemId)) {
+                displayedAssistantIdsRef.current.add(itemId);
+                pendingAssistantTextRef.current.delete(itemId);
 
-    didManagerRef.current = mgr;
-    didIdleUrlRef.current = mgr?.agent?.presenter?.idle_video ?? '';
-    console.log('[DID] manager ready. idle_video:', didIdleUrlRef.current ? 'OK' : '(vacío)');
-  };
+                const t = assistantFallbackTimersRef.current.get(itemId);
+                if (t) {
+                  clearTimeout(t);
+                  assistantFallbackTimersRef.current.delete(itemId);
+                }
 
-  const connectDid = async () => {
+                setMessages((prev) => [...prev, { id: itemId, role: 'assistant', content: text }]);
+                markSpeaker('assistant');
+                scrollToEnd();
+              }
+            }
+          }
+
+          if (state === 'STOP') {
+            didCurrentSpeakItemIdRef.current = null;
+
+            const idleUrl =
+              didIdleUrlRef.current || didManagerRef.current?.agent?.presenter?.idle_video || '';
+            if (idleUrl) {
+              try {
+                (video as any).srcObject = null;
+              } catch {}
+              video.src = idleUrl;
+              video.play?.().catch(() => {});
+            }
+          } else {
+            video.src = '';
+            (video as any).srcObject = didSrcObjectRef.current ?? null;
+            video.play?.().catch(() => {});
+          }
+        },
+
+        onConnectionStateChange: (state: string) => {
+          console.log('[DID] connection state:', state);
+        },
+
+        onError: (error: any) => {
+          console.error('[DID] error:', error);
+          setDidError(typeof error?.message === 'string' ? error.message : JSON.stringify(error));
+          setAssistantThinking(false);
+        },
+      };
+
+      const streamOptions = {
+        compatibilityMode: 'on',
+        streamWarmup: false,
+      };
+
+      console.log('[DID] createAgentManager…');
+      const mgr = await sdk.createAgentManager(config.agentId, {
+        auth: { type: 'key', clientKey: config.clientKey },
+        callbacks,
+        streamOptions,
+      });
+
+      didManagerRef.current = mgr;
+      didIdleUrlRef.current = mgr?.agent?.presenter?.idle_video ?? '';
+      console.log('[DID] manager ready. idle_video:', didIdleUrlRef.current ? 'OK' : '(vacío)');
+    },
+    [markSpeaker, scrollToEnd],
+  );
+
+  const connectDid = useCallback(async () => {
     if (!isBrowser()) return;
     const mgr = didManagerRef.current;
     if (!mgr) throw new Error('D-ID manager no inicializado.');
@@ -441,44 +455,50 @@ export default function CoachVirtualScreen() {
       video.muted = false;
       video.play?.().catch(() => {});
     }
+  }, []);
+
+  // ✅ FIX: acepta AbortSignal
+  const requestTtsAudioUrl = async (
+    token: string,
+    text: string,
+    itemId?: string,
+    signal?: AbortSignal,
+  ) => {
+    console.log('[TTS] POST /api/tts …', itemId ?? '');
+
+    const ttsInstructions =
+      'Voz masculina adulta, cálida, cercana, jovial y amigable. registro medio tirando para grave. Ritmo conversacional con micro-pausas naturales; frases cortas y claras. Entonación suave: sube levemente al preguntar y cae al cerrar ideas. Empático y validante, con energía tranquila; transmite contención y seguridad sin autoritarismo. Dicción nítida, sin sonar robótico ni “locutor”. Español rioplatense (vos), lenguaje simple, sin tecnicismos. Puede usar muletillas suaves ocasionales (“ok”, “ajá”, “claro”, “te entiendo”) sin repetirlas. Humor muy liviano solo si alivia, nunca burlón. Evitar tono sermoneador, apurado o agresivo.';
+
+    const resp = await fetch(`${API_URL}${TTS_ENDPOINT}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      signal,
+      body: JSON.stringify({
+        text,
+        model: 'gpt-4o-mini-tts',
+        voice: 'verse',
+        instructions: ttsInstructions,
+        response_format: 'mp3',
+      }),
+    });
+
+    const raw = await resp.text();
+    if (!resp.ok) throw new Error(`TTS HTTP ${resp.status}: ${raw}`);
+
+    let data: any = {};
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error('TTS devolvió respuesta no-JSON');
+    }
+
+    const audioUrl = data?.audioUrl || data?.url;
+    if (!audioUrl) throw new Error('El backend TTS no devolvió audioUrl.');
+    return audioUrl as string;
   };
-
- const requestTtsAudioUrl = async (token: string, text: string, itemId?: string) => {
-  console.log('[TTS] POST /api/tts …', itemId ?? '');
-
-  const ttsInstructions =
-    'Voz masculina adulta, cálida y cercana, registro medio–grave. Ritmo conversacional con micro-pausas naturales; frases cortas y claras. Entonación suave: sube levemente al preguntar y cae al cerrar ideas. Empático y validante, con energía tranquila; transmite contención y seguridad sin autoritarismo. Dicción nítida, sin sonar robótico ni “locutor”. Español rioplatense (vos), lenguaje simple, sin tecnicismos. Puede usar muletillas suaves ocasionales (“ok”, “ajá”, “claro”, “te entiendo”) sin repetirlas. Humor muy liviano solo si alivia, nunca burlón. Evitar tono sermoneador, apurado o agresivo.'
-
-  const resp = await fetch(`${API_URL}${TTS_ENDPOINT}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      text,
-      model: 'gpt-4o-mini-tts',
-      voice: 'verse',
-      instructions: ttsInstructions,
-      response_format: 'mp3',
-      // speed: 1.0, // opcional
-    }),
-  });
-
-  const raw = await resp.text();
-  if (!resp.ok) throw new Error(`TTS HTTP ${resp.status}: ${raw}`);
-
-  let data: any = {};
-  try {
-    data = JSON.parse(raw);
-  } catch {
-    throw new Error('TTS devolvió respuesta no-JSON');
-  }
-
-  const audioUrl = data?.audioUrl || data?.url;
-  if (!audioUrl) throw new Error('El backend TTS no devolvió audioUrl.');
-  return audioUrl as string;
-};
 
   // Encola speak; NO muestra texto hasta START del avatar
   const enqueueDidSpeak = (token: string, text: string, itemId: string) => {
@@ -487,15 +507,12 @@ export default function CoachVirtualScreen() {
     if (spokenIdsRef.current.has(itemId)) return;
     spokenIdsRef.current.add(itemId);
 
-    // Desde acá hasta START, mostramos pensando...
     setAssistantThinking(true);
-
-    // Guardamos texto pendiente (se mostrará en START)
     pendingAssistantTextRef.current.set(itemId, clean);
 
     const myGen = speakGenerationRef.current;
 
-    // Fallback: si START no llega por algún motivo, mostramos texto y apagamos pensando
+    // Fallback: si START no llega, mostramos texto y apagamos pensando
     if (!assistantFallbackTimersRef.current.has(itemId)) {
       const t = setTimeout(() => {
         if (!displayedAssistantIdsRef.current.has(itemId)) {
@@ -526,10 +543,8 @@ export default function CoachVirtualScreen() {
         activeTtsAbortRef.current = ac;
 
         const audioUrl = await requestTtsAudioUrl(token, clean, itemId, ac.signal);
-
         if (myGen !== speakGenerationRef.current) return;
 
-        // Este item es el próximo a “START”
         didCurrentSpeakItemIdRef.current = itemId;
 
         console.log('[DID] speak(audio)…', audioUrl);
@@ -540,7 +555,7 @@ export default function CoachVirtualScreen() {
         console.error('[DID] speak failed:', e);
         setDidError(e?.message ?? 'Error haciendo speak en D-ID');
 
-        // si falló speak, mostramos el texto pendiente para no perderlo
+        // si falló speak, mostramos el texto pendiente
         const pending = pendingAssistantTextRef.current.get(itemId);
         if (pending && !displayedAssistantIdsRef.current.has(itemId)) {
           displayedAssistantIdsRef.current.add(itemId);
@@ -575,9 +590,7 @@ export default function CoachVirtualScreen() {
 
     await transport.sendEvent({
       type: 'session.update',
-      session: {
-        output_modalities: ['text'],
-      },
+      session: { output_modalities: ['text'] },
     });
   };
 
@@ -617,9 +630,7 @@ export default function CoachVirtualScreen() {
       const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
       const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}${query}`, {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (isUnauthorizedStatus(res.status)) {
@@ -677,7 +688,7 @@ export default function CoachVirtualScreen() {
         tools: [saveSessionSummaryTool],
       });
 
-      // ---- Transporte WebRTC propio: AUDIO DE OPENAI MUTEADO (evita doble voz)
+      // Transporte WebRTC propio: AUDIO DE OPENAI MUTEADO (evita doble voz)
       const micStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -715,35 +726,15 @@ export default function CoachVirtualScreen() {
       };
 
       addHandler('transport_event', (event: any) => {
-        if (event?.type === 'session.updated') {
-          console.log('[RT] session.updated output_modalities:', event?.session?.output_modalities);
-        }
-        if (event?.type === 'response.created') {
-          console.log(
-            '[RT] response.created output_modalities:',
-            event?.response?.output_modalities,
-            'voice:',
-            event?.response?.audio?.output?.voice,
-          );
-        }
-
         // Barge-in: usuario empieza a hablar => cortar avatar + pipeline
         if (event?.type === 'input_audio_buffer.speech_started') {
           markSpeaker('user');
-
-          // placeholder para asegurar orden (user primero)
           pushPendingUserPlaceholder();
-
-          interruptAssistantAndAvatar('user speech_started');
+          void interruptAssistantAndAvatar('user speech_started');
           return;
         }
 
-        if (event?.type === 'response.cancelled') {
-          console.log('[RT] response.cancelled');
-          return;
-        }
-
-        // User transcript final: completa placeholder + prende "pensando..."
+        // User transcript final
         if (event?.type === 'conversation.item.input_audio_transcription.completed') {
           const transcript = (event?.transcript ?? '').toString().trim();
           if (!transcript) return;
@@ -760,18 +751,15 @@ export default function CoachVirtualScreen() {
 
           markSpeaker('user');
           scrollToEnd();
-
-          // Desde que el usuario terminó, hasta que el avatar arranque => "Pensando..."
           setAssistantThinking(true);
           return;
         }
 
-        // Asistente: cuando termina el texto, disparamos TTS->DID (y mostramos texto en START)
+        // Asistente: texto final => TTS->DID
         if (event?.type === 'response.output_text.done') {
           const id = (event?.item_id ?? `assistant-${Date.now()}`).toString();
           const text = (event?.text ?? '').toString().trim();
           if (!text) return;
-
           enqueueDidSpeak(token, text, id);
           return;
         }
@@ -780,7 +768,6 @@ export default function CoachVirtualScreen() {
           const id = (event?.item_id ?? `assistant-${Date.now()}`).toString();
           const transcript = (event?.transcript ?? '').toString().trim();
           if (!transcript) return;
-
           enqueueDidSpeak(token, transcript, id);
           return;
         }
@@ -829,14 +816,10 @@ Al usuario solamente dale un cierre corto y cálido.`,
     }
   };
 
+  // ✅ Enviar texto conecta automáticamente (mic + video) si no está conectado
   const sendTextMessage = async () => {
     if (!trimmedQuestion) return;
-
-    const session = sessionRef.current;
-    if (!session || !connected) {
-      alert('Primero conectate con DAN.');
-      return;
-    }
+    if (connecting) return;
 
     const textToSend = trimmedQuestion;
     setQuestion('');
@@ -847,8 +830,17 @@ Al usuario solamente dale un cierre corto y cálido.`,
     ]);
     scrollToEnd();
 
-    // para texto escrito: prendemos pensando de inmediato
     setAssistantThinking(true);
+
+    if (!sessionRef.current || !connected) {
+      await handleConnectVoice();
+    }
+
+    const session = sessionRef.current;
+    if (!session) {
+      setAssistantThinking(false);
+      return;
+    }
 
     try {
       await session.sendMessage(textToSend);
@@ -860,162 +852,181 @@ Al usuario solamente dale un cierre corto y cálido.`,
   };
 
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
-        <View style={styles.container}>
-          <ScrollView
-            ref={scrollRef}
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="never"
-          >
-            <View style={{ marginTop: 4 }}>
-              <MedioLogo />
-            </View>
+    <View style={styles.screen}>
+      {/* HEADER FIXED */}
+      <View style={styles.fixedHeader}>
+        <View style={{ marginTop: 4 }}>
+          <MedioLogo />
+        </View>
 
-            <View style={styles.header}>
-              <Text style={styles.title}>Coach Virtual</Text>
-              <Text style={styles.subtitle}>
-                Apretá el botón de llamada para empezar. El avatar aparece solo durante la llamada.
-              </Text>
-            </View>
+        <View style={styles.header}>
+          <Text style={styles.title}>Coach Virtual</Text>
+          <Text style={styles.subtitle}>Podés hablar con DAN en vivo.</Text>
+        </View>
+      </View>
 
-            {showAvatar && (
-              <View style={styles.videoCard}>
-                <View style={styles.videoFrame}>
-                  <HtmlVideo
-                    ref={(el: any) => (didVideoRef.current = el)}
-                    autoPlay
-                    playsInline
-                    style={styles.videoEl}
-                  />
-                </View>
-                {!!didError && <Text style={styles.didErrorText}>{didError}</Text>}
-              </View>
-            )}
-
-            <View style={styles.chatWrapper}>
-              {messages.length === 0 ? (
-                <Text style={styles.emptyText}>Aún no hay mensajes. Conectate con DAN.</Text>
-              ) : (
-                messages.map((msg) => (
-                  <View
-                    key={msg.id}
-                    style={[
-                      styles.message,
-                      msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
-                    ]}
-                  >
-                    <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
-                    <Text style={styles.messageText}>{msg.content}</Text>
-                  </View>
-                ))
-              )}
-
-              {/* Thinking bubble (solo cuando está “pensando” y aún no arrancó START del avatar) */}
-              {connected && assistantThinking && (
-                <View style={[styles.message, styles.assistantMessage, styles.thinkingMessage]}>
-                  <Text style={styles.messageRole}>Coach DAN</Text>
-                  <Text style={styles.messageText}>{`Pensando${thinkingDots}`}</Text>
-                </View>
-              )}
-            </View>
-          </ScrollView>
-
-          {connected && (
-            <View style={styles.inlineStatusRow}>
-              <View style={[styles.statusDot, styles.statusDotOn]} />
-              <Text style={styles.inlineStatusText}>
-                {activeSpeaker === 'assistant'
-                  ? 'Hablando: DAN'
-                  : activeSpeaker === 'user'
-                  ? 'Hablando: Vos'
-                  : assistantThinking
-                  ? 'Pensando…'
-                  : 'En espera…'}
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.inputBar}>
-            <TextInput
-              style={styles.input}
-              placeholder={connected ? 'Escribí algo para trabajar con DAN…' : 'Primero conectate con DAN'}
-              placeholderTextColor="#8a90a8"
-              value={question}
-              onChangeText={setQuestion}
-              multiline
-              maxLength={500}
-              editable={connected}
+      {/* VIDEO FIXED */}
+      {showAvatar && (
+        <View style={styles.fixedVideo}>
+          <View style={styles.videoFrameFixed}>
+            <HtmlVideo
+              ref={(el: any) => (didVideoRef.current = el)}
+              autoPlay
+              playsInline
+              muted={false}
+              style={styles.videoEl}
             />
-
-            <View style={styles.inputButtons}>
-              <TouchableOpacity
-                style={[styles.sendButton, (!trimmedQuestion || !connected) && styles.sendButtonDisabled]}
-                onPress={sendTextMessage}
-                disabled={!trimmedQuestion || !connected}
-              >
-                <Feather name="send" size={18} color="#fff" />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.voiceInlineButton, connected && styles.voiceInlineButtonActive]}
-                onPress={connected ? handleHangUpVoice : handleConnectVoice}
-                disabled={connecting}
-              >
-                {connecting ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Feather name={connected ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
 
-          {!!voiceError && <Text style={styles.voiceErrorText}>{voiceError}</Text>}
+          {!!didError && <Text style={styles.didErrorText}>{didError}</Text>}
         </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+      )}
+
+      {/* SCROLL MENSAJES */}
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingTop: HEADER_H + (showAvatar ? VIDEO_H : 0) + GAP,
+            paddingBottom: INPUT_H + GAP,
+          },
+        ]}
+        keyboardShouldPersistTaps="never"
+      >
+        <View style={styles.chatWrapper}>
+          {messages.length === 0 ? (
+            <Text style={styles.emptyText}>Aún no hay mensajes. Conectate con DAN.</Text>
+          ) : (
+            messages.map((msg) => (
+              <View
+                key={msg.id}
+                style={[
+                  styles.message,
+                  msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
+                ]}
+              >
+                <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
+                <Text style={styles.messageText}>{msg.content}</Text>
+              </View>
+            ))
+          )}
+
+          {assistantThinking && (
+            <View style={[styles.message, styles.assistantMessage]}>
+              <Text style={styles.messageRole}>Coach DAN</Text>
+              <Text style={styles.messageText}>Pensando{thinkingDots}</Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* INPUT FIXED */}
+      <View style={styles.fixedInputBar}>
+        <TextInput
+          style={styles.input}
+          placeholder={
+            connected
+              ? 'Escribí algo para trabajar con DAN (o hablale)…'
+              : 'Escribí y enviá para conectarte (o apretá llamada).'
+          }
+          placeholderTextColor="#5a5f6dff"
+          value={question}
+          onChangeText={setQuestion}
+          multiline
+          maxLength={500}
+          editable={!connecting}
+        />
+
+        <View style={styles.inputButtons}>
+          <TouchableOpacity
+            style={[styles.sendButton, (!trimmedQuestion || connecting) && styles.sendButtonDisabled]}
+            onPress={sendTextMessage}
+            disabled={!trimmedQuestion || connecting}
+          >
+            <Feather name="send" size={18} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.voiceInlineButton, connected && styles.voiceInlineButtonActive]}
+            onPress={connected ? handleHangUpVoice : handleConnectVoice}
+            disabled={connecting}
+          >
+            {connecting ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Feather name={connected ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {!!voiceError && <Text style={styles.voiceErrorTextFixed}>{voiceError}</Text>}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: '#ffffffff' },
-  container: { flex: 1 },
-  scroll: { flex: 1 },
-  scrollContent: { padding: 20, gap: 16, paddingBottom: 32 },
+  screen: {
+    flex: 1,
+    backgroundColor: '#ffffffff',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+
+  fixedHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: HEADER_H,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 10,
+    backgroundColor: '#ffffffff',
+    zIndex: 30,
+  },
 
   header: { gap: 8 },
   title: { fontSize: 26, fontWeight: '800', color: '#0f1b4c' },
   subtitle: { fontSize: 15, lineHeight: 22, color: '#1f2b6c' },
 
-  videoCard: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 12,
-    gap: 10,
-    shadowColor: '#0f1b4c0d',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+  fixedVideo: {
+    position: 'absolute',
+    top: HEADER_H,
+    left: 0,
+    right: 0,
+    height: VIDEO_H,
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+    backgroundColor: '#ffffffff',
+    zIndex: 20,
   },
-  videoFrame: {
+
+  videoFrameFixed: {
     width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    aspectRatio: 9 / 16,
+    height: VIDEO_H - 12,
     borderRadius: 14,
     overflow: 'hidden',
     backgroundColor: '#000',
   },
+
   videoEl: {
     width: '100%',
     height: '100%',
     objectFit: 'cover',
     backgroundColor: '#000',
   },
+
   didErrorText: { fontSize: 12, color: '#b3261e' },
+
+  scroll: { flex: 1 },
+
+  scrollContent: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
 
   chatWrapper: {
     backgroundColor: '#fff',
@@ -1028,26 +1039,44 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 4,
   },
+
   emptyText: { textAlign: 'center', color: '#7a80a0', fontSize: 14 },
 
   message: { padding: 12, borderRadius: 12, gap: 6 },
   userMessage: { backgroundColor: '#e8f1ff', alignSelf: 'flex-end', maxWidth: '90%' },
   assistantMessage: { backgroundColor: '#f4f6fb', alignSelf: 'flex-start', maxWidth: '90%' },
-  thinkingMessage: { maxWidth: '60%' },
 
   messageRole: { fontSize: 12, fontWeight: '700', color: '#0f1b4c', textTransform: 'uppercase' },
   messageText: { fontSize: 15, lineHeight: 22, color: '#0f1b4c' },
 
-  inputBar: {
+  fixedInputBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: INPUT_H,
     padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
     backgroundColor: '#dde4faff',
     borderTopWidth: 1,
     borderTopColor: '#d8dcf0',
     flexDirection: 'row',
     alignItems: 'flex-end',
     gap: 10,
+    zIndex: 40,
   },
+
+  voiceErrorTextFixed: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: INPUT_H,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    fontSize: 12,
+    color: '#b3261e',
+    zIndex: 50,
+  },
+
   input: {
     flex: 1,
     backgroundColor: '#fff',
@@ -1061,6 +1090,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d8dcf0',
   },
+
   inputButtons: { flexDirection: 'row', gap: 8 },
 
   sendButton: {
@@ -1082,26 +1112,4 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f1b4c',
   },
   voiceInlineButtonActive: { backgroundColor: '#b3261e' },
-
-  inlineStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 6,
-    paddingBottom: 4,
-    backgroundColor: '#dde4faff',
-    borderTopWidth: 1,
-    borderTopColor: '#d8dcf0',
-  },
-  inlineStatusText: { marginLeft: 6, fontSize: 12, color: '#1f2b6c' },
-  statusDot: { width: 10, height: 10, borderRadius: 999, marginBottom: 2 },
-  statusDotOn: { backgroundColor: '#2ecc71' },
-
-  voiceErrorText: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-    fontSize: 12,
-    color: '#b3261e',
-    backgroundColor: '#dde4faff',
-  },
 });

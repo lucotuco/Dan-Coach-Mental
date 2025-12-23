@@ -43,7 +43,7 @@ type MeditationCategory = (typeof meditationCategories)[number];
 export default function LibraryScreen() {
   const router = useRouter();
   const onCategoryPress = (category: MeditationCategory) => {
-    router.push(category.link);
+    
   };
 
   return (

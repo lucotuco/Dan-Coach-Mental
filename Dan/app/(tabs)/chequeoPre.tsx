@@ -94,7 +94,7 @@ export default function CheckupsScreen() {
 
     const newValues = [...sliderValues];
     const lowIndex = newValues
-      .map((value, index) => (value < 6 ? index : null))
+      .map((value, index) => (value < 60 ? index : null))
       .find((index): index is number => index !== null);
 
     const feedbackOptions = [
