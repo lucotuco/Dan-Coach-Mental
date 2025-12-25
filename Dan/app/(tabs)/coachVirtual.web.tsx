@@ -2,7 +2,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -30,13 +29,11 @@ import {
 import { z } from 'zod';
 
 const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
-const REALTIME_SAVE_SESSION_ENDPOINT = '/api/realtime/sessions';
-const DID_CONFIG_ENDPOINT = '/api/did/config';
-const TTS_ENDPOINT = '/api/tts';
+const REALTIME_SESSIONS_ENDPOINT = '/api/realtime/sessions';
+const REALTIME_CHECKUPS_ENDPOINT = '/api/realtime/checkups';
 
-const HEADER_H = 140; // logo + titulo + subtitulo
-const VIDEO_H = 320; // alto del video fijo
-const INPUT_H = 92; // alto del input fijo
+const HEADER_H = 140;
+const INPUT_H = 92;
 const GAP = 16;
 
 const API_URL_RAW = process.env.EXPO_PUBLIC_API_URL ?? '';
@@ -48,16 +45,9 @@ type ChatMessage = {
   content: string;
 };
 
-type DidConfig = {
-  clientKey: string;
-  agentId: string;
-};
+type Mode = 'text' | 'audio';
 
-// RN Web: elemento HTML
-const HtmlVideo: any = 'video';
 const isBrowser = () => typeof window !== 'undefined';
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let t: any;
@@ -80,53 +70,26 @@ export default function CoachVirtualScreen() {
 
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
-  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [mode, setMode] = useState<Mode>('text'); // modo actual (si hay sesión)
+  const [errorText, setErrorText] = useState<string | null>(null);
 
-  // D-ID
-  const [showAvatar, setShowAvatar] = useState(false);
-  const [didError, setDidError] = useState<string | null>(null);
-
-  // Thinking indicator (anim dots)
   const [assistantThinking, setAssistantThinking] = useState(false);
   const [thinkingDots, setThinkingDots] = useState('');
 
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
   const scrollRef = useRef<ScrollView>(null);
 
-  // Speaker indicator (solo para UX de barge-in)
-  const [activeSpeaker, setActiveSpeaker] = useState<'user' | 'assistant' | null>(null);
-  const activeSpeakerTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Realtime session
   const sessionRef = useRef<RealtimeSession | null>(null);
   const detachSessionHandlers = useRef<(() => void) | null>(null);
 
-  // OpenAI realtime transport (WebRTC)
-  const openAiMicStreamRef = useRef<MediaStream | null>(null);
-  const openAiAudioElRef = useRef<HTMLAudioElement | null>(null);
+  // Transport resources
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  // D-ID SDK
-  const didVideoRef = useRef<HTMLVideoElement | null>(null);
-  const didManagerRef = useRef<any>(null);
-  const didIdleUrlRef = useRef<string>('');
-  const didSrcObjectRef = useRef<any>(null);
-
-  // speak queue + dedupe
-  const speakQueueRef = useRef<Promise<void>>(Promise.resolve());
-  const spokenIdsRef = useRef<Set<string>>(new Set());
-
-  // Cancel/interrupt controls for our TTS->DID pipeline
-  const speakGenerationRef = useRef<number>(0);
-  const activeTtsAbortRef = useRef<AbortController | null>(null);
-
-  // UX ordering: user first + show assistant only when avatar starts
-  const pendingUserQueueRef = useRef<string[]>([]);
-  const pendingAssistantTextRef = useRef<Map<string, string>>(new Map());
-  const displayedAssistantIdsRef = useRef<Set<string>>(new Set());
-  const didCurrentSpeakItemIdRef = useRef<string | null>(null);
-
-  // fallback timers (if START never comes)
-  const assistantFallbackTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Silent stream resources (para modo texto sin mic)
+  const silentAudioCtxRef = useRef<AudioContext | null>(null);
+  const silentOscRef = useRef<OscillatorNode | null>(null);
 
   const scrollToEnd = useCallback(() => {
     if (!isBrowser()) return;
@@ -137,7 +100,7 @@ export default function CoachVirtualScreen() {
 
   useEffect(() => {
     scrollToEnd();
-  }, [assistantThinking, thinkingDots, scrollToEnd]);
+  }, [messages.length, assistantThinking, thinkingDots, scrollToEnd]);
 
   useEffect(() => {
     if (!assistantThinking) {
@@ -153,18 +116,35 @@ export default function CoachVirtualScreen() {
     return () => clearInterval(id);
   }, [assistantThinking]);
 
-  const markSpeaker = useCallback((role: 'user' | 'assistant') => {
-    if (activeSpeakerTimeout.current) clearTimeout(activeSpeakerTimeout.current);
-    setActiveSpeaker(role);
-    activeSpeakerTimeout.current = setTimeout(() => setActiveSpeaker(null), 1800);
-  }, []);
+  function getOrCreateAudioEl() {
+    if (!isBrowser()) return null;
+    if (audioElRef.current) return audioElRef.current;
 
-  const stopOpenAiMic = useCallback(() => {
+    const el = document.createElement('audio');
+    el.autoplay = true;
+    el.setAttribute('playsinline', 'true');
+    el.style.display = 'none';
+    document.body.appendChild(el);
+
+    audioElRef.current = el;
+    return el;
+  }
+
+  const stopTracks = useCallback(() => {
     try {
-      const ms = openAiMicStreamRef.current;
-      ms?.getTracks()?.forEach((t) => t.stop());
+      streamRef.current?.getTracks()?.forEach((t) => t.stop());
     } catch {}
-    openAiMicStreamRef.current = null;
+    streamRef.current = null;
+
+    try {
+      silentOscRef.current?.stop();
+    } catch {}
+    silentOscRef.current = null;
+
+    try {
+      silentAudioCtxRef.current?.close();
+    } catch {}
+    silentAudioCtxRef.current = null;
   }, []);
 
   const cleanupRealtime = useCallback(() => {
@@ -178,631 +158,356 @@ export default function CoachVirtualScreen() {
         sessionRef.current = null;
       }
     } finally {
-      stopOpenAiMic();
+      stopTracks();
       setAssistantThinking(false);
-
       setConnected(false);
-      if (activeSpeakerTimeout.current) clearTimeout(activeSpeakerTimeout.current);
-      activeSpeakerTimeout.current = null;
-      setActiveSpeaker(null);
     }
-  }, [stopOpenAiMic]);
-
-  const disconnectDid = useCallback(async () => {
-    try {
-      const mgr = didManagerRef.current;
-      if (mgr) {
-        console.log('[DID] disconnect…');
-        await withTimeout(mgr.disconnect(), 12000, 'D-ID disconnect');
-        console.log('[DID] disconnected');
-      }
-    } catch (e) {
-      console.warn('[DID] disconnect warning:', e);
-    } finally {
-      spokenIdsRef.current.clear();
-      didSrcObjectRef.current = null;
-      setShowAvatar(false);
-      setAssistantThinking(false);
-    }
-  }, []);
+  }, [stopTracks]);
 
   // Limpieza total al desmontar
   useEffect(() => {
     return () => {
       cleanupRealtime();
-      disconnectDid();
-
       try {
-        const el = openAiAudioElRef.current;
+        const el = audioElRef.current;
         if (el && el.parentNode) el.parentNode.removeChild(el);
       } catch {}
     };
-  }, [cleanupRealtime, disconnectDid]);
-
-  function getOrCreateMutedOpenAiAudioEl() {
-    if (!isBrowser()) return null;
-    if (openAiAudioElRef.current) return openAiAudioElRef.current;
-
-    const el = document.createElement('audio');
-    // Evita la “voz” de Realtime (audio nativo del modelo)
-    el.autoplay = true;
-    el.muted = true;
-    el.volume = 0;
-    el.setAttribute('playsinline', 'true');
-    el.style.display = 'none';
-
-    document.body.appendChild(el);
-    openAiAudioElRef.current = el;
-    return el;
-  }
-
-  const interruptAssistantAndAvatar = useCallback(async (reason: string) => {
-    // Cancela pipeline TTS->DID
-    speakGenerationRef.current += 1;
-
-    try {
-      activeTtsAbortRef.current?.abort();
-    } catch {}
-    activeTtsAbortRef.current = null;
-
-    // vaciamos cola
-    speakQueueRef.current = Promise.resolve();
-
-    // reset speak actual
-    didCurrentSpeakItemIdRef.current = null;
-
-    setAssistantThinking(false);
-
-    // Stop avatar local: volvemos a idle
-    try {
-      const video = didVideoRef.current;
-      if (video) {
-        try {
-          video.pause?.();
-        } catch {}
-        try {
-          (video as any).srcObject = null;
-        } catch {}
-        const idleUrl =
-          didIdleUrlRef.current || didManagerRef.current?.agent?.presenter?.idle_video || '';
-        if (idleUrl) {
-          video.src = idleUrl;
-          video.play?.().catch(() => {});
-        }
-      }
-    } catch {}
-
-    // Best-effort: si el SDK expone stop/interrupt
-    try {
-      const mgr = didManagerRef.current;
-      if (mgr?.stop && typeof mgr.stop === 'function') await mgr.stop();
-      if (mgr?.interrupt && typeof mgr.interrupt === 'function') await mgr.interrupt();
-    } catch {}
-
-    console.log('[INTERRUPT]', reason);
-  }, []);
+  }, [cleanupRealtime]);
 
   // ✅ AUTO-DISCONNECT cuando cambia de tab / pierde foco esta pantalla
   useFocusEffect(
     useCallback(() => {
-      // onFocus: no hacemos nada
       return () => {
-        // onBlur
-        console.log('[NAV] blur -> disconnect call');
-
-        void interruptAssistantAndAvatar('nav blur');
         cleanupRealtime();
-        void disconnectDid();
       };
-    }, [cleanupRealtime, disconnectDid, interruptAssistantAndAvatar]),
+    }, [cleanupRealtime]),
   );
 
-  // Insert user placeholder on speech start so user appears before assistant
-  const pushPendingUserPlaceholder = useCallback(() => {
-    const id = `user-${Date.now()}`;
-    pendingUserQueueRef.current.push(id);
-    setMessages((prev) => [...prev, { id, role: 'user', content: '…' }]);
-    scrollToEnd();
-  }, [scrollToEnd]);
+  const createSilentMediaStream = useCallback((): MediaStream => {
+    if (!isBrowser()) return new MediaStream();
 
-  const ensureDidManager = useCallback(
-    async (token: string) => {
-      if (!isBrowser()) return;
-      if (didManagerRef.current) return;
+    const AudioContextCtor: any = (window as any).AudioContext || (window as any).webkitAudioContext;
+    const ctx: AudioContext = new AudioContextCtor();
+    silentAudioCtxRef.current = ctx;
 
-      setDidError(null);
+    const destination = ctx.createMediaStreamDestination();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
 
-      console.log('[DID] fetching /api/did/config…');
-      const resp = await fetch(`${API_URL}${DID_CONFIG_ENDPOINT}`, {
-        method: 'GET',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+    gain.gain.value = 0; // silencio
+    osc.frequency.value = 440;
 
-      if (!resp.ok) {
-        throw new Error(`D-ID config HTTP ${resp.status}: ${await resp.text()}`);
-      }
+    osc.connect(gain);
+    gain.connect(destination);
 
-      const cfg = (await resp.json()) as any;
-      const config: DidConfig = cfg?.config ?? cfg;
+    osc.start();
+    silentOscRef.current = osc;
 
-      if (!config?.clientKey || !config?.agentId) {
-        throw new Error('D-ID config inválida (falta clientKey o agentId).');
-      }
-
-      console.log('[DID] config OK');
-      console.log('[DID] dynamic import SDK…');
-      const sdk = await import('@d-id/client-sdk');
-      console.log('[DID] SDK loaded');
-
-      const callbacks = {
-        onSrcObjectReady: (value: any) => {
-          didSrcObjectRef.current = value;
-          const video = didVideoRef.current;
-          if (video) {
-            video.src = '';
-            (video as any).srcObject = value;
-            video.play?.().catch(() => {});
-          }
-          return value;
-        },
-
-        onVideoStateChange: (state: string) => {
-          console.log('[DID] onVideoStateChange:', state);
-
-          const video = didVideoRef.current;
-          if (!video) return;
-
-          // Cuando el avatar arranca a hablar: mostrar texto del asistente y apagar "pensando"
-          if (state === 'START') {
-            setAssistantThinking(false);
-
-            const itemId = didCurrentSpeakItemIdRef.current;
-            if (itemId) {
-              const text = pendingAssistantTextRef.current.get(itemId);
-              if (text && !displayedAssistantIdsRef.current.has(itemId)) {
-                displayedAssistantIdsRef.current.add(itemId);
-                pendingAssistantTextRef.current.delete(itemId);
-
-                const t = assistantFallbackTimersRef.current.get(itemId);
-                if (t) {
-                  clearTimeout(t);
-                  assistantFallbackTimersRef.current.delete(itemId);
-                }
-
-                setMessages((prev) => [...prev, { id: itemId, role: 'assistant', content: text }]);
-                markSpeaker('assistant');
-                scrollToEnd();
-              }
-            }
-          }
-
-          if (state === 'STOP') {
-            didCurrentSpeakItemIdRef.current = null;
-
-            const idleUrl =
-              didIdleUrlRef.current || didManagerRef.current?.agent?.presenter?.idle_video || '';
-            if (idleUrl) {
-              try {
-                (video as any).srcObject = null;
-              } catch {}
-              video.src = idleUrl;
-              video.play?.().catch(() => {});
-            }
-          } else {
-            video.src = '';
-            (video as any).srcObject = didSrcObjectRef.current ?? null;
-            video.play?.().catch(() => {});
-          }
-        },
-
-        onConnectionStateChange: (state: string) => {
-          console.log('[DID] connection state:', state);
-        },
-
-        onError: (error: any) => {
-          console.error('[DID] error:', error);
-          setDidError(typeof error?.message === 'string' ? error.message : JSON.stringify(error));
-          setAssistantThinking(false);
-        },
-      };
-
-      const streamOptions = {
-        compatibilityMode: 'on',
-        streamWarmup: false,
-      };
-
-      console.log('[DID] createAgentManager…');
-      const mgr = await sdk.createAgentManager(config.agentId, {
-        auth: { type: 'key', clientKey: config.clientKey },
-        callbacks,
-        streamOptions,
-      });
-
-      didManagerRef.current = mgr;
-      didIdleUrlRef.current = mgr?.agent?.presenter?.idle_video ?? '';
-      console.log('[DID] manager ready. idle_video:', didIdleUrlRef.current ? 'OK' : '(vacío)');
-    },
-    [markSpeaker, scrollToEnd],
-  );
-
-  const connectDid = useCallback(async () => {
-    if (!isBrowser()) return;
-    const mgr = didManagerRef.current;
-    if (!mgr) throw new Error('D-ID manager no inicializado.');
-
-    console.log('[DID] connect…');
-    await withTimeout(mgr.connect(), 25000, 'D-ID connect');
-    console.log('[DID] connected');
-
-    const video = didVideoRef.current;
-    const idleUrl = didIdleUrlRef.current || mgr?.agent?.presenter?.idle_video || '';
-    if (video && idleUrl) {
-      try {
-        (video as any).srcObject = null;
-      } catch {}
-      video.src = idleUrl;
-
-      video.muted = true; // autoplay seguro
-      video.playsInline = true;
-      video.autoplay = true;
-
-      video.play?.().catch(() => {});
-    }
-
-    // Desmuteamos D-ID para escuchar SOLO el avatar
-    if (video) {
-      await sleep(50);
-      video.muted = false;
-      video.play?.().catch(() => {});
-    }
+    return destination.stream;
   }, []);
 
-  // ✅ FIX: acepta AbortSignal
-  const requestTtsAudioUrl = async (
-    token: string,
-    text: string,
-    itemId?: string,
-    signal?: AbortSignal,
-  ) => {
-    console.log('[TTS] POST /api/tts …', itemId ?? '');
-
-    const ttsInstructions =
-      'Voz masculina adulta, cálida, cercana, jovial y amigable. registro medio tirando para grave. Ritmo conversacional con micro-pausas naturales; frases cortas y claras. Entonación suave: sube levemente al preguntar y cae al cerrar ideas. Empático y validante, con energía tranquila; transmite contención y seguridad sin autoritarismo. Dicción nítida, sin sonar robótico ni “locutor”. Español rioplatense (vos), lenguaje simple, sin tecnicismos. Puede usar muletillas suaves ocasionales (“ok”, “ajá”, “claro”, “te entiendo”) sin repetirlas. Humor muy liviano solo si alivia, nunca burlón. Evitar tono sermoneador, apurado o agresivo.';
-
-    const resp = await fetch(`${API_URL}${TTS_ENDPOINT}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      signal,
-      body: JSON.stringify({
-        text,
-        model: 'gpt-4o-mini-tts',
-        voice: 'verse',
-        instructions: ttsInstructions,
-        response_format: 'mp3',
-      }),
-    });
-
-    const raw = await resp.text();
-    if (!resp.ok) throw new Error(`TTS HTTP ${resp.status}: ${raw}`);
-
-    let data: any = {};
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      throw new Error('TTS devolvió respuesta no-JSON');
-    }
-
-    const audioUrl = data?.audioUrl || data?.url;
-    if (!audioUrl) throw new Error('El backend TTS no devolvió audioUrl.');
-    return audioUrl as string;
-  };
-
-  // Encola speak; NO muestra texto hasta START del avatar
-  const enqueueDidSpeak = (token: string, text: string, itemId: string) => {
-    const clean = (text || '').trim();
-    if (!clean) return;
-    if (spokenIdsRef.current.has(itemId)) return;
-    spokenIdsRef.current.add(itemId);
-
-    setAssistantThinking(true);
-    pendingAssistantTextRef.current.set(itemId, clean);
-
-    const myGen = speakGenerationRef.current;
-
-    // Fallback: si START no llega, mostramos texto y apagamos pensando
-    if (!assistantFallbackTimersRef.current.has(itemId)) {
-      const t = setTimeout(() => {
-        if (!displayedAssistantIdsRef.current.has(itemId)) {
-          const pending = pendingAssistantTextRef.current.get(itemId);
-          if (pending) {
-            displayedAssistantIdsRef.current.add(itemId);
-            pendingAssistantTextRef.current.delete(itemId);
-            assistantFallbackTimersRef.current.delete(itemId);
-
-            setMessages((prev) => [...prev, { id: itemId, role: 'assistant', content: pending }]);
-            markSpeaker('assistant');
-            setAssistantThinking(false);
-            scrollToEnd();
-          }
-        }
-      }, 5000);
-      assistantFallbackTimersRef.current.set(itemId, t);
-    }
-
-    speakQueueRef.current = speakQueueRef.current.then(async () => {
-      try {
-        if (myGen !== speakGenerationRef.current) return;
-
-        const mgr = didManagerRef.current;
-        if (!mgr) return;
-
-        const ac = new AbortController();
-        activeTtsAbortRef.current = ac;
-
-        const audioUrl = await requestTtsAudioUrl(token, clean, itemId, ac.signal);
-        if (myGen !== speakGenerationRef.current) return;
-
-        didCurrentSpeakItemIdRef.current = itemId;
-
-        console.log('[DID] speak(audio)…', audioUrl);
-        await withTimeout(mgr.speak({ type: 'audio', audio_url: audioUrl }), 45000, 'D-ID speak');
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return;
-
-        console.error('[DID] speak failed:', e);
-        setDidError(e?.message ?? 'Error haciendo speak en D-ID');
-
-        // si falló speak, mostramos el texto pendiente
-        const pending = pendingAssistantTextRef.current.get(itemId);
-        if (pending && !displayedAssistantIdsRef.current.has(itemId)) {
-          displayedAssistantIdsRef.current.add(itemId);
-          pendingAssistantTextRef.current.delete(itemId);
-
-          const t = assistantFallbackTimersRef.current.get(itemId);
-          if (t) {
-            clearTimeout(t);
-            assistantFallbackTimersRef.current.delete(itemId);
-          }
-
-          setMessages((prev) => [...prev, { id: itemId, role: 'assistant', content: pending }]);
-          markSpeaker('assistant');
-        }
-
-        setAssistantThinking(false);
-        scrollToEnd();
-      } finally {
-        activeTtsAbortRef.current = null;
-      }
-    });
-  };
-
-  const forceTextOnlyOnRealtime = async (session: RealtimeSession) => {
-    const transport: any = (session as any).transport;
-    if (!transport?.sendEvent) {
-      console.warn('[RT] No encontré session.transport.sendEvent (no puedo mandar session.update)');
-      return;
-    }
-
-    console.log('[RT] forcing TEXT ONLY via session.update…');
-
-    await transport.sendEvent({
-      type: 'session.update',
-      session: { output_modalities: ['text'] },
-    });
-  };
-
-  const handleConnectVoice = async () => {
-    console.log('[CONNECT] start');
-
-    if (!API_URL) {
-      alert('Falta configurar EXPO_PUBLIC_API_URL.');
-      return;
-    }
-    if (!isBrowser()) {
-      alert('Esta pantalla es web.');
-      return;
-    }
-    if (connecting || connected) return;
-
-    setVoiceError(null);
-    setDidError(null);
-    setConnecting(true);
-
-    try {
-      const token = getStoredToken();
-      if (!token) {
-        redirectToLogin(router, logout);
-        return;
-      }
-
-      setShowAvatar(true);
-      await sleep(0);
-
-      await ensureDidManager(token);
-      await sleep(0);
-      await connectDid();
-
-      console.log('[CONNECT] fetch realtime client-secret…');
+  const fetchClientSecret = useCallback(
+    async (token: string, targetMode: Mode) => {
       const userId = user?._id;
-      const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
-      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}${query}`, {
+      const qs = new URLSearchParams();
+      if (userId) qs.set('userId', userId);
+      qs.set('mode', targetMode);
+
+      const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}?${qs.toString()}`, {
         method: 'GET',
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (isUnauthorizedStatus(res.status)) {
         redirectToLogin(router, logout);
-        return;
+        return null;
       }
       if (!res.ok) throw new Error(`No se pudo obtener client-secret: HTTP ${res.status}`);
 
       const data = await res.json();
+
       const apiKey: string = data?.value ?? data?.client_secret?.value ?? data?.token ?? '';
       if (!apiKey) throw new Error('El backend no devolvió un client_secret válido.');
 
       const backendInstructions = data?.session?.instructions ?? '';
       const model = data?.session?.model ?? 'gpt-realtime';
 
-      const saveSessionSummaryTool = tool({
-        name: 'save_session_summary',
-        description:
-          'Guarda un resumen corto de la sesión. Usala UNA sola vez cuando el usuario quiera terminar la llamada.',
-        parameters: z.object({
-          summary: z.string(),
-          keyMoments: z.array(z.string()).max(3).default([]),
-          nextStep: z.string().default(''),
-        }),
-        execute: async (input) => {
-          try {
-            if (!userId) return 'No pude guardar el resumen (no userId).';
+      return { apiKey, backendInstructions, model };
+    },
+    [logout, router, user?._id],
+  );
 
-            const resp = await fetch(`${API_URL}${REALTIME_SAVE_SESSION_ENDPOINT}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                userId,
-                summary: input.summary,
-                keyMoments: input.keyMoments,
-                nextStep: input.nextStep,
-                model,
-              }),
-            });
+  const connectRealtime = useCallback(
+    async (targetMode: Mode) => {
+      if (!API_URL) {
+        alert('Falta configurar EXPO_PUBLIC_API_URL.');
+        return;
+      }
+      if (!isBrowser()) {
+        alert('Esta pantalla es web.');
+        return;
+      }
+      if (connecting) return;
 
-            if (!resp.ok) return 'No pude guardar el resumen en la base de datos.';
-            return 'Resumen guardado correctamente.';
-          } catch {
-            return 'Problema de red al guardar resumen.';
-          }
-        },
-      });
+      // Si ya estoy conectado en el mismo modo, no hago nada
+      if (connected && sessionRef.current && mode === targetMode) return;
 
-      const agent = new RealtimeAgent({
-        name: 'DAN',
-        instructions: backendInstructions,
-        tools: [saveSessionSummaryTool],
-      });
+      // Si estoy conectado en otro modo, reconecto limpio
+      if (connected && mode !== targetMode) {
+        cleanupRealtime();
+      }
 
-      // Transporte WebRTC propio: AUDIO DE OPENAI MUTEADO (evita doble voz)
-      const micStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        } as any,
-      });
-      openAiMicStreamRef.current = micStream;
+      setErrorText(null);
+      setConnecting(true);
 
-      const openAiAudioEl = getOrCreateMutedOpenAiAudioEl();
+      try {
+        const token = getStoredToken();
+        if (!token) {
+          redirectToLogin(router, logout);
+          return;
+        }
 
-      const transport = new OpenAIRealtimeWebRTC({
-        model,
-        mediaStream: micStream,
-        audioElement: openAiAudioEl ?? undefined,
-      });
+        const secret = await fetchClientSecret(token, targetMode);
+        if (!secret) return;
 
-      const session = new RealtimeSession(agent, {
-        model,
-        transport,
-        // @ts-ignore
-        config: { output_modalities: ['text'] },
-      });
+        const { apiKey, backendInstructions, model } = secret;
+        const userId = user?._id;
 
-      sessionRef.current = session;
+        // -------------------------
+        // Tools
+        // -------------------------
+        const saveSessionSummaryTool = tool({
+          name: 'save_session_summary',
+          description:
+            'Guarda un resumen corto de la sesión. Usala UNA sola vez cuando el usuario quiera terminar.',
+          parameters: z.object({
+            summary: z.string(),
+            keyMoments: z.array(z.string()).max(3).default([]),
+            nextStep: z.string().default(''),
+          }),
+          execute: async (input) => {
+            try {
+              if (!userId) return 'No pude guardar el resumen (no userId).';
 
-      const unsubscribers: Array<() => void> = [];
-      const addHandler = (event: string, handler: (...args: any[]) => void) => {
-        session.on(event, handler);
-        unsubscribers.push(() => {
-          if (typeof (session as any).off === 'function') (session as any).off(event, handler);
-          else if (typeof (session as any).removeListener === 'function')
-            (session as any).removeListener(event, handler);
+              const resp = await fetch(`${API_URL}${REALTIME_SESSIONS_ENDPOINT}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  userId,
+                  summary: input.summary,
+                  keyMoments: input.keyMoments,
+                  nextStep: input.nextStep,
+                  model,
+                }),
+              });
+
+              if (!resp.ok) return 'No pude guardar el resumen en la base de datos.';
+              return 'Resumen guardado correctamente.';
+            } catch {
+              return 'Problema de red al guardar resumen.';
+            }
+          },
         });
-      };
 
-      addHandler('transport_event', (event: any) => {
-        // Barge-in: usuario empieza a hablar => cortar avatar + pipeline
-        if (event?.type === 'input_audio_buffer.speech_started') {
-          markSpeaker('user');
-          pushPendingUserPlaceholder();
-          void interruptAssistantAndAvatar('user speech_started');
-          return;
+        const getRecentSessionsTool = tool({
+          name: 'get_recent_sessions',
+          description:
+            'Trae las últimas sesiones guardadas del usuario (resúmenes) para personalizar mejor. Usala cuando sume.',
+          parameters: z.object({
+            limit: z.number().int().min(1).max(10).default(5),
+          }),
+          execute: async ({ limit }) => {
+            try {
+              if (!userId) return 'No hay userId para traer sesiones.';
+              const qs = new URLSearchParams({
+                userId,
+                limit: String(limit ?? 5),
+                format: 'tool',
+              });
+              const resp = await fetch(`${API_URL}${REALTIME_SESSIONS_ENDPOINT}?${qs.toString()}`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!resp.ok) return 'No pude traer sesiones (HTTP error).';
+              const data = await resp.json();
+              return (data?.context ?? 'Sin sesiones previas.').toString();
+            } catch {
+              return 'Problema de red al traer sesiones.';
+            }
+          },
+        });
+
+        const getRecentCheckupsTool = tool({
+          name: 'get_recent_checkups',
+          description:
+            'Trae los últimos chequeos del usuario para personalizar. Usala cuando sume.',
+          parameters: z.object({
+            limit: z.number().int().min(1).max(10).default(5),
+          }),
+          execute: async ({ limit }) => {
+            try {
+              if (!userId) return 'No hay userId para traer chequeos.';
+              const qs = new URLSearchParams({
+                userId,
+                limit: String(limit ?? 5),
+                format: 'tool',
+              });
+              const resp = await fetch(`${API_URL}${REALTIME_CHECKUPS_ENDPOINT}?${qs.toString()}`, {
+                method: 'GET',
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (!resp.ok) return 'No pude traer chequeos (HTTP error).';
+              const data = await resp.json();
+              return (data?.context ?? 'Sin chequeos previos.').toString();
+            } catch {
+              return 'Problema de red al traer chequeos.';
+            }
+          },
+        });
+
+        const agent = new RealtimeAgent({
+          name: 'DAN',
+          instructions: backendInstructions,
+          tools: [getRecentSessionsTool, getRecentCheckupsTool, saveSessionSummaryTool],
+        });
+
+        // -------------------------
+        // Transport
+        // -------------------------
+        const audioEl = getOrCreateAudioEl();
+        if (audioEl) {
+          // Modo texto => no habla
+          // Modo audio => reproduce audio del asistente
+          audioEl.muted = targetMode !== 'audio';
+          audioEl.volume = targetMode === 'audio' ? 1 : 0;
         }
 
-        // User transcript final
-        if (event?.type === 'conversation.item.input_audio_transcription.completed') {
-          const transcript = (event?.transcript ?? '').toString().trim();
-          if (!transcript) return;
+        const mediaStream =
+          targetMode === 'audio'
+            ? await navigator.mediaDevices.getUserMedia({
+                audio: {
+                  echoCancellation: true,
+                  noiseSuppression: true,
+                  autoGainControl: true,
+                } as any,
+              })
+            : createSilentMediaStream();
 
-          const pendingId = pendingUserQueueRef.current.shift();
-          if (pendingId) {
-            setMessages((prev) =>
-              prev.map((m) => (m.id === pendingId ? { ...m, content: transcript } : m)),
-            );
-          } else {
-            const id = (event?.item_id ?? `user-${Date.now()}`).toString();
-            setMessages((prev) => [...prev, { id, role: 'user', content: transcript }]);
+        streamRef.current = mediaStream;
+
+        const transport = new OpenAIRealtimeWebRTC({
+          model,
+          mediaStream,
+          audioElement: audioEl ?? undefined,
+        });
+
+        const session = new RealtimeSession(agent, {
+          model,
+          transport,
+          // @ts-ignore
+          config: { output_modalities: [targetMode] }, // 'text' o 'audio'
+        });
+
+        sessionRef.current = session;
+
+        const unsubscribers: Array<() => void> = [];
+        const addHandler = (event: string, handler: (...args: any[]) => void) => {
+          session.on(event, handler);
+          unsubscribers.push(() => {
+            if (typeof (session as any).off === 'function') (session as any).off(event, handler);
+            else if (typeof (session as any).removeListener === 'function')
+              (session as any).removeListener(event, handler);
+          });
+        };
+
+        addHandler('transport_event', (event: any) => {
+          // Usuario: transcripción (modo audio)
+          if (event?.type === 'conversation.item.input_audio_transcription.completed') {
+            const transcript = (event?.transcript ?? '').toString().trim();
+            if (!transcript) return;
+
+            setMessages((prev) => [
+              ...prev,
+              { id: (event?.item_id ?? `user-${Date.now()}`).toString(), role: 'user', content: transcript },
+            ]);
+            setAssistantThinking(true);
+            return;
           }
 
-          markSpeaker('user');
-          scrollToEnd();
-          setAssistantThinking(true);
-          return;
-        }
+          // Asistente: respuesta texto (modo texto)
+          if (event?.type === 'response.output_text.done') {
+            const text = (event?.text ?? '').toString().trim();
+            if (!text) return;
 
-        // Asistente: texto final => TTS->DID
-        if (event?.type === 'response.output_text.done') {
-          const id = (event?.item_id ?? `assistant-${Date.now()}`).toString();
-          const text = (event?.text ?? '').toString().trim();
-          if (!text) return;
-          enqueueDidSpeak(token, text, id);
-          return;
-        }
+            setMessages((prev) => [
+              ...prev,
+              { id: (event?.item_id ?? `assistant-${Date.now()}`).toString(), role: 'assistant', content: text },
+            ]);
+            setAssistantThinking(false);
+            return;
+          }
 
-        if (event?.type === 'response.output_audio_transcript.done') {
-          const id = (event?.item_id ?? `assistant-${Date.now()}`).toString();
-          const transcript = (event?.transcript ?? '').toString().trim();
-          if (!transcript) return;
-          enqueueDidSpeak(token, transcript, id);
-          return;
-        }
-      });
+          // Asistente: transcript de audio output (modo audio)
+          if (event?.type === 'response.output_audio_transcript.done') {
+            const transcript = (event?.transcript ?? '').toString().trim();
+            if (!transcript) return;
 
-      detachSessionHandlers.current = () => {
-        unsubscribers.forEach((fn) => fn());
-        unsubscribers.length = 0;
-      };
+            setMessages((prev) => [
+              ...prev,
+              { id: (event?.item_id ?? `assistant-${Date.now()}`).toString(), role: 'assistant', content: transcript },
+            ]);
+            setAssistantThinking(false);
+            return;
+          }
 
-      console.log('[CONNECT] session.connect…');
-      await withTimeout(session.connect({ apiKey }), 25000, 'Realtime connect');
-      console.log('[CONNECT] session.connected');
+          // Failsafe
+          if (event?.type === 'response.failed') {
+            setAssistantThinking(false);
+          }
+        });
 
-      await forceTextOnlyOnRealtime(session);
+        detachSessionHandlers.current = () => {
+          unsubscribers.forEach((fn) => fn());
+          unsubscribers.length = 0;
+        };
 
-      setConnected(true);
-      setAssistantThinking(false);
-    } catch (e: any) {
-      console.error('Error al conectar:', e);
-      setVoiceError(e?.message ?? 'Error al conectar con DAN.');
-      cleanupRealtime();
-      await disconnectDid();
-    } finally {
-      setConnecting(false);
-    }
-  };
+        await withTimeout(session.connect({ apiKey }), 25000, 'Realtime connect');
 
-  const handleHangUpVoice = async () => {
+        setMode(targetMode);
+        setConnected(true);
+        setAssistantThinking(false);
+      } catch (e: any) {
+        console.error('Error al conectar:', e);
+        setErrorText(e?.message ?? 'Error al conectar con DAN.');
+        cleanupRealtime();
+      } finally {
+        setConnecting(false);
+      }
+    },
+    [
+      API_URL,
+      cleanupRealtime,
+      connected,
+      connecting,
+      createSilentMediaStream,
+      fetchClientSecret,
+      logout,
+      mode,
+      router,
+      user?._id,
+    ],
+  );
+
+  const hangUp = useCallback(async () => {
     const session = sessionRef.current;
-
     try {
       if (session) {
         await session.sendMessage(
-          `DAN, el usuario está por cortar la llamada ahora mismo.
+          `DAN, el usuario está por cortar ahora mismo.
 Mirá toda la charla de esta sesión y generá un resumen breve para guardar en la base de datos.
 Usá UNA sola vez la herramienta "save_session_summary".
 Al usuario solamente dale un cierre corto y cálido.`,
@@ -812,28 +517,23 @@ Al usuario solamente dale un cierre corto y cálido.`,
       console.warn('Error al pedir resumen antes de colgar:', e);
     } finally {
       cleanupRealtime();
-      await disconnectDid();
     }
-  };
+  }, [cleanupRealtime]);
 
-  // ✅ Enviar texto conecta automáticamente (mic + video) si no está conectado
-  const sendTextMessage = async () => {
+  const sendTextMessage = useCallback(async () => {
     if (!trimmedQuestion) return;
     if (connecting) return;
 
     const textToSend = trimmedQuestion;
     setQuestion('');
 
-    setMessages((prev) => [
-      ...prev,
-      { id: `user-text-${Date.now()}`, role: 'user', content: textToSend },
-    ]);
+    setMessages((prev) => [...prev, { id: `user-text-${Date.now()}`, role: 'user', content: textToSend }]);
     scrollToEnd();
-
     setAssistantThinking(true);
 
+    // Si no hay sesión, arrancamos en MODO TEXTO
     if (!sessionRef.current || !connected) {
-      await handleConnectVoice();
+      await connectRealtime('text');
     }
 
     const session = sessionRef.current;
@@ -849,7 +549,25 @@ Al usuario solamente dale un cierre corto y cálido.`,
       setAssistantThinking(false);
       alert(err?.message || 'No se pudo enviar el mensaje a DAN.');
     }
-  };
+  }, [trimmedQuestion, connecting, connected, connectRealtime, scrollToEnd]);
+
+  const onPressCall = useCallback(async () => {
+    if (connecting) return;
+
+    // Si ya estoy en audio => cuelgo
+    if (connected && mode === 'audio') {
+      await hangUp();
+      return;
+    }
+
+    // Si estoy en texto => reconecto en audio
+    if (connected && mode === 'text') {
+      cleanupRealtime();
+    }
+
+    // Conecto en audio
+    await connectRealtime('audio');
+  }, [cleanupRealtime, connectRealtime, connected, connecting, hangUp, mode]);
 
   return (
     <View style={styles.screen}>
@@ -861,26 +579,15 @@ Al usuario solamente dale un cierre corto y cálido.`,
 
         <View style={styles.header}>
           <Text style={styles.title}>Coach Virtual</Text>
-          <Text style={styles.subtitle}>Podés hablar con DAN en vivo.</Text>
+          <Text style={styles.subtitle}>
+            {connected
+              ? mode === 'audio'
+                ? 'Modo audio: hablás y DAN responde con voz. También podés escribir.'
+                : 'Modo texto: escribís y DAN responde en texto.'
+              : 'Escribí para modo texto o tocá el botón de llamada para modo audio.'}
+          </Text>
         </View>
       </View>
-
-      {/* VIDEO FIXED */}
-      {showAvatar && (
-        <View style={styles.fixedVideo}>
-          <View style={styles.videoFrameFixed}>
-            <HtmlVideo
-              ref={(el: any) => (didVideoRef.current = el)}
-              autoPlay
-              playsInline
-              muted={false}
-              style={styles.videoEl}
-            />
-          </View>
-
-          {!!didError && <Text style={styles.didErrorText}>{didError}</Text>}
-        </View>
-      )}
 
       {/* SCROLL MENSAJES */}
       <ScrollView
@@ -889,7 +596,7 @@ Al usuario solamente dale un cierre corto y cálido.`,
         contentContainerStyle={[
           styles.scrollContent,
           {
-            paddingTop: HEADER_H + (showAvatar ? VIDEO_H : 0) + GAP,
+            paddingTop: HEADER_H + GAP,
             paddingBottom: INPUT_H + GAP,
           },
         ]}
@@ -897,7 +604,7 @@ Al usuario solamente dale un cierre corto y cálido.`,
       >
         <View style={styles.chatWrapper}>
           {messages.length === 0 ? (
-            <Text style={styles.emptyText}>Aún no hay mensajes. Conectate con DAN.</Text>
+            <Text style={styles.emptyText}>Aún no hay mensajes. Escribí o iniciá llamada.</Text>
           ) : (
             messages.map((msg) => (
               <View
@@ -928,8 +635,10 @@ Al usuario solamente dale un cierre corto y cálido.`,
           style={styles.input}
           placeholder={
             connected
-              ? 'Escribí algo para trabajar con DAN (o hablale)…'
-              : 'Escribí y enviá para conectarte (o apretá llamada).'
+              ? mode === 'audio'
+                ? 'Escribí (DAN responde con voz)…'
+                : 'Escribí (DAN responde por texto)…'
+              : 'Escribí para empezar en modo texto…'
           }
           placeholderTextColor="#5a5f6dff"
           value={question}
@@ -949,20 +658,27 @@ Al usuario solamente dale un cierre corto y cálido.`,
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.voiceInlineButton, connected && styles.voiceInlineButtonActive]}
-            onPress={connected ? handleHangUpVoice : handleConnectVoice}
+            style={[
+              styles.voiceInlineButton,
+              connected && mode === 'audio' && styles.voiceInlineButtonActive,
+            ]}
+            onPress={onPressCall}
             disabled={connecting}
           >
             {connecting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Feather name={connected ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
+              <Feather
+                name={connected && mode === 'audio' ? 'phone-off' : 'phone-call'}
+                size={18}
+                color="#fff"
+              />
             )}
           </TouchableOpacity>
         </View>
       </View>
 
-      {!!voiceError && <Text style={styles.voiceErrorTextFixed}>{voiceError}</Text>}
+      {!!errorText && <Text style={styles.errorTextFixed}>{errorText}</Text>}
     </View>
   );
 }
@@ -991,35 +707,6 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   title: { fontSize: 26, fontWeight: '800', color: '#0f1b4c' },
   subtitle: { fontSize: 15, lineHeight: 22, color: '#1f2b6c' },
-
-  fixedVideo: {
-    position: 'absolute',
-    top: HEADER_H,
-    left: 0,
-    right: 0,
-    height: VIDEO_H,
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    backgroundColor: '#ffffffff',
-    zIndex: 20,
-  },
-
-  videoFrameFixed: {
-    width: '100%',
-    height: VIDEO_H - 12,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#000',
-  },
-
-  videoEl: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    backgroundColor: '#000',
-  },
-
-  didErrorText: { fontSize: 12, color: '#b3261e' },
 
   scroll: { flex: 1 },
 
@@ -1065,7 +752,7 @@ const styles = StyleSheet.create({
     zIndex: 40,
   },
 
-  voiceErrorTextFixed: {
+  errorTextFixed: {
     position: 'absolute',
     left: 0,
     right: 0,
