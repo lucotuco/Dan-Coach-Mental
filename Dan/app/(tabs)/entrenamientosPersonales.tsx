@@ -15,7 +15,7 @@ const meditationCategories = [
     icon: 'flash-outline' as IconName,
     backgroundColor: '#FFF3E0',
     accentColor: '#F5A524',
-    link:'/herramientas/energia'
+    link:'herramientas/cargarEnergia'
   },
   {
     id: 'motivation',
@@ -24,7 +24,7 @@ const meditationCategories = [
     icon: 'ribbon-outline' as IconName,
     backgroundColor: '#FFF7E7',
     accentColor: '#E68A00',
-    link:'motivacion'
+    link:'herramientas/MotivacionGuia'
   },
   {
     id: 'concentration',
@@ -33,7 +33,7 @@ const meditationCategories = [
     icon: 'eye-outline' as IconName,
     backgroundColor: '#EEF7F6',
     accentColor: '#4EA3A1',
-    link:'estado-emocional'
+    link:'herramientas/concentracion'
   },
   {
     id: 'focus',
@@ -42,7 +42,7 @@ const meditationCategories = [
     icon: 'pulse-outline' as IconName,
     backgroundColor: '#F2FBFC',
     accentColor: '#0092A5',
-    link:'sueno'
+    link:'herramientas/energiaEnfoque'
   },
 ] as const;
 

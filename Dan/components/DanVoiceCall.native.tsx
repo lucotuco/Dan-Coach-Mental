@@ -7,8 +7,8 @@ export default function DanVoiceCall() {
     <View style={styles.container}>
       <Text style={styles.title}>Llamada con DAN (voz)</Text>
       <Text style={styles.text}>
-        La llamada de voz en tiempo real con DAN todavía no está disponible en la app
-        nativa. Probala desde la versión web del MVP 😊
+        Por ahora, la llamada en tiempo real está habilitada en la versión web.
+        En nativo lo dejamos preparado para integrarlo después (WebRTC / audio I/O).
       </Text>
     </View>
   );
@@ -20,13 +20,16 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#333',
+    backgroundColor: '#111',
   },
   title: {
     fontSize: 16,
     fontWeight: '700',
-    marginBottom: 4,
+    marginBottom: 6,
+    color: '#fff',
   },
   text: {
     fontSize: 14,
+    color: '#ddd',
   },
 });

@@ -10,7 +10,6 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import {
@@ -29,8 +28,8 @@ import {
 import { z } from 'zod';
 
 const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
-const REALTIME_SESSIONS_ENDPOINT = '/api/realtime/sessions';
-const REALTIME_CHECKUPS_ENDPOINT = '/api/realtime/checkups';
+const REALTIME_SESSION_SAVE_ENDPOINT = '/api/realtime/session-save';
+const REALTIME_SESSION_END_ENDPOINT = '/api/realtime/session-end';
 
 const HEADER_H = 140;
 const INPUT_H = 92;
@@ -48,6 +47,14 @@ type ChatMessage = {
 type Mode = 'text' | 'audio';
 
 const isBrowser = () => typeof window !== 'undefined';
+
+function createSessionId(): string {
+  try {
+    // @ts-ignore
+    if (typeof crypto !== 'undefined' && crypto?.randomUUID) return crypto.randomUUID();
+  } catch {}
+  return `sess-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   let t: any;
@@ -70,7 +77,7 @@ export default function CoachVirtualScreen() {
 
   const [connecting, setConnecting] = useState(false);
   const [connected, setConnected] = useState(false);
-  const [mode, setMode] = useState<Mode>('text'); // modo actual (si hay sesión)
+  const [mode, setMode] = useState<Mode>('text');
   const [errorText, setErrorText] = useState<string | null>(null);
 
   const [assistantThinking, setAssistantThinking] = useState(false);
@@ -90,6 +97,18 @@ export default function CoachVirtualScreen() {
   // Silent stream resources (para modo texto sin mic)
   const silentAudioCtxRef = useRef<AudioContext | null>(null);
   const silentOscRef = useRef<OscillatorNode | null>(null);
+
+  // Session ID para persistencia
+  const sessionIdRef = useRef<string>(createSessionId());
+
+  // Evitar guardar 2 veces
+  const finalizedRef = useRef<boolean>(false);
+
+  // Autosave idle
+  const autosaveTimerRef = useRef<any>(null);
+  const lastAutosavedCharsRef = useRef<number>(0);
+
+  const DEV_LOG = true;
 
   const scrollToEnd = useCallback(() => {
     if (!isBrowser()) return;
@@ -164,25 +183,185 @@ export default function CoachVirtualScreen() {
     }
   }, [stopTracks]);
 
+  const buildTranscriptFromMessages = useCallback(() => {
+    const lines: string[] = [];
+    for (const m of messages) {
+      const prefix = m.role === 'user' ? 'Usuario' : 'DAN';
+      lines.push(`${prefix}: ${m.content}`);
+    }
+    return lines.join('\n');
+  }, [messages]);
+
+  /**
+   * ✅ Autosave (NO pipeline). Se llama después de 90s idle.
+   */
+  const autosaveSession = useCallback(async () => {
+    if (!API_URL) return;
+    if (!messages.length) return;
+
+    const token = getStoredToken();
+    if (!token) return;
+
+    const transcript = buildTranscriptFromMessages().trim();
+    if (!transcript) return;
+
+    // Evitar autosaves idénticos (reduce spam)
+    const chars = transcript.length;
+    if (chars <= lastAutosavedCharsRef.current) return;
+
+    try {
+      const resp = await fetch(`${API_URL}${REALTIME_SESSION_SAVE_ENDPOINT}`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        // @ts-ignore
+        keepalive: true,
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          transcript,
+          metadata: { platform: 'web', mode, source: 'coachVirtual.web', reason: 'idle_autosave' },
+        }),
+      });
+
+      if (isUnauthorizedStatus(resp.status)) {
+        redirectToLogin(router, logout);
+        return;
+      }
+
+      if (resp.ok) {
+        lastAutosavedCharsRef.current = chars;
+        if (DEV_LOG) console.log('[AUTOSAVE] ok', { chars, sessionId: sessionIdRef.current });
+      } else {
+        const t = await resp.text().catch(() => '');
+        if (DEV_LOG) console.warn('[AUTOSAVE] failed', resp.status, t);
+      }
+    } catch (e) {
+      if (DEV_LOG) console.warn('[AUTOSAVE] network error', e);
+    }
+  }, [API_URL, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+
+  /**
+   * ✅ Finalize (pipeline completo). NO beacon. Usa Authorization + keepalive.
+   */
+  const finalizeSession = useCallback(async () => {
+    if (!API_URL) return;
+    if (finalizedRef.current) return;
+    if (!messages.length) return;
+
+    const token = getStoredToken();
+    if (!token) {
+      if (DEV_LOG) console.warn('[FINALIZE] no token -> skip');
+      return;
+    }
+
+    const transcript = buildTranscriptFromMessages().trim();
+    if (!transcript) return;
+
+    finalizedRef.current = true;
+
+    try {
+      const resp = await fetch(`${API_URL}${REALTIME_SESSION_END_ENDPOINT}`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        // @ts-ignore
+        keepalive: true,
+        body: JSON.stringify({
+          sessionId: sessionIdRef.current,
+          transcript,
+          metadata: {
+            platform: 'web',
+            mode,
+            source: 'coachVirtual.web',
+            reason: 'visibility_or_unmount',
+          },
+        }),
+      });
+
+      if (isUnauthorizedStatus(resp.status)) {
+        redirectToLogin(router, logout);
+        return;
+      }
+
+      if (!resp.ok) {
+        finalizedRef.current = false;
+        const t = await resp.text().catch(() => '');
+        if (DEV_LOG) console.warn('[FINALIZE] failed', resp.status, t);
+      } else {
+        if (DEV_LOG) console.log('[FINALIZE] ok', { sessionId: sessionIdRef.current });
+      }
+    } catch (e) {
+      finalizedRef.current = false;
+      if (DEV_LOG) console.warn('[FINALIZE] network error', e);
+    }
+  }, [API_URL, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+
+  /**
+   * ✅ Programar autosave por idle 90s cada vez que cambia la conversación
+   */
+  const scheduleAutosave = useCallback(() => {
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => {
+      void autosaveSession();
+    }, 90_000);
+  }, [autosaveSession]);
+
+  // Cada vez que se agrega un mensaje, reprogramamos autosave
+  useEffect(() => {
+    if (!messages.length) return;
+    scheduleAutosave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length]);
+
+  /**
+   * ✅ Guardar al irse (SIN beacon)
+   */
+  useEffect(() => {
+    if (!isBrowser()) return;
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        if (DEV_LOG) console.log('[VISIBILITY] hidden -> finalize');
+        void finalizeSession();
+      }
+    };
+
+    const onPageHide = () => {
+      if (DEV_LOG) console.log('[PAGEHIDE] -> finalize');
+      void finalizeSession();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', onPageHide);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, [finalizeSession]);
+
   // Limpieza total al desmontar
   useEffect(() => {
     return () => {
+      // 1) intento finalize
+      void finalizeSession();
+      // 2) cleanup realtime
       cleanupRealtime();
       try {
         const el = audioElRef.current;
         if (el && el.parentNode) el.parentNode.removeChild(el);
       } catch {}
+      // 3) timers
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
-  }, [cleanupRealtime]);
-
-  // ✅ AUTO-DISCONNECT cuando cambia de tab / pierde foco esta pantalla
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        cleanupRealtime();
-      };
-    }, [cleanupRealtime]),
-  );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const createSilentMediaStream = useCallback((): MediaStream => {
     if (!isBrowser()) return new MediaStream();
@@ -195,7 +374,7 @@ export default function CoachVirtualScreen() {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
-    gain.gain.value = 0; // silencio
+    gain.gain.value = 0;
     osc.frequency.value = 440;
 
     osc.connect(gain);
@@ -216,6 +395,7 @@ export default function CoachVirtualScreen() {
 
       const res = await fetch(`${API_URL}${REALTIME_TOKEN_ENDPOINT}?${qs.toString()}`, {
         method: 'GET',
+        credentials: 'omit',
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -250,10 +430,8 @@ export default function CoachVirtualScreen() {
       }
       if (connecting) return;
 
-      // Si ya estoy conectado en el mismo modo, no hago nada
       if (connected && sessionRef.current && mode === targetMode) return;
 
-      // Si estoy conectado en otro modo, reconecto limpio
       if (connected && mode !== targetMode) {
         cleanupRealtime();
       }
@@ -274,77 +452,9 @@ export default function CoachVirtualScreen() {
         const { apiKey, backendInstructions, model } = secret;
         const userId = user?._id;
 
-        // -------------------------
-        // Tools
-        // -------------------------
-        const saveSessionSummaryTool = tool({
-          name: 'save_session_summary',
-          description:
-            'Guarda un resumen corto de la sesión. Usala UNA sola vez cuando el usuario quiera terminar.',
-          parameters: z.object({
-            summary: z.string(),
-            keyMoments: z.array(z.string()).max(3).default([]),
-            nextStep: z.string().default(''),
-          }),
-          execute: async (input) => {
-            try {
-              if (!userId) return 'No pude guardar el resumen (no userId).';
-
-              const resp = await fetch(`${API_URL}${REALTIME_SESSIONS_ENDPOINT}`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  userId,
-                  summary: input.summary,
-                  keyMoments: input.keyMoments,
-                  nextStep: input.nextStep,
-                  model,
-                }),
-              });
-
-              if (!resp.ok) return 'No pude guardar el resumen en la base de datos.';
-              return 'Resumen guardado correctamente.';
-            } catch {
-              return 'Problema de red al guardar resumen.';
-            }
-          },
-        });
-
-        const getRecentSessionsTool = tool({
-          name: 'get_recent_sessions',
-          description:
-            'Trae las últimas sesiones guardadas del usuario (resúmenes) para personalizar mejor. Usala cuando sume.',
-          parameters: z.object({
-            limit: z.number().int().min(1).max(10).default(5),
-          }),
-          execute: async ({ limit }) => {
-            try {
-              if (!userId) return 'No hay userId para traer sesiones.';
-              const qs = new URLSearchParams({
-                userId,
-                limit: String(limit ?? 5),
-                format: 'tool',
-              });
-              const resp = await fetch(`${API_URL}${REALTIME_SESSIONS_ENDPOINT}?${qs.toString()}`, {
-                method: 'GET',
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (!resp.ok) return 'No pude traer sesiones (HTTP error).';
-              const data = await resp.json();
-              return (data?.context ?? 'Sin sesiones previas.').toString();
-            } catch {
-              return 'Problema de red al traer sesiones.';
-            }
-          },
-        });
-
         const getRecentCheckupsTool = tool({
           name: 'get_recent_checkups',
-          description:
-            'Trae los últimos chequeos del usuario para personalizar. Usala cuando sume.',
+          description: 'Trae los últimos chequeos del usuario para personalizar. Usala cuando sume.',
           parameters: z.object({
             limit: z.number().int().min(1).max(10).default(5),
           }),
@@ -356,8 +466,9 @@ export default function CoachVirtualScreen() {
                 limit: String(limit ?? 5),
                 format: 'tool',
               });
-              const resp = await fetch(`${API_URL}${REALTIME_CHECKUPS_ENDPOINT}?${qs.toString()}`, {
+              const resp = await fetch(`${API_URL}/api/realtime/checkups?${qs.toString()}`, {
                 method: 'GET',
+                credentials: 'omit',
                 headers: { Authorization: `Bearer ${token}` },
               });
               if (!resp.ok) return 'No pude traer chequeos (HTTP error).';
@@ -372,16 +483,11 @@ export default function CoachVirtualScreen() {
         const agent = new RealtimeAgent({
           name: 'DAN',
           instructions: backendInstructions,
-          tools: [getRecentSessionsTool, getRecentCheckupsTool, saveSessionSummaryTool],
+          tools: [getRecentCheckupsTool],
         });
 
-        // -------------------------
-        // Transport
-        // -------------------------
         const audioEl = getOrCreateAudioEl();
         if (audioEl) {
-          // Modo texto => no habla
-          // Modo audio => reproduce audio del asistente
           audioEl.muted = targetMode !== 'audio';
           audioEl.volume = targetMode === 'audio' ? 1 : 0;
         }
@@ -409,7 +515,7 @@ export default function CoachVirtualScreen() {
           model,
           transport,
           // @ts-ignore
-          config: { output_modalities: [targetMode] }, // 'text' o 'audio'
+          config: { output_modalities: [targetMode] },
         });
 
         sessionRef.current = session;
@@ -425,7 +531,6 @@ export default function CoachVirtualScreen() {
         };
 
         addHandler('transport_event', (event: any) => {
-          // Usuario: transcripción (modo audio)
           if (event?.type === 'conversation.item.input_audio_transcription.completed') {
             const transcript = (event?.transcript ?? '').toString().trim();
             if (!transcript) return;
@@ -438,7 +543,6 @@ export default function CoachVirtualScreen() {
             return;
           }
 
-          // Asistente: respuesta texto (modo texto)
           if (event?.type === 'response.output_text.done') {
             const text = (event?.text ?? '').toString().trim();
             if (!text) return;
@@ -451,7 +555,6 @@ export default function CoachVirtualScreen() {
             return;
           }
 
-          // Asistente: transcript de audio output (modo audio)
           if (event?.type === 'response.output_audio_transcript.done') {
             const transcript = (event?.transcript ?? '').toString().trim();
             if (!transcript) return;
@@ -464,10 +567,24 @@ export default function CoachVirtualScreen() {
             return;
           }
 
-          // Failsafe
           if (event?.type === 'response.failed') {
             setAssistantThinking(false);
           }
+
+          if (
+            event?.type === 'transport.closed' ||
+            event?.type === 'connection.closed' ||
+            event?.type === 'session.closed' ||
+            event?.type === 'error'
+          ) {
+            setAssistantThinking(false);
+            setConnected(false);
+          }
+        });
+
+        addHandler('close', () => {
+          setAssistantThinking(false);
+          setConnected(false);
         });
 
         detachSessionHandlers.current = () => {
@@ -488,37 +605,17 @@ export default function CoachVirtualScreen() {
         setConnecting(false);
       }
     },
-    [
-      API_URL,
-      cleanupRealtime,
-      connected,
-      connecting,
-      createSilentMediaStream,
-      fetchClientSecret,
-      logout,
-      mode,
-      router,
-      user?._id,
-    ],
+    [cleanupRealtime, connected, connecting, createSilentMediaStream, fetchClientSecret, logout, mode, router, user?._id],
   );
 
   const hangUp = useCallback(async () => {
-    const session = sessionRef.current;
     try {
-      if (session) {
-        await session.sendMessage(
-          `DAN, el usuario está por cortar ahora mismo.
-Mirá toda la charla de esta sesión y generá un resumen breve para guardar en la base de datos.
-Usá UNA sola vez la herramienta "save_session_summary".
-Al usuario solamente dale un cierre corto y cálido.`,
-        );
-      }
-    } catch (e) {
-      console.warn('Error al pedir resumen antes de colgar:', e);
+      // ✅ finaliza siempre
+      await finalizeSession();
     } finally {
       cleanupRealtime();
     }
-  }, [cleanupRealtime]);
+  }, [cleanupRealtime, finalizeSession]);
 
   const sendTextMessage = useCallback(async () => {
     if (!trimmedQuestion) return;
@@ -531,7 +628,9 @@ Al usuario solamente dale un cierre corto y cálido.`,
     scrollToEnd();
     setAssistantThinking(true);
 
-    // Si no hay sesión, arrancamos en MODO TEXTO
+    // Reprogramar autosave por actividad
+    scheduleAutosave();
+
     if (!sessionRef.current || !connected) {
       await connectRealtime('text');
     }
@@ -549,29 +648,25 @@ Al usuario solamente dale un cierre corto y cálido.`,
       setAssistantThinking(false);
       alert(err?.message || 'No se pudo enviar el mensaje a DAN.');
     }
-  }, [trimmedQuestion, connecting, connected, connectRealtime, scrollToEnd]);
+  }, [trimmedQuestion, connecting, connected, connectRealtime, scheduleAutosave, scrollToEnd]);
 
   const onPressCall = useCallback(async () => {
     if (connecting) return;
 
-    // Si ya estoy en audio => cuelgo
     if (connected && mode === 'audio') {
       await hangUp();
       return;
     }
 
-    // Si estoy en texto => reconecto en audio
     if (connected && mode === 'text') {
       cleanupRealtime();
     }
 
-    // Conecto en audio
     await connectRealtime('audio');
   }, [cleanupRealtime, connectRealtime, connected, connecting, hangUp, mode]);
 
   return (
     <View style={styles.screen}>
-      {/* HEADER FIXED */}
       <View style={styles.fixedHeader}>
         <View style={{ marginTop: 4 }}>
           <MedioLogo />
@@ -589,16 +684,12 @@ Al usuario solamente dale un cierre corto y cálido.`,
         </View>
       </View>
 
-      {/* SCROLL MENSAJES */}
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          {
-            paddingTop: HEADER_H + GAP,
-            paddingBottom: INPUT_H + GAP,
-          },
+          { paddingTop: HEADER_H + GAP, paddingBottom: INPUT_H + GAP },
         ]}
         keyboardShouldPersistTaps="never"
       >
@@ -629,7 +720,6 @@ Al usuario solamente dale un cierre corto y cálido.`,
         </View>
       </ScrollView>
 
-      {/* INPUT FIXED */}
       <View style={styles.fixedInputBar}>
         <TextInput
           style={styles.input}
@@ -658,21 +748,14 @@ Al usuario solamente dale un cierre corto y cálido.`,
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[
-              styles.voiceInlineButton,
-              connected && mode === 'audio' && styles.voiceInlineButtonActive,
-            ]}
+            style={[styles.voiceInlineButton, connected && mode === 'audio' && styles.voiceInlineButtonActive]}
             onPress={onPressCall}
             disabled={connecting}
           >
             {connecting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Feather
-                name={connected && mode === 'audio' ? 'phone-off' : 'phone-call'}
-                size={18}
-                color="#fff"
-              />
+              <Feather name={connected && mode === 'audio' ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
             )}
           </TouchableOpacity>
         </View>

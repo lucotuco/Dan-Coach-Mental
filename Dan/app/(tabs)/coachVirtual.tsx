@@ -16,9 +16,8 @@ import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
-import { useAuth } from '@/components/AuthContext';
 import DanVoiceCall from '@/components/DanVoiceCall';
-import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
+import { useAuth, getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
 const CHAT_ENDPOINT = '/api/dan/chat';
 
@@ -29,15 +28,19 @@ type ChatMessage = {
 };
 
 export default function CoachVirtualScreen() {
-  const API_URL = process.env.EXPO_PUBLIC_API_URL;
+  const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? '').replace(/\/+$/, '');
   const router = useRouter();
+
   const [question, setQuestion] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
   const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
-  const { user, isAuthenticated, logout } = useAuth();
 
+  const { logout } = useAuth();
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
 
   const scrollToEnd = () => {
@@ -46,33 +49,34 @@ export default function CoachVirtualScreen() {
     });
   };
 
-  const handleDismissKeyboard =
-    Platform.OS === 'web' ? undefined : Keyboard.dismiss;
+  const handleDismissKeyboard = Platform.OS === 'web' ? undefined : Keyboard.dismiss;
+
+  const newChat = () => {
+    setConversationId(null);
+    setMessages([]);
+    setQuestion('');
+  };
 
   const sendMessage = async () => {
     if (!API_URL) {
       alert('Falta configurar la URL del servidor (EXPO_PUBLIC_API_URL).');
       return;
     }
+    if (!trimmedQuestion) return;
 
-    if (!trimmedQuestion) {
-      return;
-    }
-
-    const newMessage: ChatMessage = {
+    const userMsg: ChatMessage = {
       id: `${Date.now()}-user`,
       role: 'user',
       content: trimmedQuestion,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages((prev) => [...prev, userMsg]);
     setQuestion('');
     setLoading(true);
     scrollToEnd();
 
     try {
       const token = getStoredToken();
-
       if (!token) {
         redirectToLogin(router, logout);
         return;
@@ -86,8 +90,8 @@ export default function CoachVirtualScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: user?._id,
           message: trimmedQuestion,
+          conversationId: conversationId || undefined,
         }),
       });
 
@@ -98,27 +102,21 @@ export default function CoachVirtualScreen() {
 
       const contentType = response.headers.get('content-type');
       const rawBody = await response.text();
-      const data = contentType?.includes('application/json')
-        ? JSON.parse(rawBody)
-        : { message: rawBody };
+      const data = contentType?.includes('application/json') ? JSON.parse(rawBody) : { message: rawBody };
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || 'No se pudo obtener una respuesta del coach.',
-        );
+      if (!response.ok) throw new Error(data.message || 'No se pudo obtener una respuesta del coach.');
+
+      if (data?.conversationId && !conversationId) {
+        setConversationId(String(data.conversationId));
       }
 
-      const answer: ChatMessage = {
+      const assistantMsg: ChatMessage = {
         id: `${Date.now()}-assistant`,
         role: 'assistant',
-        content:
-          data.reply ||
-          data.response ||
-          data.message ||
-          'No pude generar una respuesta en este momento.',
+        content: data.message || 'No pude generar una respuesta en este momento.',
       };
 
-      setMessages((prev) => [...prev, answer]);
+      setMessages((prev) => [...prev, assistantMsg]);
       scrollToEnd();
     } catch (error: any) {
       console.error('Error al consultar al coach virtual:', error);
@@ -129,14 +127,8 @@ export default function CoachVirtualScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <TouchableWithoutFeedback
-        onPress={handleDismissKeyboard}
-        accessible={false}
-      >
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TouchableWithoutFeedback onPress={handleDismissKeyboard} accessible={false}>
         <View style={styles.container}>
           <ScrollView
             ref={scrollRef}
@@ -151,17 +143,25 @@ export default function CoachVirtualScreen() {
             <View style={styles.header}>
               <Text style={styles.title}>Coach Virtual</Text>
               <Text style={styles.subtitle}>
-                Pregúntale lo que quieras a DAN por texto o mantené una charla
-                en tiempo real por voz.
+                Pregúntale lo que quieras a DAN por texto o mantené una charla en tiempo real por voz.
               </Text>
+
+              <View style={styles.headerRow}>
+                <TouchableOpacity style={styles.smallBtn} onPress={newChat}>
+                  <Feather name="refresh-ccw" size={16} color="#fff" />
+                  <Text style={styles.smallBtnText}>Nuevo chat</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.convoHint}>
+                  {conversationId ? `Chat activo: ${String(conversationId).slice(-6)}` : 'Chat nuevo'}
+                </Text>
+              </View>
             </View>
 
-            {/* BLOQUE DE CHAT TEXTO */}
             <View style={styles.chatWrapper}>
               {messages.length === 0 && !loading ? (
                 <Text style={styles.emptyText}>
-                  Aún no hay mensajes. Escribe tu consulta para iniciar la
-                  conversación.
+                  Aún no hay mensajes. Escribe tu consulta para iniciar la conversación.
                 </Text>
               ) : (
                 messages.map((msg) => (
@@ -169,14 +169,10 @@ export default function CoachVirtualScreen() {
                     key={msg.id}
                     style={[
                       styles.message,
-                      msg.role === 'user'
-                        ? styles.userMessage
-                        : styles.assistantMessage,
+                      msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
                     ]}
                   >
-                    <Text style={styles.messageRole}>
-                      {msg.role === 'user' ? 'Tú' : 'Coach DAN'}
-                    </Text>
+                    <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
                     <Text style={styles.messageText}>{msg.content}</Text>
                   </View>
                 ))
@@ -187,28 +183,25 @@ export default function CoachVirtualScreen() {
                   <Text style={styles.messageRole}>Coach DAN</Text>
                   <View style={styles.loadingRow}>
                     <ActivityIndicator size="small" color="#0f1b4c" />
-                    <Text style={[styles.messageText, styles.loadingText]}>
-                      Pensando...
-                    </Text>
+                    <Text style={[styles.messageText, styles.loadingText]}>Pensando...</Text>
                   </View>
                 </View>
               )}
             </View>
           </ScrollView>
+
           <View style={styles.voiceSection}>
             <Text style={styles.voiceTitle}>Hablar con DAN por llamada</Text>
             <Text style={styles.voiceSubtitle}>
               Abrí el módulo de llamada para charlar por voz con DAN en tiempo real.
             </Text>
-            <TouchableOpacity
-              style={styles.voiceButton}
-              onPress={() => setIsVoiceModalVisible(true)}
-            >
+            <TouchableOpacity style={styles.voiceButton} onPress={() => setIsVoiceModalVisible(true)}>
               <Feather name="phone-call" size={18} color="#fff" />
               <Text style={styles.voiceButtonText}>Iniciar llamada de voz</Text>
             </TouchableOpacity>
           </View>
-<Modal
+
+          <Modal
             visible={isVoiceModalVisible}
             animationType="slide"
             transparent
@@ -218,10 +211,7 @@ export default function CoachVirtualScreen() {
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>Llamada con DAN</Text>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={() => setIsVoiceModalVisible(false)}
-                  >
+                  <TouchableOpacity style={styles.closeButton} onPress={() => setIsVoiceModalVisible(false)}>
                     <Feather name="x" size={20} color="#0f1b4c" />
                   </TouchableOpacity>
                 </View>
@@ -229,7 +219,7 @@ export default function CoachVirtualScreen() {
               </View>
             </View>
           </Modal>
-          {/* INPUT TEXTO */}
+
           <View style={styles.inputBar}>
             <TextInput
               style={styles.input}
@@ -242,18 +232,11 @@ export default function CoachVirtualScreen() {
               editable={!loading}
             />
             <TouchableOpacity
-              style={[
-                styles.sendButton,
-                (!trimmedQuestion || loading) && styles.sendButtonDisabled,
-              ]}
+              style={[styles.sendButton, (!trimmedQuestion || loading) && styles.sendButtonDisabled]}
               onPress={sendMessage}
               disabled={!trimmedQuestion || loading}
             >
-              {loading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Feather name="send" size={18} color="#fff" />
-              )}
+              {loading ? <ActivityIndicator color="#fff" /> : <Feather name="send" size={18} color="#fff" />}
               <Text style={styles.sendButtonText}>Enviar</Text>
             </TouchableOpacity>
           </View>
@@ -264,188 +247,44 @@ export default function CoachVirtualScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-    backgroundColor: '#ffffffff',
-  },
-  container: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    gap: 16,
-    paddingBottom: 32,
-  },
-  header: {
-    gap: 8,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#0f1b4c',
-  },
-  subtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#1f2b6c',
-  },
-  chatWrapper: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 14,
-    gap: 12,
-    shadowColor: '#0f1b4c0d',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#7a80a0',
-    fontSize: 14,
-  },
-  message: {
-    padding: 12,
-    borderRadius: 12,
-    gap: 6,
-  },
-  userMessage: {
-    backgroundColor: '#e8f1ff',
-    alignSelf: 'flex-end',
-    maxWidth: '90%',
-  },
-  assistantMessage: {
-    backgroundColor: '#f4f6fb',
-    alignSelf: 'flex-start',
-    maxWidth: '90%',
-  },
-  messageRole: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#0f1b4c',
-    textTransform: 'uppercase',
-  },
-  messageText: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#0f1b4c',
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  loadingText: {
-    color: '#4a5070',
-  },
-  inputBar: {
-    padding: 16,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 16,
-    backgroundColor: '#dde4faff',
-    borderTopWidth: 1,
-    borderTopColor: '#d8dcf0',
-    gap: 10,
-  },
-  input: {
-    backgroundColor: '#fff',
-    borderRadius: 14,
-    padding: 12,
-    minHeight: 60,
-    maxHeight: 140,
-    fontSize: 15,
-    lineHeight: 20,
-    color: '#0f1b4c',
-    borderWidth: 1,
-    borderColor: '#d8dcf0',
-  },
-  sendButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#0f1b4c',
-    paddingVertical: 12,
-    borderRadius: 14,
-  },
-  sendButtonDisabled: {
-    backgroundColor: '#9aa4c3',
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  voiceSection: {
-    marginTop: 12,
-    padding: 16,
-    backgroundColor: '#eef2ff',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#d0d7ff',
-    gap: 8,
-  },
-  voiceTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0f1b4c',
-  },
-  voiceSubtitle: {
-    fontSize: 14,
-    color: '#2f3c6f',
-    lineHeight: 20,
-  },
-  voiceButton: {
-    marginTop: 4,
-    backgroundColor: '#0f1b4c',
-    paddingVertical: 12,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-  },
-  voiceButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    width: '100%',
-    maxWidth: 720,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#0f1b4c',
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: '#eef2ff',
-  },
+  flex: { flex: 1 },
+  container: { flex: 1, backgroundColor: '#f6f7fb' },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 140 },
+  header: { marginTop: 10, marginBottom: 10 },
+  title: { fontSize: 22, fontWeight: '800', color: '#0f1b4c' },
+  subtitle: { marginTop: 6, fontSize: 14, color: '#4a5568' },
+
+  headerRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  smallBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f1b4c', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999 },
+  smallBtnText: { color: '#fff', fontWeight: '700' },
+  convoHint: { color: '#4a5568', fontSize: 12 },
+
+  chatWrapper: { marginTop: 10 },
+  emptyText: { color: '#4a5568', fontSize: 14, marginTop: 10 },
+  message: { padding: 12, borderRadius: 14, marginBottom: 10, maxWidth: '92%' },
+  userMessage: { alignSelf: 'flex-end', backgroundColor: '#dbeafe' },
+  assistantMessage: { alignSelf: 'flex-start', backgroundColor: '#fff' },
+  messageRole: { fontWeight: '800', marginBottom: 4, color: '#0f1b4c' },
+  messageText: { color: '#111827', fontSize: 14 },
+  loadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  loadingText: { color: '#4a5568' },
+
+  voiceSection: { padding: 16, borderTopWidth: 1, borderTopColor: '#e5e7eb', backgroundColor: '#fff' },
+  voiceTitle: { fontWeight: '900', color: '#0f1b4c' },
+  voiceSubtitle: { marginTop: 6, color: '#4a5568' },
+  voiceButton: { marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#6c5ce7', paddingVertical: 12, paddingHorizontal: 14, borderRadius: 999, alignSelf: 'flex-start' },
+  voiceButtonText: { color: '#fff', fontWeight: '800' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 18, borderTopRightRadius: 18, padding: 16, paddingBottom: 18 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  modalTitle: { fontWeight: '900', color: '#0f1b4c', fontSize: 16 },
+  closeButton: { padding: 8, borderRadius: 999, backgroundColor: '#e5e7eb' },
+
+  inputBar: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', padding: 12, gap: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#e5e7eb' },
+  input: { flex: 1, minHeight: 44, maxHeight: 92, padding: 12, borderRadius: 14, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb', color: '#111827' },
+  sendButton: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#0f1b4c', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14 },
+  sendButtonDisabled: { opacity: 0.55 },
+  sendButtonText: { color: '#fff', fontWeight: '800' },
 });

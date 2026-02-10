@@ -65,7 +65,7 @@ export default function LibraryScreenVitalidad() {
 
   return (
     <GuidedAudioSession
-      title="Movilidad suave para recargar energía"
+      title="Una pausa breve para despertar energía y claridad"
       scriptTitle="Respirá hondo..."
       scriptParagraphs={renovarEnergiaScript}
       audioModule={require('@/assets/audios/verse_gpt-4o-mini-tts_1x_2025-12-09T03_09_34-080Z.mp3')}

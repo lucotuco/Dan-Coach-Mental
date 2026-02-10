@@ -15,7 +15,7 @@ const meditationCategories = [
     icon: 'leaf-outline' as IconName,
     backgroundColor: '#FFEEDB',
     accentColor: '#F07F24',
-    link:'/herramientas/renovarEnergia'
+    link:'(tabs)/herramientas/renovarEnergia'
   },
   {
     id: 'vitality',
@@ -43,7 +43,7 @@ type MeditationCategory = (typeof meditationCategories)[number];
 export default function LibraryScreen() {
   const router = useRouter();
   const onCategoryPress = (category: MeditationCategory) => {
-    
+    router.push(category.link);
   };
 
   return (

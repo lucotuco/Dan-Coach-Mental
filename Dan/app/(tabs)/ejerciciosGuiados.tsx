@@ -24,7 +24,7 @@ const meditationCategories = [
     icon: 'ribbon-outline' as IconName,
     backgroundColor: '#FFF7E7',
     accentColor: '#E68A00',
-    link:'motivacion'
+    link:'/herramientas/MotivacionGuia'
   },
   {
     id: 'concentration',

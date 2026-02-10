@@ -174,6 +174,30 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="herramientas/MotivacionGuia"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="herramientas/energiaEnfoque"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="herramientas/concentracion"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="herramientas/cargarEnergia"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="estado-emocional"
         options={{
           href: null,
