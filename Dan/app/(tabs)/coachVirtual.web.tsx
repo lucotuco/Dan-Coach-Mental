@@ -7,9 +7,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Pressable,
+  Modal,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Text } from '@/components/Themed';
 import MedioLogo from '@/components/MedioLogo';
 import {
@@ -31,6 +33,8 @@ const REALTIME_TOKEN_ENDPOINT = '/api/realtime/client-secret';
 const REALTIME_SESSION_SAVE_ENDPOINT = '/api/realtime/session-save';
 const REALTIME_SESSION_END_ENDPOINT = '/api/realtime/session-end';
 
+const DAN_CONVERSATIONS_ENDPOINT = '/api/dan/conversations';
+
 const HEADER_H = 140;
 const INPUT_H = 92;
 const GAP = 16;
@@ -45,6 +49,16 @@ type ChatMessage = {
 };
 
 type Mode = 'text' | 'audio';
+
+type ConversationListItem = {
+  _id: string;
+  title?: string;
+  pinned?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastMessageAt?: string | null;
+  type?: string;
+};
 
 const isBrowser = () => typeof window !== 'undefined';
 
@@ -68,6 +82,24 @@ async function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise
   }
 }
 
+function formatDateShort(iso?: string | null) {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const day = String(d.getDate()).padStart(2, '0');
+    const mon = String(d.getMonth() + 1).padStart(2, '0');
+    const yr = d.getFullYear();
+    return `${day}/${mon}/${yr}`;
+  } catch {
+    return '';
+  }
+}
+
+function fallbackTitleFromDate(iso?: string | null) {
+  const f = formatDateShort(iso);
+  return f ? `Sesión ${f}` : 'Sesión sin título';
+}
+
 export default function CoachVirtualScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
@@ -86,6 +118,21 @@ export default function CoachVirtualScreen() {
   const trimmedQuestion = useMemo(() => question.trim(), [question]);
   const scrollRef = useRef<ScrollView>(null);
 
+  // Drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [conversations, setConversations] = useState<ConversationListItem[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  // ✅ ActionSheet pro
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuConversationId, setMenuConversationId] = useState<string | null>(null);
+
+  // Rename modal
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+
   // Realtime session
   const sessionRef = useRef<RealtimeSession | null>(null);
   const detachSessionHandlers = useRef<(() => void) | null>(null);
@@ -94,14 +141,14 @@ export default function CoachVirtualScreen() {
   const streamRef = useRef<MediaStream | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
 
-  // Silent stream resources (para modo texto sin mic)
+  // Silent stream resources
   const silentAudioCtxRef = useRef<AudioContext | null>(null);
   const silentOscRef = useRef<OscillatorNode | null>(null);
 
-  // Session ID para persistencia
+  // Session ID para persistencia realtime transcript
   const sessionIdRef = useRef<string>(createSessionId());
 
-  // Evitar guardar 2 veces
+  // Evitar guardar 2 veces finalize
   const finalizedRef = useRef<boolean>(false);
 
   // Autosave idle
@@ -109,6 +156,21 @@ export default function CoachVirtualScreen() {
   const lastAutosavedCharsRef = useRef<number>(0);
 
   const DEV_LOG = true;
+
+  const openMenuForConversation = useCallback((id: string) => {
+    setMenuConversationId(id);
+    setMenuOpen(true);
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    setMenuOpen(false);
+    setTimeout(() => setMenuConversationId(null), 0);
+  }, []);
+
+  const findConversationById = useCallback(
+    (id: string) => conversations.find((c) => String(c._id) === String(id)) || null,
+    [conversations],
+  );
 
   const scrollToEnd = useCallback(() => {
     if (!isBrowser()) return;
@@ -192,9 +254,6 @@ export default function CoachVirtualScreen() {
     return lines.join('\n');
   }, [messages]);
 
-  /**
-   * ✅ Autosave (NO pipeline). Se llama después de 90s idle.
-   */
   const autosaveSession = useCallback(async () => {
     if (!API_URL) return;
     if (!messages.length) return;
@@ -205,7 +264,6 @@ export default function CoachVirtualScreen() {
     const transcript = buildTranscriptFromMessages().trim();
     if (!transcript) return;
 
-    // Evitar autosaves idénticos (reduce spam)
     const chars = transcript.length;
     if (chars <= lastAutosavedCharsRef.current) return;
 
@@ -222,7 +280,13 @@ export default function CoachVirtualScreen() {
         body: JSON.stringify({
           sessionId: sessionIdRef.current,
           transcript,
-          metadata: { platform: 'web', mode, source: 'coachVirtual.web', reason: 'idle_autosave' },
+          metadata: {
+            platform: 'web',
+            mode,
+            source: 'coachVirtual.web',
+            reason: 'idle_autosave',
+            conversationId: activeConversationId || undefined,
+          },
         }),
       });
 
@@ -241,11 +305,8 @@ export default function CoachVirtualScreen() {
     } catch (e) {
       if (DEV_LOG) console.warn('[AUTOSAVE] network error', e);
     }
-  }, [API_URL, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+  }, [API_URL, activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
 
-  /**
-   * ✅ Finalize (pipeline completo). NO beacon. Usa Authorization + keepalive.
-   */
   const finalizeSession = useCallback(async () => {
     if (!API_URL) return;
     if (finalizedRef.current) return;
@@ -280,6 +341,7 @@ export default function CoachVirtualScreen() {
             mode,
             source: 'coachVirtual.web',
             reason: 'visibility_or_unmount',
+            conversationId: activeConversationId || undefined,
           },
         }),
       });
@@ -300,11 +362,8 @@ export default function CoachVirtualScreen() {
       finalizedRef.current = false;
       if (DEV_LOG) console.warn('[FINALIZE] network error', e);
     }
-  }, [API_URL, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+  }, [API_URL, activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
 
-  /**
-   * ✅ Programar autosave por idle 90s cada vez que cambia la conversación
-   */
   const scheduleAutosave = useCallback(() => {
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = setTimeout(() => {
@@ -312,16 +371,12 @@ export default function CoachVirtualScreen() {
     }, 90_000);
   }, [autosaveSession]);
 
-  // Cada vez que se agrega un mensaje, reprogramamos autosave
   useEffect(() => {
     if (!messages.length) return;
     scheduleAutosave();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
-  /**
-   * ✅ Guardar al irse (SIN beacon)
-   */
   useEffect(() => {
     if (!isBrowser()) return;
 
@@ -346,18 +401,14 @@ export default function CoachVirtualScreen() {
     };
   }, [finalizeSession]);
 
-  // Limpieza total al desmontar
   useEffect(() => {
     return () => {
-      // 1) intento finalize
       void finalizeSession();
-      // 2) cleanup realtime
       cleanupRealtime();
       try {
         const el = audioElRef.current;
         if (el && el.parentNode) el.parentNode.removeChild(el);
       } catch {}
-      // 3) timers
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -386,6 +437,226 @@ export default function CoachVirtualScreen() {
     return destination.stream;
   }, []);
 
+  // ✅ Conversations API
+  const fetchConversations = useCallback(async () => {
+    if (!API_URL) return;
+    const token = getStoredToken();
+    if (!token) return;
+
+    setLoadingConversations(true);
+    try {
+      const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}?limit=50`, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (isUnauthorizedStatus(res.status)) {
+        redirectToLogin(router, logout);
+        return;
+      }
+      if (!res.ok) throw new Error(`GET conversations failed: ${res.status}`);
+
+      const data = await res.json();
+      const list: ConversationListItem[] = Array.isArray(data?.conversations) ? data.conversations : [];
+
+      // ✅ opcional: pinned arriba (sin depender del backend)
+      const sorted = [...list].sort((a, b) => {
+        const ap = a.pinned ? 1 : 0;
+        const bp = b.pinned ? 1 : 0;
+        if (ap !== bp) return bp - ap;
+        const ad = new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime();
+        const bd = new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime();
+        return bd - ad;
+      });
+
+      setConversations(sorted);
+    } catch (e) {
+      if (DEV_LOG) console.warn('[CONVERSATIONS] fetch error', e);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [logout, router]);
+
+  const createNewConversation = useCallback(async () => {
+    if (!API_URL) return null;
+    const token = getStoredToken();
+    if (!token) return null;
+
+    try {
+      const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}`, {
+        method: 'POST',
+        credentials: 'omit',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ type: 'dan_chat' }),
+      });
+
+      if (isUnauthorizedStatus(res.status)) {
+        redirectToLogin(router, logout);
+        return null;
+      }
+      if (!res.ok) throw new Error(`POST conversation failed: ${res.status}`);
+
+      const data = await res.json();
+      const convoId = (data?.conversationId ?? '').toString();
+      if (!convoId) return null;
+
+      setActiveConversationId(convoId);
+      setMessages([]);
+
+      sessionIdRef.current = createSessionId();
+      finalizedRef.current = false;
+      lastAutosavedCharsRef.current = 0;
+
+      cleanupRealtime();
+      void fetchConversations();
+
+      return convoId;
+    } catch (e) {
+      if (DEV_LOG) console.warn('[CONVERSATIONS] create error', e);
+      return null;
+    }
+  }, [cleanupRealtime, fetchConversations, logout, router]);
+
+  const openConversation = useCallback(
+    async (conversationId: string) => {
+      if (!API_URL) return;
+      const token = getStoredToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(
+          `${API_URL}${DAN_CONVERSATIONS_ENDPOINT}/${encodeURIComponent(conversationId)}/messages?limit=60`,
+          {
+            method: 'GET',
+            credentials: 'omit',
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        if (isUnauthorizedStatus(res.status)) {
+          redirectToLogin(router, logout);
+          return;
+        }
+        if (!res.ok) throw new Error(`GET messages failed: ${res.status}`);
+
+        const data = await res.json();
+        const msgs = Array.isArray(data?.messages) ? data.messages : [];
+
+        const mapped: ChatMessage[] = msgs
+          .filter((m: any) => m?.role === 'user' || m?.role === 'assistant')
+          .map((m: any) => ({
+            id: String(m._id ?? `${m.role}-${m.createdAt ?? Date.now()}`),
+            role: m.role,
+            content: String(m.text ?? ''),
+          }));
+
+        setActiveConversationId(conversationId);
+        setMessages(mapped);
+
+        sessionIdRef.current = createSessionId();
+        finalizedRef.current = false;
+        lastAutosavedCharsRef.current = 0;
+
+        cleanupRealtime();
+        setDrawerOpen(false);
+      } catch (e) {
+        if (DEV_LOG) console.warn('[CONVERSATIONS] open error', e);
+      }
+    },
+    [cleanupRealtime, logout, router],
+  );
+
+  const patchConversation = useCallback(
+    async (conversationId: string, payload: any) => {
+      if (!API_URL) return false;
+      const token = getStoredToken();
+      if (!token) return false;
+
+      try {
+        const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}/${encodeURIComponent(conversationId)}`, {
+          method: 'PATCH',
+          credentials: 'omit',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (isUnauthorizedStatus(res.status)) {
+          redirectToLogin(router, logout);
+          return false;
+        }
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          if (DEV_LOG) console.warn('[PATCH CONVO] failed', res.status, t);
+          return false;
+        }
+
+        await fetchConversations();
+        return true;
+      } catch (e) {
+        if (DEV_LOG) console.warn('[PATCH CONVO] error', e);
+        return false;
+      }
+    },
+    [fetchConversations, logout, router],
+  );
+
+  const softDeleteConversation = useCallback(
+    async (conversationId: string) => {
+      if (!API_URL) return false;
+      const token = getStoredToken();
+      if (!token) return false;
+
+      try {
+        const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}/${encodeURIComponent(conversationId)}`, {
+          method: 'DELETE',
+          credentials: 'omit',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (isUnauthorizedStatus(res.status)) {
+          redirectToLogin(router, logout);
+          return false;
+        }
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          if (DEV_LOG) console.warn('[DELETE CONVO] failed', res.status, t);
+          return false;
+        }
+
+        if (activeConversationId && String(activeConversationId) === String(conversationId)) {
+          setActiveConversationId(null);
+          setMessages([]);
+          void createNewConversation();
+        }
+
+        await fetchConversations();
+        return true;
+      } catch (e) {
+        if (DEV_LOG) console.warn('[DELETE CONVO] error', e);
+        return false;
+      }
+    },
+    [activeConversationId, createNewConversation, fetchConversations, logout, router],
+  );
+
+  useEffect(() => {
+    if (!API_URL) return;
+    if (!isBrowser()) return;
+
+    void fetchConversations();
+    if (!activeConversationId) {
+      void createNewConversation();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchClientSecret = useCallback(
     async (token: string, targetMode: Mode) => {
       const userId = user?._id;
@@ -406,7 +677,6 @@ export default function CoachVirtualScreen() {
       if (!res.ok) throw new Error(`No se pudo obtener client-secret: HTTP ${res.status}`);
 
       const data = await res.json();
-
       const apiKey: string = data?.value ?? data?.client_secret?.value ?? data?.token ?? '';
       if (!apiKey) throw new Error('El backend no devolvió un client_secret válido.');
 
@@ -416,6 +686,46 @@ export default function CoachVirtualScreen() {
       return { apiKey, backendInstructions, model };
     },
     [logout, router, user?._id],
+  );
+
+  // ✅ Persist: guardar cada mensaje en DanMessage
+  const persistMessage = useCallback(
+    async (role: 'user' | 'assistant', text: string) => {
+      if (!API_URL) return;
+      const token = getStoredToken();
+      if (!token) return;
+      if (!activeConversationId) return;
+
+      try {
+        const res = await fetch(
+          `${API_URL}${DAN_CONVERSATIONS_ENDPOINT}/${encodeURIComponent(activeConversationId)}/messages`,
+          {
+            method: 'POST',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ role, text }),
+          },
+        );
+
+        if (isUnauthorizedStatus(res.status)) {
+          redirectToLogin(router, logout);
+          return;
+        }
+
+        if (!res.ok) {
+          const t = await res.text().catch(() => '');
+          if (DEV_LOG) console.warn('[PERSIST MSG] failed', res.status, t);
+        } else {
+          void fetchConversations();
+        }
+      } catch (e) {
+        if (DEV_LOG) console.warn('[PERSIST MSG] network error', e);
+      }
+    },
+    [activeConversationId, fetchConversations, logout, router],
   );
 
   const connectRealtime = useCallback(
@@ -539,6 +849,9 @@ export default function CoachVirtualScreen() {
               ...prev,
               { id: (event?.item_id ?? `user-${Date.now()}`).toString(), role: 'user', content: transcript },
             ]);
+
+            void persistMessage('user', transcript);
+
             setAssistantThinking(true);
             return;
           }
@@ -551,6 +864,9 @@ export default function CoachVirtualScreen() {
               ...prev,
               { id: (event?.item_id ?? `assistant-${Date.now()}`).toString(), role: 'assistant', content: text },
             ]);
+
+            void persistMessage('assistant', text);
+
             setAssistantThinking(false);
             return;
           }
@@ -563,6 +879,9 @@ export default function CoachVirtualScreen() {
               ...prev,
               { id: (event?.item_id ?? `assistant-${Date.now()}`).toString(), role: 'assistant', content: transcript },
             ]);
+
+            void persistMessage('assistant', transcript);
+
             setAssistantThinking(false);
             return;
           }
@@ -605,12 +924,11 @@ export default function CoachVirtualScreen() {
         setConnecting(false);
       }
     },
-    [cleanupRealtime, connected, connecting, createSilentMediaStream, fetchClientSecret, logout, mode, router, user?._id],
+    [cleanupRealtime, connected, connecting, createSilentMediaStream, fetchClientSecret, logout, mode, persistMessage, router, user?._id],
   );
 
   const hangUp = useCallback(async () => {
     try {
-      // ✅ finaliza siempre
       await finalizeSession();
     } finally {
       cleanupRealtime();
@@ -621,14 +939,20 @@ export default function CoachVirtualScreen() {
     if (!trimmedQuestion) return;
     if (connecting) return;
 
+    if (!activeConversationId) {
+      const newId = await createNewConversation();
+      if (!newId) return;
+    }
+
     const textToSend = trimmedQuestion;
     setQuestion('');
 
     setMessages((prev) => [...prev, { id: `user-text-${Date.now()}`, role: 'user', content: textToSend }]);
+    void persistMessage('user', textToSend);
+
     scrollToEnd();
     setAssistantThinking(true);
 
-    // Reprogramar autosave por actividad
     scheduleAutosave();
 
     if (!sessionRef.current || !connected) {
@@ -648,10 +972,25 @@ export default function CoachVirtualScreen() {
       setAssistantThinking(false);
       alert(err?.message || 'No se pudo enviar el mensaje a DAN.');
     }
-  }, [trimmedQuestion, connecting, connected, connectRealtime, scheduleAutosave, scrollToEnd]);
+  }, [
+    activeConversationId,
+    connecting,
+    connected,
+    connectRealtime,
+    createNewConversation,
+    persistMessage,
+    scheduleAutosave,
+    scrollToEnd,
+    trimmedQuestion,
+  ]);
 
   const onPressCall = useCallback(async () => {
     if (connecting) return;
+
+    if (!activeConversationId) {
+      const newId = await createNewConversation();
+      if (!newId) return;
+    }
 
     if (connected && mode === 'audio') {
       await hangUp();
@@ -663,13 +1002,197 @@ export default function CoachVirtualScreen() {
     }
 
     await connectRealtime('audio');
-  }, [cleanupRealtime, connectRealtime, connected, connecting, hangUp, mode]);
+  }, [activeConversationId, cleanupRealtime, connectRealtime, connected, connecting, createNewConversation, hangUp, mode]);
+
+  const toggleDrawer = useCallback(() => {
+    setDrawerOpen((v) => !v);
+    if (!drawerOpen) void fetchConversations();
+  }, [drawerOpen, fetchConversations]);
+
+  // ✅ ActionSheet actions (usar menuConversationId)
+  const actionRename = useCallback(() => {
+    const id = menuConversationId;
+    if (!id) return;
+
+    const c = findConversationById(id);
+    setRenamingId(String(id));
+    setRenameValue(((c?.title ?? '') as string).trim());
+    setRenameOpen(true);
+    closeMenu();
+  }, [closeMenu, findConversationById, menuConversationId]);
+
+  const actionTogglePin = useCallback(async () => {
+    const id = menuConversationId;
+    if (!id) return;
+
+    const c = findConversationById(id);
+    const nextPinned = !Boolean(c?.pinned);
+
+    // ⚠️ capturamos id antes de cerrar
+    closeMenu();
+    await patchConversation(String(id), { pinned: nextPinned });
+  }, [closeMenu, findConversationById, menuConversationId, patchConversation]);
+
+  const actionDelete = useCallback(async () => {
+    const id = menuConversationId;
+    if (!id) return;
+
+    closeMenu();
+    await softDeleteConversation(String(id));
+  }, [closeMenu, menuConversationId, softDeleteConversation]);
+
+  const submitRename = useCallback(async () => {
+    if (!renamingId) return;
+    const ok = await patchConversation(renamingId, { title: renameValue });
+    if (ok) {
+      setRenameOpen(false);
+      setRenamingId(null);
+    }
+  }, [patchConversation, renameValue, renamingId]);
 
   return (
+    <>
+    <Stack.Screen
+      options={{
+        
+        headerRight: () => (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Abrir menú"
+            onPress={toggleDrawer}
+            style={styles.headerIconBtn}
+          >
+            <Feather name="menu" size={22} color="#000" />
+          </TouchableOpacity>
+        ),
+      }}
+    />
     <View style={styles.screen}>
+      {/* Drawer overlay */}
+      {drawerOpen && (
+        <View style={styles.drawerOverlay}>
+          <Pressable style={styles.drawerBackdrop} onPress={() => setDrawerOpen(false)} />
+
+          <View style={styles.drawerPanel}>
+            <View style={styles.drawerHeader}>
+              <Text style={styles.drawerTitle}>Conversaciones</Text>
+
+              <TouchableOpacity
+                style={styles.drawerNewBtn}
+                onPress={async () => {
+                  await createNewConversation();
+                  setDrawerOpen(false);
+                }}
+              >
+                <Feather name="plus" size={16} color="#fff" />
+                <Text style={styles.drawerNewBtnText}>Nueva</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.drawerDivider} />
+
+            {loadingConversations ? (
+              <View style={styles.drawerLoading}>
+                <ActivityIndicator />
+                <Text style={styles.drawerLoadingText}>Cargando…</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.drawerList} contentContainerStyle={{ paddingBottom: 18 }}>
+                {conversations.length === 0 ? (
+                  <Text style={styles.drawerEmpty}>Todavía no hay conversaciones.</Text>
+                ) : (
+                  conversations.map((c) => {
+                    const dateBase = c.lastMessageAt || c.updatedAt || c.createdAt || null;
+                    const title = (c.title ?? '').trim();
+                    const shownTitle = title ? title : fallbackTitleFromDate(dateBase);
+                    const isActive = activeConversationId && String(c._id) === String(activeConversationId);
+
+                    return (
+                      <View key={String(c._id)} style={[styles.drawerItem, isActive && styles.drawerItemActive]}>
+                        <TouchableOpacity style={{ flex: 1 }} onPress={() => void openConversation(String(c._id))}>
+                          <View style={styles.drawerItemRow}>
+                            <Text style={styles.drawerItemTitle} numberOfLines={1}>
+                              {c.pinned ? '📌 ' : ''}
+                              {shownTitle}
+                            </Text>
+                          </View>
+                          <Text style={styles.drawerItemDate}>{formatDateShort(dateBase)}</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.itemMenuBtn}
+                          onPress={() => openMenuForConversation(String(c._id))}
+                        >
+                          <Feather name="more-vertical" size={18} color="#0f1b4c" />
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })
+                )}
+              </ScrollView>
+            )}
+          </View>
+
+          {/* ✅ ActionSheet PRO */}
+          {menuOpen && (
+            <View style={styles.actionSheetOverlay} pointerEvents="box-none">
+              <Pressable style={styles.actionSheetBackdrop} onPress={closeMenu} />
+
+              <View style={styles.actionSheetCard}>
+                <TouchableOpacity style={styles.actionSheetItem} onPress={actionRename}>
+                  <Text style={styles.actionSheetText}>Cambiar nombre</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionTogglePin()}>
+                  <Text style={styles.actionSheetText}>Pinear / Despinear</Text>
+                </TouchableOpacity>
+
+                <View style={styles.actionSheetDivider} />
+
+                <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionDelete()}>
+                  <Text style={[styles.actionSheetText, { color: '#b3261e' }]}>Borrar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {/* Rename modal */}
+      <Modal transparent visible={renameOpen} animationType="fade" onRequestClose={() => setRenameOpen(false)}>
+        <Pressable style={styles.modalOverlay} onPress={() => setRenameOpen(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Cambiar nombre</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={renameValue}
+              onChangeText={setRenameValue}
+              placeholder="Nuevo título…"
+              placeholderTextColor="#6b7280"
+              maxLength={80}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnGhost]} onPress={() => setRenameOpen(false)}>
+                <Text style={styles.modalBtnGhostText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={() => void submitRename()}>
+                <Text style={styles.modalBtnPrimaryText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Header */}
       <View style={styles.fixedHeader}>
-        <View style={{ marginTop: 4 }}>
-          <MedioLogo />
+        <View style={styles.topRow}>
+          <View style={{ width: 40 }} />
+
+          <View style={{ flex: 1, alignItems: 'center' }}>
+            <MedioLogo />
+          </View>
+
+          <View style={{ width: 40 }} />
         </View>
 
         <View style={styles.header}>
@@ -687,10 +1210,7 @@ export default function CoachVirtualScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: HEADER_H + GAP, paddingBottom: INPUT_H + GAP },
-        ]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_H + GAP, paddingBottom: INPUT_H + GAP }]}
         keyboardShouldPersistTaps="never"
       >
         <View style={styles.chatWrapper}>
@@ -700,10 +1220,7 @@ export default function CoachVirtualScreen() {
             messages.map((msg) => (
               <View
                 key={msg.id}
-                style={[
-                  styles.message,
-                  msg.role === 'user' ? styles.userMessage : styles.assistantMessage,
-                ]}
+                style={[styles.message, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
               >
                 <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
                 <Text style={styles.messageText}>{msg.content}</Text>
@@ -737,25 +1254,30 @@ export default function CoachVirtualScreen() {
           maxLength={500}
           editable={!connecting}
         />
-
         <View style={styles.inputButtons}>
           <TouchableOpacity
-            style={[styles.sendButton, (!trimmedQuestion || connecting) && styles.sendButtonDisabled]}
-            onPress={sendTextMessage}
-            disabled={!trimmedQuestion || connecting}
-          >
-            <Feather name="send" size={18} color="#fff" />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.voiceInlineButton, connected && mode === 'audio' && styles.voiceInlineButtonActive]}
-            onPress={onPressCall}
+            style={[
+              styles.primaryActionButton,
+              !trimmedQuestion && connected && mode === 'audio' && styles.primaryActionButtonActive,
+              connecting && styles.primaryActionButtonDisabled,
+            ]}
+            onPress={trimmedQuestion ? sendTextMessage : onPressCall}
             disabled={connecting}
           >
-            {connecting ? (
+            {connecting && !trimmedQuestion ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Feather name={connected && mode === 'audio' ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
+              <Feather
+                name={
+                  trimmedQuestion
+                    ? 'send'
+                    : connected && mode === 'audio'
+                      ? 'phone-off'
+                      : 'phone-call'
+                }
+                size={18}
+                color="#fff"
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -763,10 +1285,62 @@ export default function CoachVirtualScreen() {
 
       {!!errorText && <Text style={styles.errorTextFixed}>{errorText}</Text>}
     </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  headerIconBtn: {
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  borderRadius: 999,
+  backgroundColor: 'transparent',
+  minWidth: 44,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+  actionSheetOverlay: {
+    position: 'absolute',
+    inset: 0 as any,
+    zIndex: 99999,
+    elevation: 99999,
+  },
+  actionSheetBackdrop: {
+    position: 'absolute',
+    inset: 0 as any,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  actionSheetCard: {
+    position: 'absolute',
+    right: 12,
+    top: 70,
+    width: 240,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 10 },
+    paddingVertical: 6,
+  },
+  actionSheetItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  actionSheetText: {
+    color: '#0f1b4c',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  actionSheetDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 6,
+  },
+
   screen: {
     flex: 1,
     backgroundColor: '#ffffffff',
@@ -779,7 +1353,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: HEADER_H,
+    height: 140,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 10,
@@ -787,7 +1361,22 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
 
-  header: { gap: 8 },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+
+  menuBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eef2ff',
+  },
+
+  header: { gap: 8, marginTop: 8 },
   title: { fontSize: 26, fontWeight: '800', color: '#0f1b4c' },
   subtitle: { fontSize: 15, lineHeight: 22, color: '#1f2b6c' },
 
@@ -824,7 +1413,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: INPUT_H,
+    height: 92,
     padding: 16,
     backgroundColor: '#dde4faff',
     borderTopWidth: 1,
@@ -839,7 +1428,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: INPUT_H,
+    bottom: 92,
     paddingHorizontal: 16,
     paddingBottom: 8,
     fontSize: 12,
@@ -863,23 +1452,137 @@ const styles = StyleSheet.create({
 
   inputButtons: { flexDirection: 'row', gap: 8 },
 
-  sendButton: {
-    width: 44,
-    height: 44,
+  primaryActionButton: {
+    width: 50,
+    height: 50,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#0f1b4c',
+    marginEnd: -3,
+    marginBottom: 7
   },
-  sendButtonDisabled: { backgroundColor: '#9aa4c3' },
+  // Cuando está en llamada activa y el input está vacío, el botón representa “cortar”.
+  primaryActionButtonActive: { backgroundColor: '#b3261e' },
+  primaryActionButtonDisabled: { backgroundColor: '#9aa4c3' },
 
-  voiceInlineButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 999,
+  // Drawer
+  drawerOverlay: {
+    position: 'absolute',
+    inset: 0 as any,
+    zIndex: 999,
+    flexDirection: 'row',
+  },
+  drawerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+  },
+  drawerPanel: {
+    width: 340,
+    backgroundColor: '#ffffff',
+    borderRightWidth: 1,
+    borderRightColor: '#e5e7eb',
+    paddingTop: 14,
+    paddingHorizontal: 14,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+  },
+  drawerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0f1b4c',
+  },
+  drawerNewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
     backgroundColor: '#0f1b4c',
   },
-  voiceInlineButtonActive: { backgroundColor: '#b3261e' },
+  drawerNewBtnText: { color: '#fff', fontWeight: '700', fontSize: 13 },
+  drawerDivider: { height: 1, backgroundColor: '#e5e7eb', marginVertical: 12 },
+
+  drawerLoading: { paddingVertical: 18, gap: 10, alignItems: 'center' },
+  drawerLoadingText: { color: '#6b7280' },
+
+  drawerList: { flex: 1 },
+  drawerEmpty: { color: '#6b7280', paddingVertical: 10 },
+
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eef2ff',
+    backgroundColor: '#f8fafc',
+    marginBottom: 10,
+    gap: 8,
+  },
+  drawerItemActive: {
+    borderColor: '#0f1b4c',
+    backgroundColor: '#eef2ff',
+  },
+  drawerItemRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  drawerItemTitle: {
+    color: '#0f1b4c',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  drawerItemDate: {
+    color: '#6b7280',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+
+  itemMenuBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#eef2ff',
+  },
+
+  // modal rename
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalCard: {
+    width: 420,
+    maxWidth: '95%',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  modalTitle: { fontSize: 16, fontWeight: '900', color: '#0f1b4c', marginBottom: 10 },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#d8dcf0',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f1b4c',
+    backgroundColor: '#fff',
+  },
+  modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 12 },
+  modalBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999 },
+  modalBtnGhost: { backgroundColor: '#eef2ff' },
+  modalBtnGhostText: { color: '#0f1b4c', fontWeight: '800' },
+  modalBtnPrimary: { backgroundColor: '#0f1b4c' },
+  modalBtnPrimaryText: { color: '#fff', fontWeight: '800' },
 });
