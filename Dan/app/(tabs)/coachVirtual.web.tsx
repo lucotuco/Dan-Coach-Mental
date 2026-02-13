@@ -66,7 +66,7 @@ function createSessionId(): string {
   try {
     // @ts-ignore
     if (typeof crypto !== 'undefined' && crypto?.randomUUID) return crypto.randomUUID();
-  } catch {}
+  } catch { }
   return `sess-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
@@ -123,6 +123,15 @@ export default function CoachVirtualScreen() {
   const [conversations, setConversations] = useState<ConversationListItem[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(false);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+
+  // ✅ Keep latest conversation id in a ref for finalize/pagehide handlers (avoid stale closures)
+  const activeConversationIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    activeConversationIdRef.current = activeConversationId;
+  }, [activeConversationId]);
+
+  // ✅ Title generation trigger (DAN conversations) - ref to avoid TDZ / ordering issues
+  const endConversationForTitleRef = useRef<(id: string | null) => Promise<void>>(async () => { });
 
   // ✅ ActionSheet pro
   const [menuOpen, setMenuOpen] = useState(false);
@@ -214,17 +223,17 @@ export default function CoachVirtualScreen() {
   const stopTracks = useCallback(() => {
     try {
       streamRef.current?.getTracks()?.forEach((t) => t.stop());
-    } catch {}
+    } catch { }
     streamRef.current = null;
 
     try {
       silentOscRef.current?.stop();
-    } catch {}
+    } catch { }
     silentOscRef.current = null;
 
     try {
       silentAudioCtxRef.current?.close();
-    } catch {}
+    } catch { }
     silentAudioCtxRef.current = null;
   }, []);
 
@@ -253,6 +262,101 @@ export default function CoachVirtualScreen() {
     }
     return lines.join('\n');
   }, [messages]);
+
+  // ✅ Conversations API
+  const fetchConversations = useCallback(async () => {
+    if (!API_URL) return;
+    const token = getStoredToken();
+    if (!token) return;
+
+    setLoadingConversations(true);
+    try {
+      const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}?limit=50`, {
+        method: 'GET',
+        credentials: 'omit',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (isUnauthorizedStatus(res.status)) {
+        redirectToLogin(router, logout);
+        return;
+      }
+      if (!res.ok) throw new Error(`GET conversations failed: ${res.status}`);
+
+      const data = await res.json();
+      const list: ConversationListItem[] = Array.isArray(data?.conversations) ? data.conversations : [];
+
+      // pinned arriba + sort por fecha
+      const sorted = [...list].sort((a, b) => {
+        const ap = a.pinned ? 1 : 0;
+        const bp = b.pinned ? 1 : 0;
+        if (ap !== bp) return bp - ap;
+        const ad = new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime();
+        const bd = new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime();
+        return bd - ad;
+      });
+
+      setConversations(sorted);
+    } catch (e) {
+      if (DEV_LOG) console.warn('[CONVERSATIONS] fetch error', e);
+    } finally {
+      setLoadingConversations(false);
+    }
+  }, [logout, router]);
+
+  // ✅ Finalizar conversación DAN (autotítulo en backend). Idempotente.
+  const endedConversationIdsRef = useRef<Set<string>>(new Set());
+
+  const endConversationForTitle = useCallback(
+    async (conversationId: string | null) => {
+      if (!conversationId) return;
+      const id = String(conversationId);
+      if (endedConversationIdsRef.current.has(id)) return;
+      endedConversationIdsRef.current.add(id);
+
+      if (!API_URL) return;
+      const token = getStoredToken();
+      if (!token) return;
+
+      try {
+        const res = await fetch(
+          `${API_URL}${DAN_CONVERSATIONS_ENDPOINT}/${encodeURIComponent(id)}/end`,
+          {
+            method: 'POST',
+            credentials: 'omit',
+            headers: { Authorization: `Bearer ${token}` },
+            // @ts-ignore
+            keepalive: true,
+          },
+        );
+
+        if (isUnauthorizedStatus(res.status)) {
+          redirectToLogin(router, logout);
+          return;
+        }
+        if (!res.ok) throw new Error(`POST conversation end failed: ${res.status}`);
+
+        const data = await res.json().catch(() => ({}));
+        const newTitle = (data?.conversation?.title ?? data?.title ?? '').toString();
+
+        if (newTitle) {
+          setConversations((prev) =>
+            prev.map((c) => (String(c._id) === id ? { ...c, title: newTitle } : c)),
+          );
+        }
+      } catch (e) {
+        if (DEV_LOG) console.warn('[CONVERSATIONS] end error', e);
+      } finally {
+        void fetchConversations();
+      }
+    },
+    [fetchConversations, logout, router],
+  );
+
+  // ✅ Sync ref AFTER endConversationForTitle is declared (avoid TDZ)
+  useEffect(() => {
+    endConversationForTitleRef.current = endConversationForTitle;
+  }, [endConversationForTitle]);
 
   const autosaveSession = useCallback(async () => {
     if (!API_URL) return;
@@ -305,7 +409,7 @@ export default function CoachVirtualScreen() {
     } catch (e) {
       if (DEV_LOG) console.warn('[AUTOSAVE] network error', e);
     }
-  }, [API_URL, activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+  }, [activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
 
   const finalizeSession = useCallback(async () => {
     if (!API_URL) return;
@@ -357,12 +461,15 @@ export default function CoachVirtualScreen() {
         if (DEV_LOG) console.warn('[FINALIZE] failed', resp.status, t);
       } else {
         if (DEV_LOG) console.log('[FINALIZE] ok', { sessionId: sessionIdRef.current });
+
+        // ✅ end DAN conversation to trigger title generation
+        void endConversationForTitleRef.current(activeConversationIdRef.current);
       }
     } catch (e) {
       finalizedRef.current = false;
       if (DEV_LOG) console.warn('[FINALIZE] network error', e);
     }
-  }, [API_URL, activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
+  }, [activeConversationId, buildTranscriptFromMessages, logout, messages.length, mode, router]);
 
   const scheduleAutosave = useCallback(() => {
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
@@ -377,18 +484,21 @@ export default function CoachVirtualScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
+  // ✅ Visibility/pagehide: finalize + end conversation for title (once)
   useEffect(() => {
     if (!isBrowser()) return;
 
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
         if (DEV_LOG) console.log('[VISIBILITY] hidden -> finalize');
+        void endConversationForTitleRef.current(activeConversationIdRef.current);
         void finalizeSession();
       }
     };
 
     const onPageHide = () => {
       if (DEV_LOG) console.log('[PAGEHIDE] -> finalize');
+      void endConversationForTitleRef.current(activeConversationIdRef.current);
       void finalizeSession();
     };
 
@@ -401,14 +511,16 @@ export default function CoachVirtualScreen() {
     };
   }, [finalizeSession]);
 
+  // ✅ Unmount cleanup
   useEffect(() => {
     return () => {
+      void endConversationForTitleRef.current(activeConversationIdRef.current);
       void finalizeSession();
       cleanupRealtime();
       try {
         const el = audioElRef.current;
         if (el && el.parentNode) el.parentNode.removeChild(el);
-      } catch {}
+      } catch { }
       if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -437,51 +549,13 @@ export default function CoachVirtualScreen() {
     return destination.stream;
   }, []);
 
-  // ✅ Conversations API
-  const fetchConversations = useCallback(async () => {
-    if (!API_URL) return;
-    const token = getStoredToken();
-    if (!token) return;
-
-    setLoadingConversations(true);
-    try {
-      const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}?limit=50`, {
-        method: 'GET',
-        credentials: 'omit',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (isUnauthorizedStatus(res.status)) {
-        redirectToLogin(router, logout);
-        return;
-      }
-      if (!res.ok) throw new Error(`GET conversations failed: ${res.status}`);
-
-      const data = await res.json();
-      const list: ConversationListItem[] = Array.isArray(data?.conversations) ? data.conversations : [];
-
-      // ✅ opcional: pinned arriba (sin depender del backend)
-      const sorted = [...list].sort((a, b) => {
-        const ap = a.pinned ? 1 : 0;
-        const bp = b.pinned ? 1 : 0;
-        if (ap !== bp) return bp - ap;
-        const ad = new Date(a.lastMessageAt || a.updatedAt || a.createdAt || 0).getTime();
-        const bd = new Date(b.lastMessageAt || b.updatedAt || b.createdAt || 0).getTime();
-        return bd - ad;
-      });
-
-      setConversations(sorted);
-    } catch (e) {
-      if (DEV_LOG) console.warn('[CONVERSATIONS] fetch error', e);
-    } finally {
-      setLoadingConversations(false);
-    }
-  }, [logout, router]);
-
   const createNewConversation = useCallback(async () => {
     if (!API_URL) return null;
     const token = getStoredToken();
     if (!token) return null;
+
+    // close previous conversation to trigger auto-title
+    await endConversationForTitleRef.current(activeConversationIdRef.current);
 
     try {
       const res = await fetch(`${API_URL}${DAN_CONVERSATIONS_ENDPOINT}`, {
@@ -526,6 +600,11 @@ export default function CoachVirtualScreen() {
       if (!API_URL) return;
       const token = getStoredToken();
       if (!token) return;
+
+      // close previous conversation to trigger auto-title
+      if (activeConversationIdRef.current && String(activeConversationIdRef.current) !== String(conversationId)) {
+        await endConversationForTitleRef.current(activeConversationIdRef.current);
+      }
 
       try {
         const res = await fetch(
@@ -805,12 +884,12 @@ export default function CoachVirtualScreen() {
         const mediaStream =
           targetMode === 'audio'
             ? await navigator.mediaDevices.getUserMedia({
-                audio: {
-                  echoCancellation: true,
-                  noiseSuppression: true,
-                  autoGainControl: true,
-                } as any,
-              })
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+              } as any,
+            })
             : createSilentMediaStream();
 
         streamRef.current = mediaStream;
@@ -1009,7 +1088,6 @@ export default function CoachVirtualScreen() {
     if (!drawerOpen) void fetchConversations();
   }, [drawerOpen, fetchConversations]);
 
-  // ✅ ActionSheet actions (usar menuConversationId)
   const actionRename = useCallback(() => {
     const id = menuConversationId;
     if (!id) return;
@@ -1028,7 +1106,6 @@ export default function CoachVirtualScreen() {
     const c = findConversationById(id);
     const nextPinned = !Boolean(c?.pinned);
 
-    // ⚠️ capturamos id antes de cerrar
     closeMenu();
     await patchConversation(String(id), { pinned: nextPinned });
   }, [closeMenu, findConversationById, menuConversationId, patchConversation]);
@@ -1052,253 +1129,281 @@ export default function CoachVirtualScreen() {
 
   return (
     <>
-    <Stack.Screen
-      options={{
-        
-        headerRight: () => (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="Abrir menú"
-            onPress={toggleDrawer}
-            style={styles.headerIconBtn}
-          >
-            <Feather name="menu" size={22} color="#000" />
-          </TouchableOpacity>
-        ),
-      }}
-    />
-    <View style={styles.screen}>
-      {/* Drawer overlay */}
-      {drawerOpen && (
-        <View style={styles.drawerOverlay}>
-          <Pressable style={styles.drawerBackdrop} onPress={() => setDrawerOpen(false)} />
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Abrir menú"
+              onPress={toggleDrawer}
+              style={styles.headerIconBtn}
+            >
+              <Feather name="menu" size={22} color="#000" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
-          <View style={styles.drawerPanel}>
-            <View style={styles.drawerHeader}>
-              <Text style={styles.drawerTitle}>Conversaciones</Text>
+      <View style={styles.screen}>
+        {/* Drawer overlay */}
+        {drawerOpen && (
+          <View style={styles.drawerOverlay}>
+            <Pressable style={styles.drawerBackdrop} onPress={() => setDrawerOpen(false)} />
 
-              <TouchableOpacity
-                style={styles.drawerNewBtn}
-                onPress={async () => {
-                  await createNewConversation();
-                  setDrawerOpen(false);
-                }}
-              >
-                <Feather name="plus" size={16} color="#fff" />
-                <Text style={styles.drawerNewBtnText}>Nueva</Text>
-              </TouchableOpacity>
+            <View style={styles.drawerPanel}>
+              <View style={styles.drawerHeader}>
+                <Text style={styles.drawerTitle}>Conversaciones</Text>
+
+                <TouchableOpacity
+                  style={styles.drawerNewBtn}
+                  onPress={async () => {
+                    await createNewConversation();
+                    setDrawerOpen(false);
+                  }}
+                >
+                  <Feather name="plus" size={16} color="#fff" />
+                  <Text style={styles.drawerNewBtnText}>Nueva</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.drawerDivider} />
+
+              {loadingConversations ? (
+                <View style={styles.drawerLoading}>
+                  <ActivityIndicator />
+                  <Text style={styles.drawerLoadingText}>Cargando…</Text>
+                </View>
+              ) : (
+                <ScrollView style={styles.drawerList} contentContainerStyle={{ paddingBottom: 18 }}>
+                  {conversations.length === 0 ? (
+                    <Text style={styles.drawerEmpty}>Todavía no hay conversaciones.</Text>
+                  ) : (
+                    conversations.map((c) => {
+                      const dateBase = c.lastMessageAt || c.updatedAt || c.createdAt || null;
+                      const title = (c.title ?? '').trim();
+                      const shownTitle = title ? title : fallbackTitleFromDate(dateBase);
+                      const isActive = activeConversationId && String(c._id) === String(activeConversationId);
+
+                      return (
+                        <View key={String(c._id)} style={[styles.drawerItem, isActive && styles.drawerItemActive]}>
+                          <TouchableOpacity style={{ flex: 1 }} onPress={() => void openConversation(String(c._id))}>
+                            <View style={styles.drawerItemRow}>
+                              <Text style={styles.drawerItemTitle} numberOfLines={1}>
+                                {c.pinned ? '📌 ' : ''}
+                                {shownTitle}
+                              </Text>
+                            </View>
+                            <Text style={styles.drawerItemDate}>{formatDateShort(dateBase)}</Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.itemMenuBtn}
+                            onPress={() => openMenuForConversation(String(c._id))}
+                          >
+                            <Feather name="more-vertical" size={18} color="#0f1b4c" />
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              )}
             </View>
 
-            <View style={styles.drawerDivider} />
+            {menuOpen && (
+              <View style={styles.actionSheetOverlay} pointerEvents="box-none">
+                <Pressable style={styles.actionSheetBackdrop} onPress={closeMenu} />
 
-            {loadingConversations ? (
-              <View style={styles.drawerLoading}>
-                <ActivityIndicator />
-                <Text style={styles.drawerLoadingText}>Cargando…</Text>
+                <View style={styles.actionSheetCard}>
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={actionRename}>
+                    <Text style={styles.actionSheetText}>Cambiar nombre</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionTogglePin()}>
+                    <Text style={styles.actionSheetText}>Pinear / Despinear</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.actionSheetDivider} />
+
+                  <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionDelete()}>
+                    <Text style={[styles.actionSheetText, { color: '#b3261e' }]}>Borrar</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            ) : (
-              <ScrollView style={styles.drawerList} contentContainerStyle={{ paddingBottom: 18 }}>
-                {conversations.length === 0 ? (
-                  <Text style={styles.drawerEmpty}>Todavía no hay conversaciones.</Text>
-                ) : (
-                  conversations.map((c) => {
-                    const dateBase = c.lastMessageAt || c.updatedAt || c.createdAt || null;
-                    const title = (c.title ?? '').trim();
-                    const shownTitle = title ? title : fallbackTitleFromDate(dateBase);
-                    const isActive = activeConversationId && String(c._id) === String(activeConversationId);
-
-                    return (
-                      <View key={String(c._id)} style={[styles.drawerItem, isActive && styles.drawerItemActive]}>
-                        <TouchableOpacity style={{ flex: 1 }} onPress={() => void openConversation(String(c._id))}>
-                          <View style={styles.drawerItemRow}>
-                            <Text style={styles.drawerItemTitle} numberOfLines={1}>
-                              {c.pinned ? '📌 ' : ''}
-                              {shownTitle}
-                            </Text>
-                          </View>
-                          <Text style={styles.drawerItemDate}>{formatDateShort(dateBase)}</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.itemMenuBtn}
-                          onPress={() => openMenuForConversation(String(c._id))}
-                        >
-                          <Feather name="more-vertical" size={18} color="#0f1b4c" />
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })
-                )}
-              </ScrollView>
             )}
           </View>
+        )}
 
-          {/* ✅ ActionSheet PRO */}
-          {menuOpen && (
-            <View style={styles.actionSheetOverlay} pointerEvents="box-none">
-              <Pressable style={styles.actionSheetBackdrop} onPress={closeMenu} />
-
-              <View style={styles.actionSheetCard}>
-                <TouchableOpacity style={styles.actionSheetItem} onPress={actionRename}>
-                  <Text style={styles.actionSheetText}>Cambiar nombre</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionTogglePin()}>
-                  <Text style={styles.actionSheetText}>Pinear / Despinear</Text>
-                </TouchableOpacity>
-
-                <View style={styles.actionSheetDivider} />
-
-                <TouchableOpacity style={styles.actionSheetItem} onPress={() => void actionDelete()}>
-                  <Text style={[styles.actionSheetText, { color: '#b3261e' }]}>Borrar</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-      )}
-
-      {/* Rename modal */}
-      <Modal transparent visible={renameOpen} animationType="fade" onRequestClose={() => setRenameOpen(false)}>
-        <Pressable style={styles.modalOverlay} onPress={() => setRenameOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Cambiar nombre</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={renameValue}
-              onChangeText={setRenameValue}
-              placeholder="Nuevo título…"
-              placeholderTextColor="#6b7280"
-              maxLength={80}
-            />
-            <View style={styles.modalButtons}>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnGhost]} onPress={() => setRenameOpen(false)}>
-                <Text style={styles.modalBtnGhostText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={() => void submitRename()}>
-                <Text style={styles.modalBtnPrimaryText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
-      {/* Header */}
-      <View style={styles.fixedHeader}>
-        <View style={styles.topRow}>
-          <View style={{ width: 40 }} />
-
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <MedioLogo />
-          </View>
-
-          <View style={{ width: 40 }} />
-        </View>
-
-        <View style={styles.header}>
-          <Text style={styles.title}>Coach Virtual</Text>
-          <Text style={styles.subtitle}>
-            {connected
-              ? mode === 'audio'
-                ? 'Modo audio: hablás y DAN responde con voz. También podés escribir.'
-                : 'Modo texto: escribís y DAN responde en texto.'
-              : 'Escribí para modo texto o tocá el botón de llamada para modo audio.'}
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_H + GAP, paddingBottom: INPUT_H + GAP }]}
-        keyboardShouldPersistTaps="never"
-      >
-        <View style={styles.chatWrapper}>
-          {messages.length === 0 ? (
-            <Text style={styles.emptyText}>Aún no hay mensajes. Escribí o iniciá llamada.</Text>
-          ) : (
-            messages.map((msg) => (
-              <View
-                key={msg.id}
-                style={[styles.message, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
-              >
-                <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
-                <Text style={styles.messageText}>{msg.content}</Text>
-              </View>
-            ))
-          )}
-
-          {assistantThinking && (
-            <View style={[styles.message, styles.assistantMessage]}>
-              <Text style={styles.messageRole}>Coach DAN</Text>
-              <Text style={styles.messageText}>Pensando{thinkingDots}</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
-
-      <View style={styles.fixedInputBar}>
-        <TextInput
-          style={styles.input}
-          placeholder={
-            connected
-              ? mode === 'audio'
-                ? 'Escribí (DAN responde con voz)…'
-                : 'Escribí (DAN responde por texto)…'
-              : 'Escribí para empezar en modo texto…'
-          }
-          placeholderTextColor="#5a5f6dff"
-          value={question}
-          onChangeText={setQuestion}
-          multiline
-          maxLength={500}
-          editable={!connecting}
-        />
-        <View style={styles.inputButtons}>
-          <TouchableOpacity
-            style={[
-              styles.primaryActionButton,
-              !trimmedQuestion && connected && mode === 'audio' && styles.primaryActionButtonActive,
-              connecting && styles.primaryActionButtonDisabled,
-            ]}
-            onPress={trimmedQuestion ? sendTextMessage : onPressCall}
-            disabled={connecting}
-          >
-            {connecting && !trimmedQuestion ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Feather
-                name={
-                  trimmedQuestion
-                    ? 'send'
-                    : connected && mode === 'audio'
-                      ? 'phone-off'
-                      : 'phone-call'
-                }
-                size={18}
-                color="#fff"
+        {/* Rename modal */}
+        <Modal transparent visible={renameOpen} animationType="fade" onRequestClose={() => setRenameOpen(false)}>
+          <Pressable style={styles.modalOverlay} onPress={() => setRenameOpen(false)}>
+            <Pressable style={styles.modalCard} onPress={() => { }}>
+              <Text style={styles.modalTitle}>Cambiar nombre</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={renameValue}
+                onChangeText={setRenameValue}
+                placeholder="Nuevo título…"
+                placeholderTextColor="#6b7280"
+                maxLength={80}
               />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity style={[styles.modalBtn, styles.modalBtnGhost]} onPress={() => setRenameOpen(false)}>
+                  <Text style={styles.modalBtnGhostText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.modalBtn, styles.modalBtnPrimary]} onPress={() => void submitRename()}>
+                  <Text style={styles.modalBtnPrimaryText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
 
-      {!!errorText && <Text style={styles.errorTextFixed}>{errorText}</Text>}
-    </View>
+        {/* Header */}
+        <View style={styles.fixedHeader}>
+          <View style={styles.topRow}>
+            <View style={{ width: 40 }} />
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <MedioLogo />
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <View style={styles.header}>
+            <Text style={styles.title}>Coach Virtual</Text>
+            <Text style={styles.subtitle}>
+              {connected
+                ? mode === 'audio'
+                  ? 'Modo audio: hablás y DAN responde con voz. También podés escribir.'
+                  : 'Modo texto: escribís y DAN responde en texto.'
+                : 'Escribí para modo texto o tocá el botón de llamada para modo audio.'}
+            </Text>
+          </View>
+        </View>
+
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_H + GAP, paddingBottom: INPUT_H + GAP }]}
+          keyboardShouldPersistTaps="never"
+        >
+          <View style={styles.chatWrapper}>
+            {messages.length === 0 ? (
+              <Text style={styles.emptyText}>Aún no hay mensajes. Escribí o iniciá llamada.</Text>
+            ) : (
+              messages.map((msg) => (
+                <View
+                  key={msg.id}
+                  style={[styles.message, msg.role === 'user' ? styles.userMessage : styles.assistantMessage]}
+                >
+                  <Text style={styles.messageRole}>{msg.role === 'user' ? 'Tú' : 'Coach DAN'}</Text>
+                  <Text style={styles.messageText}>{msg.content}</Text>
+                </View>
+              ))
+            )}
+
+            {assistantThinking && (
+              <View style={[styles.message, styles.assistantMessage]}>
+                <Text style={styles.messageRole}>Coach DAN</Text>
+                <Text style={styles.messageText}>Pensando{thinkingDots}</Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        <View style={styles.fixedInputBar}>
+          <TextInput
+            style={styles.input}
+            placeholder={
+              connected
+                ? mode === 'audio'
+                  ? 'Escribí (DAN responde con voz)…'
+                  : 'Escribí (DAN responde por texto)…'
+                : 'Escribí para empezar en modo texto…'
+            }
+            placeholderTextColor="#5a5f6dff"
+            value={question}
+            onChangeText={setQuestion}
+            multiline
+            maxLength={500}
+            editable={!connecting}
+          />
+
+          <View style={styles.inputButtons}>
+            <TouchableOpacity
+              style={[
+                styles.primaryActionButton,
+                connecting && styles.primaryActionButtonDisabled,
+                !trimmedQuestion && connected && mode === 'audio' && styles.primaryActionButtonHangup,
+              ]}
+              onPress={() => {
+                if (connecting) return;
+                if (trimmedQuestion) {
+                  void sendTextMessage();
+                } else {
+                  void onPressCall();
+                }
+              }}
+              disabled={connecting}
+              accessibilityRole="button"
+              accessibilityLabel={
+                connecting
+                  ? 'Conectando'
+                  : trimmedQuestion
+                    ? 'Enviar mensaje'
+                    : connected && mode === 'audio'
+                      ? 'Cortar llamada'
+                      : 'Iniciar llamada'
+              }
+            >
+              {connecting ? (
+                <ActivityIndicator color="#fff" />
+              ) : trimmedQuestion ? (
+                <Feather name="send" size={18} color="#fff" />
+              ) : (
+                <Feather name={connected && mode === 'audio' ? 'phone-off' : 'phone-call'} size={18} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+        </View>
+
+        {!!errorText && <Text style={styles.errorTextFixed}>{errorText}</Text>}
+      </View>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  inputButtons: { flexDirection: 'row', gap: 8 },
+
+  primaryActionButton: {
+    width: 55,
+    height: 55,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0f1b4c',
+    marginBottom:5
+  },
+
+  primaryActionButtonDisabled: {
+    opacity: 0.65,
+  },
+
+  primaryActionButtonHangup: {
+    backgroundColor: '#b3261e',
+  },
+
   headerIconBtn: {
-  paddingHorizontal: 12,
-  paddingVertical: 10,
-  borderRadius: 999,
-  backgroundColor: 'transparent',
-  minWidth: 44,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   actionSheetOverlay: {
     position: 'absolute',
@@ -1365,15 +1470,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-
-  menuBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#eef2ff',
   },
 
   header: { gap: 8, marginTop: 8 },
@@ -1449,22 +1545,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d8dcf0',
   },
-
-  inputButtons: { flexDirection: 'row', gap: 8 },
-
-  primaryActionButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#0f1b4c',
-    marginEnd: -3,
-    marginBottom: 7
-  },
-  // Cuando está en llamada activa y el input está vacío, el botón representa “cortar”.
-  primaryActionButtonActive: { backgroundColor: '#b3261e' },
-  primaryActionButtonDisabled: { backgroundColor: '#9aa4c3' },
 
   // Drawer
   drawerOverlay: {
