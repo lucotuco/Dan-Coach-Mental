@@ -13,6 +13,8 @@ interface CheckSliderProps {
   minimumValue?: number;
   maximumValue?: number;
   step?: number;
+  showBounds?: boolean;
+  unit?: string;
 }
 
 const SLIDER_WIDTH = 270;
@@ -27,6 +29,8 @@ const CheckSlider: React.FC<CheckSliderProps> = ({
   minimumValue = 0,
   maximumValue = 100,
   step = 1,
+  showBounds = true,
+  unit = '%',
 }) => {
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipValue, setTooltipValue] = useState(value);
@@ -59,7 +63,10 @@ const CheckSlider: React.FC<CheckSliderProps> = ({
       : (tooltipValue - minimumValue) / (maximumValue - minimumValue);
   const clampedValue = Math.min(Math.max(normalizedValue, 0), 1);
   const tooltipLeft = clampedValue * SLIDER_WIDTH;
-
+const formatValue = (val: number) => {
+  const rounded = Math.round(val);
+    return `${rounded}${unit}`;
+     };
   return (
     <View style={styles.wrapper}>
       <Text style={styles.label}>{label}</Text>
@@ -69,7 +76,7 @@ const CheckSlider: React.FC<CheckSliderProps> = ({
             pointerEvents="none"
             style={[styles.tooltip, { left: tooltipLeft, borderColor: color }]}
           >
-            <Text style={[styles.tooltipText, { color }]}>{tooltipValue}</Text>
+            <Text style={[styles.tooltipText, { color }]}>{formatValue(tooltipValue)}</Text>
           </View>
         )}
         <Slider
@@ -86,12 +93,28 @@ const CheckSlider: React.FC<CheckSliderProps> = ({
           value={value}
         />
       </View>
+      {showBounds && (
+        <View style={[styles.boundsRow, { width: SLIDER_WIDTH }]}>
+          <Text style={styles.boundText}>{formatValue(minimumValue)}</Text>
+          <Text style={styles.boundText}>{formatValue(maximumValue)}</Text>
+        </View>
+      )}
       {description ? <Text style={styles.description}>{description}</Text> : null}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+   boundsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -8,
+  },
+  boundText: {
+    fontSize: 12,
+    color: '#1d1564',
+    opacity: 0.7,
+  },
   wrapper: {
     gap: 6,
   },
