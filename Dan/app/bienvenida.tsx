@@ -50,7 +50,7 @@ export default function WelcomeDreamScreen() {
   );
   const accent = '#d5e7fb';
 
-  const goHome = () => router.replace('/(tabs)/homePage');
+  const goHome = () => router.replace('/gate');
 
   // --- API CALLS ---
 

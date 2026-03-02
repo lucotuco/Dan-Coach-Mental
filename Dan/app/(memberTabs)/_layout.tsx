@@ -1,0 +1,77 @@
+import React from 'react';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import { Tabs } from 'expo-router';
+
+import Colors from '@/constants/Colors';
+import { useColorScheme } from '@/components/useColorScheme';
+import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+import { createSharedHeaderOptions, withoutBackButton } from '@/constants/navigation';
+
+export function TabBarIcon(props: {
+  name: React.ComponentProps<typeof FontAwesome5>['name'];
+  color: string;
+}) {
+  return <FontAwesome5 size={24} style={{ marginBottom: -2 }} {...props} />;
+}
+
+export default function MemberTabLayout() {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+
+  const sharedHeaderOptions = React.useMemo(
+    () => createSharedHeaderOptions(theme),
+    [theme],
+  );
+
+  return (
+    <Tabs
+      screenOptions={{
+        ...sharedHeaderOptions,
+        tabBarActiveTintColor: theme.tabIconSelected,
+        tabBarInactiveTintColor: theme.tabIconDefault,
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarStyle: {
+          backgroundColor: theme.background,
+          borderTopColor: 'transparent',
+          elevation: 0,
+          paddingVertical: 6,
+        },
+        headerShown: useClientOnlyValue(false, true),
+      }}
+    >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Plan',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          ...withoutBackButton,
+        }}
+      />
+      <Tabs.Screen
+        name="checkin"
+        options={{
+          title: 'Chequeo',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="clipboard-check" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="history"
+        options={{
+          title: 'Historial',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="history" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="team"
+        options={{
+          title: 'Equipo',
+          tabBarLabel: '',
+          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}

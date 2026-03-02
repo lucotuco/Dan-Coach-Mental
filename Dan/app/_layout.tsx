@@ -16,7 +16,7 @@ export { ErrorBoundary } from 'expo-router';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-const PUBLIC_ROUTES = ['/', '/signup', '/introVideo'];
+const PUBLIC_ROUTES = ['/', '/signup'];
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -66,12 +66,13 @@ function RootLayoutNav() {
       <NavigationHistoryProvider>
         <Stack screenOptions={sharedHeaderOptions}>
           <Stack.Screen name="index" options={{ gestureEnabled: false, ...withoutBackButton }} />
-          <Stack.Screen name="introVideo" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="signup" options={{ gestureEnabled: false, ...withoutBackButton }} />
           <Stack.Screen name="bienvenida" options={{ gestureEnabled: false, ...withoutBackButton }} />
           <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(onboarding)" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(memberTabs)" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(coachTabs)" options={{ presentation: 'modal' }} />
         </Stack>
       </NavigationHistoryProvider>
     </ThemeProvider>

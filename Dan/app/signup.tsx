@@ -6,6 +6,9 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Pressable,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -14,6 +17,76 @@ import { Text, View, useThemeColor } from '@/components/Themed';
 import { useAuth } from '@/components/AuthContext';
 import { getStoredToken, isUnauthorizedStatus, redirectToLogin } from '@/components/AuthContext';
 
+const roles = [
+  'coach',
+  'member'
+];
+const OptionSelector = ({
+  icon = 'people',
+  placeholder,
+  value,
+  options,
+  onSelect,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  placeholder: string;
+  value: string;
+  options: string[];
+  onSelect: (v: string) => void;
+}) => {
+  const [open, setOpen] = useState(false);
+
+  const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
+  const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
+
+  const displayText = value ? value : placeholder;
+  const displayColor = value ? inputTextColor : mutedColor;
+
+  return (
+    <>
+      <Pressable
+        style={({ pressed }) => [
+          styles.inputWrapper,
+          { borderColor: mutedColor, opacity: pressed ? 0.9 : 1 },
+        ]}
+        onPress={() => setOpen(true)}
+      >
+        <Ionicons name={icon} size={20} color={mutedColor} style={styles.inputIcon} />
+        <Text style={[styles.input, { color: displayColor }]} numberOfLines={1}>
+          {displayText}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color={mutedColor} />
+      </Pressable>
+
+      <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Seleccionar rol</Text>
+
+            <FlatList
+              data={options}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    onSelect(item);
+                    setOpen(false);
+                  }}
+                >
+                  <Text style={styles.optionText}>
+                    {item === 'coach' ? 'coach' : 'member'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              ItemSeparatorComponent={() => <View style={styles.optionDivider} />}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </>
+  );
+};
 function Field({
   icon,
   placeholder,
@@ -64,9 +137,10 @@ export default function SignupScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('');
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const handleSignup = async () => {
-    if (!name || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword || !role) {
       alert('Por favor completá todos los campos');
       return;
     }
@@ -77,13 +151,13 @@ export default function SignupScreen() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/users`, {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           // IMPORTANTE: sin Authorization en signup
         },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, role }),
       });
 
       const data = await response.json();
@@ -105,9 +179,9 @@ export default function SignupScreen() {
 
       // OJO: tu back hoy NO devuelve token en createUser
       // Si querés “auto-login” real, ver punto 3.
-      login(data.user);
+      login(data.token, data.user);
 
-      router.replace('/(tabs)/homePage');
+      router.replace('/gate');
     } catch (error) {
       console.error('Error al crear el usuario (fetch):', error);
       alert('Error de conexión con el servidor');
@@ -129,9 +203,9 @@ export default function SignupScreen() {
             <MedioLogo />
           </View>
           <Text style={[styles.title, { color: '#031355', }]}>Bienvenido</Text>
-                      <Text style={[styles.subtitle, { color: mutedColor }]}>
-                        Crea una cuenta para empezar a entrenarte.
-                      </Text>
+          <Text style={[styles.subtitle, { color: mutedColor }]}>
+            Crea una cuenta para empezar a entrenarte.
+          </Text>
           <View style={styles.card}>
             <View style={styles.formFields}>
               <Field
@@ -141,6 +215,13 @@ export default function SignupScreen() {
                 onChangeText={setFullName}
                 autoCapitalize="words"
                 returnKeyType="next"
+              />
+              <OptionSelector
+                icon="people"
+                placeholder="Seleccionar rol"
+                value={role}
+                onSelect={setRole}
+                options={roles}
               />
               <Field
                 icon="mail"
@@ -164,6 +245,7 @@ export default function SignupScreen() {
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
               />
+              
             </View>
 
             <TouchableOpacity
@@ -220,8 +302,8 @@ const styles = StyleSheet.create({
     elevation: 6,
     alignItems: 'stretch',
   },
-  title: { fontSize: 24, fontWeight: '800' ,textAlign:'left'},
-  subtitle: { fontSize: 14, lineHeight: 20 , marginTop: -28},
+  title: { fontSize: 24, fontWeight: '800', textAlign: 'left' },
+  subtitle: { fontSize: 14, lineHeight: 20, marginTop: -28 },
   logoContainer: {
     alignItems: 'center',
     marginBottom: 32,
@@ -291,4 +373,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
+  optionDivider: {
+    height: 1,
+    backgroundColor: '#eceff5',
+  },
+  optionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1f2b6c',
+  },
+  optionItem: {
+    paddingVertical: 12,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f1b4c',
+    marginBottom: 12,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '60%',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+ 
 });

@@ -1,14 +1,19 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { Router } from 'expo-router';
 
-export const getStoredToken = () =>
-  typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
+const TOKEN_KEY = 'token';
+const USER_KEY = 'user';
 
-const clearStoredToken = () => {
-  if (typeof localStorage !== 'undefined') {
-    localStorage.removeItem('token');
-  }
+export const getStoredToken = () =>
+  typeof localStorage !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null;
+
+const setStoredToken = (token: string | null) => {
+  if (typeof localStorage === 'undefined') return;
+  if (!token) localStorage.removeItem(TOKEN_KEY);
+  else localStorage.setItem(TOKEN_KEY, token);
 };
+
+const clearStoredToken = () => setStoredToken(null);
 
 export const isUnauthorizedStatus = (status: number) => status === 401 || status === 403;
 
@@ -19,26 +24,35 @@ export function redirectToLogin(router: RouterLike, logout: () => void) {
   router.replace('/'); // o '/(auth)/login'
 }
 
-type User = {
-  _id: string;
+export type User = {
+  // tu backend nuevo suele devolver userId; si devuelve _id, lo soportamos también
+  userId?: string;
+  _id?: string;
+
   name: string;
   email: string;
-  phone?: string;
+
+  role?: 'coach' | 'member';
+  teamId?: string | null;
 };
 
 type AuthContextType = {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
-  login: (user: User) => void;
+
+  // ✅ cambio clave
+  login: (token: string, user: User) => void;
+
   logout: () => void;
+  setUserData: (user: User) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 🔹 Helper para leer el user guardado en localStorage
 const getStoredUser = (): User | null => {
   if (typeof localStorage === 'undefined') return null;
-  const raw = localStorage.getItem('user');
+  const raw = localStorage.getItem(USER_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as User;
@@ -48,30 +62,42 @@ const getStoredUser = (): User | null => {
 };
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // 🔹 Hidratamos el estado inicial desde localStorage (si hay algo)
   const [user, setUser] = useState<User | null>(() => getStoredUser());
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
 
-  const login = (userData: User) => {
+  const login = (tokenValue: string, userData: User) => {
     setUser(userData);
+    setToken(tokenValue);
+
+    setStoredToken(tokenValue);
 
     if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem(USER_KEY, JSON.stringify(userData));
     }
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     clearStoredToken();
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('user');
+      localStorage.removeItem(USER_KEY);
     }
   };
+  const setUserData = (userData: User) => {
+  setUser(userData);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('user', JSON.stringify(userData));
+  }
+};
 
   const value: AuthContextType = {
     user,
-    isAuthenticated: !!user,
+    token,
+    isAuthenticated: !!token && !!user,
     login,
     logout,
+    setUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -79,8 +105,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth debe usarse dentro de un AuthProvider');
-  }
+  if (!ctx) throw new Error('useAuth debe usarse dentro de un AuthProvider');
   return ctx;
 };

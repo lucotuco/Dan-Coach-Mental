@@ -28,14 +28,6 @@ export default function LoginScreen() {
   const mutedColor = useThemeColor({ light: '#6c728a', dark: '#a6aac4' }, 'text');
   const inputTextColor = useThemeColor({ light: '#1f2937', dark: '#f0f4ff' }, 'text');
 
-  // ✅ En WEB: si todavía no vio el intro en ESTA sesión de navegación, lo mandamos al video.
-  // Usamos <Redirect /> para evitar el error "Attempted to navigate before mounting..."
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const seen = window.sessionStorage.getItem(INTRO_KEY) === '1';
-    if (!seen) {
-      return <Redirect href={{ pathname: '/introVideo', params: { next: '/' } }} />;
-    }
-  }
 
   const handleLogin = async () => {
     try {
@@ -44,7 +36,7 @@ export default function LoginScreen() {
           ? localStorage.getItem('token')
           : null;
 
-      const response = await fetch(API_URL + '/api/users/login', {
+      const response = await fetch(API_URL + '/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,9 +58,9 @@ export default function LoginScreen() {
       }
 
       // ✅ Guardamos user en contexto
-      login(data.user);
+      login(data.token,data.user);
 
-      router.replace('/(tabs)/homePage');
+      router.replace('/gate');
     } catch (error) {
       console.error('Error en login:', error);
       alert('Error de conexión con el servidor');
