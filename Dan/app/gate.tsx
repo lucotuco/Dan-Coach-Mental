@@ -26,8 +26,8 @@ export default function GateScreen() {
     }
 
     // 3) Apps por rol
-    if (role === 'coach') router.replace('/(coachTabs)');
-    else router.replace('/(memberTabs)');
+    if (role === 'coach') router.replace('/(coachTabs)/home');
+    else router.replace('/(memberTabs)/homeMembers');
   }, [isAuthenticated, user, router]);
 
   return (

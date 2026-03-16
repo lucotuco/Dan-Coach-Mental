@@ -40,18 +40,18 @@ export default function CoachTabLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="home"
         options={{
-          title: 'Dashboard',
+          title: 'home',
           tabBarLabel: '',
-          tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
           ...withoutBackButton,
         }}
       />
       <Tabs.Screen
-        name="team"
+        name="equipo"
         options={{
-          title: 'Equipo',
+          title: 'equipo',
           tabBarLabel: '',
           tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
         }}

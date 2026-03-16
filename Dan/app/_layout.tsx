@@ -71,8 +71,8 @@ function RootLayoutNav() {
           <Stack.Screen name="cargarInfo" options={{ gestureEnabled: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="(onboarding)" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="(memberTabs)" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="(coachTabs)" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="(memberTabs)" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="(coachTabs)" options={{ presentation: 'modal', headerShown: false  }} />
         </Stack>
       </NavigationHistoryProvider>
     </ThemeProvider>

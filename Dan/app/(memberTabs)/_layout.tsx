@@ -11,7 +11,7 @@ export function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome5>['name'];
   color: string;
 }) {
-  return <FontAwesome5 size={24} style={{ marginBottom: -2 }} {...props} />;
+  return <FontAwesome5 size={20} style={{ marginBottom: -2 }} {...props} />;
 }
 
 export default function MemberTabLayout() {
@@ -34,44 +34,65 @@ export default function MemberTabLayout() {
           backgroundColor: theme.background,
           borderTopColor: 'transparent',
           elevation: 0,
-          paddingVertical: 6,
+          paddingVertical: 2,
+          height: 52,
         },
         headerShown: useClientOnlyValue(false, true),
       }}
     >
       <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Plan',
-          tabBarLabel: '',
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
-          ...withoutBackButton,
-        }}
-      />
-      <Tabs.Screen
-        name="checkin"
-        options={{
-          title: 'Chequeo',
-          tabBarLabel: '',
-          tabBarIcon: ({ color }) => <TabBarIcon name="clipboard-check" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'Historial',
-          tabBarLabel: '',
-          tabBarIcon: ({ color }) => <TabBarIcon name="history" color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="team"
-        options={{
-          title: 'Equipo',
-          tabBarLabel: '',
-          tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
-        }}
-      />
+  name="homeMembers"
+  options={{
+    title: 'home',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+    ...withoutBackButton,
+  }}
+/>
+<Tabs.Screen
+  name="dan"
+  options={{
+    title: 'DAN',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="comment-dots" color={color} />,
+  }}
+/>
+
+<Tabs.Screen
+  name="checkin"
+  options={{
+    title: 'Chequeo',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="clipboard-check" color={color} />,
+  }}
+/>
+
+<Tabs.Screen
+  name="progress"
+  options={{
+    title: 'Progreso',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="chart-line" color={color} />,
+  }}
+/>
+
+<Tabs.Screen
+  name="tools"
+  options={{
+    title: 'Herramientas',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="dumbbell" color={color} />,
+  }}
+/>
+
+<Tabs.Screen
+  name="plan"
+  options={{
+    title: 'Plan',
+    tabBarLabel: '',
+    tabBarIcon: ({ color }) => <TabBarIcon name="users" color={color} />,
+  }}
+/>
     </Tabs>
   );
 }

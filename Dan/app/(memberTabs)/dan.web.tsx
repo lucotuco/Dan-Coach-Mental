@@ -1,5 +1,5 @@
 import DanChatWeb from '@/components/DanChatWeb';
 
-export default function CoachVirtualScreen() {
+export default function MemberDanWebScreen() {
   return <DanChatWeb />;
 }
