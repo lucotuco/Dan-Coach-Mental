@@ -2,6 +2,8 @@
 
 Frontend de **DAN**, construido con React Native y Expo. Esta aplicación permite a los deportistas interactuar con su Coach Mental a través de chat de texto y llamadas de voz en tiempo real. Está diseñada para funcionar en Web, Android e iOS, adaptando su interfaz según el rol del usuario (Entrenador o Jugador).
 
+🔗 This project uses a separate API. [Click here to view the Backend code](https://github.com/lucotuco/Dan-Coach-Mental-Backend)
+
 ## 🚀 Características Principales
 * **Expo Router:** Navegación avanzada basada en archivos, separando las vistas en flujos de `(coachTabs)` y `(memberTabs)` según el tipo de usuario autenticado[cite: 2].
 * **Llamadas WebRTC con IA:** Integración con `@openai/agents` y `livekit-client` para sostener llamadas de voz de latencia ultra baja directamente en el navegador (Web) con detección de interrupción de voz[cite: 2].
